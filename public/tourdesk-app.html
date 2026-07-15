@@ -550,7 +550,20 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
     <div class="hinner">
       <div class="logo" onclick="showLanding()"><div class="logo-icon">♩</div><div><div class="logo-name">Tour<span style="color:var(--gold)">Desk</span></div><div class="logo-sub">Artist Agenda</div></div></div>
       <div id="nav-current" style="font-weight:800;font-size:14px;letter-spacing:-.02em;color:var(--text);flex:1;text-align:center;padding:0 8px">Calendar</div>
-      <div id="user-avatar" title="" style="display:none;width:32px;height:32px;border-radius:50%;background:var(--gold);color:#0A0A0F;font-weight:900;font-size:13px;align-items:center;justify-content:center;cursor:default;flex-shrink:0;margin-right:6px"></div>
+      <div id="user-avatar" onclick="toggleAvatarMenu(event)" title="" style="display:none;width:32px;height:32px;border-radius:50%;background:var(--gold);color:#0A0A0F;font-weight:900;font-size:13px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:6px;position:relative;user-select:none"></div>
+      <div id="avatar-dropdown" style="display:none;position:fixed;top:58px;right:12px;background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:8px;z-index:100;min-width:220px;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+        <div id="avatar-email" style="padding:10px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--bdr);margin-bottom:6px;word-break:break-all"></div>
+        <div onclick="showView('settings');closeAvatarMenu()" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600" onmouseover="this.style.background='var(--surf)'" onmouseout="this.style.background=''">
+          <span style="font-size:18px">⚙️</span> Settings
+        </div>
+        <div onclick="openContactUs();closeAvatarMenu()" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600" onmouseover="this.style.background='var(--surf)'" onmouseout="this.style.background=''">
+          <span style="font-size:18px">💬</span> Contact us
+        </div>
+        <div style="border-top:1px solid var(--bdr);margin:6px 0"></div>
+        <div onclick="signOut();closeAvatarMenu()" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;color:var(--red)" onmouseover="this.style.background='var(--redbg)'" onmouseout="this.style.background=''">
+          <span style="font-size:18px">🚪</span> Sign out
+        </div>
+      </div>
       <button id="hamburger-btn" onclick="toggleMenu()" style="background:var(--surf);border:1px solid var(--bdr);border-radius:10px;cursor:pointer;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;width:44px;height:44px;flex-shrink:0">
         <span style="display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:all .25s"></span>
         <span style="display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:all .25s"></span>
@@ -594,7 +607,7 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
       <div class="menu-item" onclick="showDataStatus();closeMenu()"><div class="menu-icon">💾</div><div><div class="menu-label">Data & Storage</div><div class="menu-sub" id="storage-status-sub">Check your saved data</div></div></div>
       <div class="menu-item" onclick="showOnboarding();closeMenu()"><div class="menu-icon">❓</div><div><div class="menu-label">How it works</div><div class="menu-sub">Replay the intro guide</div></div></div>
       <div style="border-top:1px solid var(--bdr);margin:8px 0"></div>
-      <div class="menu-item" onclick="signOut()"><div class="menu-icon">🚪</div><div><div class="menu-label">Sign out</div><div class="menu-sub" id="user-email-sub">Your account</div></div></div>
+      <div class="menu-item" onclick="showView('settings');closeMenu()"><div class="menu-icon">⚙️</div><div><div class="menu-label">Settings</div><div class="menu-sub" id="user-email-sub">Your account</div></div></div>
     </div>
   </div>
 
@@ -815,6 +828,62 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
       </div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:18px">Track your industry relationships — casting directors, producers, managers. Get reminded when it's time to follow up.</div>
       <div id="contacts-list"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="view" id="view-settings">
+      <div class="toolbar">
+        <div class="tbar-title">⚙️ Settings</div>
+      </div>
+
+      <!-- Profile -->
+      <div style="background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:18px 20px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px">👤 Profile</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+          <div id="settings-avatar" style="width:52px;height:52px;border-radius:50%;background:var(--gold);color:#0A0A0F;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0">?</div>
+          <div>
+            <div id="settings-email" style="font-weight:700;font-size:14px">Loading...</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">TourDesk account</div>
+          </div>
+        </div>
+        <div class="field"><label>Display name</label><input type="text" id="settings-name" placeholder="e.g. Sannie — Session Drummer" style="width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:14px"></div>
+        <button onclick="saveSettingsProfile()" class="btn-p" style="width:100%;margin-top:4px">Save profile</button>
+      </div>
+
+      <!-- Plan -->
+      <div style="background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:18px 20px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">💳 Plan</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-weight:800;font-size:15px">Free trial</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Upgrade to unlock all features</div>
+          </div>
+          <button onclick="showLanding()" class="btn-p" style="padding:8px 14px;font-size:12px">Upgrade →</button>
+        </div>
+      </div>
+
+      <!-- Preferences -->
+      <div style="background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:18px 20px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">🎯 Hours goal</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="number" id="settings-hours-goal" value="507" min="1" style="width:100px;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:9px 12px;color:var(--gold);font-family:inherit;font-size:16px;font-weight:900">
+          <span style="color:var(--muted);font-size:13px">hours per year (507 = France Travail intermittent)</span>
+        </div>
+        <button onclick="saveSettingsHours()" class="btn-s" style="margin-top:10px">Save</button>
+      </div>
+
+      <!-- Support -->
+      <div style="background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:18px 20px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">💬 Support</div>
+        <button onclick="openContactUs()" class="btn-s" style="width:100%;margin-bottom:8px">💬 Contact us</button>
+        <button onclick="openReportBug()" class="btn-s" style="width:100%">🐛 Report a bug</button>
+      </div>
+
+      <!-- Danger zone -->
+      <div style="background:var(--redbg);border:1px solid var(--redbd);border-radius:14px;padding:18px 20px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:12px">⚠️ Danger zone</div>
+        <button onclick="clearAllData()" style="width:100%;background:none;border:1px solid var(--redbd);color:var(--red);border-radius:8px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700">Delete all my data</button>
+      </div>
     </div>
 
     <!-- MANAGER TOUR SHEET -->
@@ -1502,6 +1571,69 @@ function showDataStatus(){
   // Update menu subtitle
   const sub=document.getElementById('storage-status-sub');
   if(sub) sub.textContent=artists.length+' employers, '+tours.length+' events';
+}
+
+function toggleAvatarMenu(e){
+  e.stopPropagation();
+  const dd = document.getElementById('avatar-dropdown');
+  dd.style.display = dd.style.display==='none' ? 'block' : 'none';
+  if(dd.style.display==='block'){
+    document.addEventListener('click', closeAvatarMenu, {once:true});
+  }
+}
+function closeAvatarMenu(){ 
+  const dd=document.getElementById('avatar-dropdown');
+  if(dd) dd.style.display='none';
+}
+
+function openContactUs(){
+  var html='<div style="font-size:14px;font-weight:800;margin-bottom:8px">Contact us</div>';
+  html+='<div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">Have a question or suggestion? Send us an email.</div>';
+  html+='<a href="mailto:sannie.patron@gmail.com?subject=TourDesk feedback" style="display:block;background:var(--gold);color:#0A0A0F;border-radius:10px;padding:12px;text-align:center;font-weight:900;font-size:14px;text-decoration:none;margin-bottom:10px">Send email</a>';
+  var closeBtn=document.createElement('button');
+  closeBtn.textContent='Close';
+  closeBtn.style.cssText='width:100%;background:none;border:1px solid var(--bdr);color:var(--muted);border-radius:10px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px';
+  closeBtn.onclick=function(){closeModal('modal-ai');};
+  document.getElementById('ai-content').innerHTML=html;
+  document.getElementById('ai-content').appendChild(closeBtn);
+  openModal('modal-ai');
+}
+
+function openReportBug(){
+  var el=document.getElementById('ai-content');
+  el.innerHTML='<div style="font-size:14px;font-weight:800;margin-bottom:8px">Report a bug</div><div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6">Describe what happened and we will fix it quickly.</div><textarea id="bug-report-text" placeholder="e.g. When I import a PDF, the dates are wrong..." style="width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:10px;color:var(--text);font-family:inherit;font-size:13px;min-height:80px;box-sizing:border-box"></textarea>';
+  var sendBtn=document.createElement('button');
+  sendBtn.textContent='Send report';
+  sendBtn.style.cssText='width:100%;background:var(--gold);border:none;color:#0A0A0F;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:900;font-size:14px;margin-top:10px;margin-bottom:8px';
+  sendBtn.onclick=sendBugReport;
+  var cancelBtn=document.createElement('button');
+  cancelBtn.textContent='Cancel';
+  cancelBtn.style.cssText='width:100%;background:none;border:1px solid var(--bdr);color:var(--muted);border-radius:10px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px';
+  cancelBtn.onclick=function(){closeModal('modal-ai');};
+  el.appendChild(sendBtn);
+  el.appendChild(cancelBtn);
+  openModal('modal-ai');
+}
+
+function sendBugReport(){
+  const text = document.getElementById('bug-report-text')?.value||'';
+  if(!text.trim()){toast('Please describe the bug',false);return;}
+  window.open('mailto:sannie.patron@gmail.com?subject=TourDesk bug report&body='+encodeURIComponent(text),'_blank');
+  closeModal('modal-ai');
+  toast('Thanks for the report! ✓');
+}
+
+function saveSettingsProfile(){
+  const name = document.getElementById('settings-name')?.value.trim();
+  if(name) { toast('Profile saved ✓'); saveData(); }
+}
+
+function saveSettingsHours(){
+  const val = parseInt(document.getElementById('settings-hours-goal')?.value)||507;
+  hoursGoal = val;
+  toast('Hours goal updated ✓');
+  saveData();
+  renderHoursCounter();
 }
 
 function signOut(){
@@ -3059,7 +3191,8 @@ const VIEW_LABELS = {
   contacts:'Industry Contacts',
   expenses:'Expenses',
   guestlist:'Guest List',
-  manager:'Manager — Tour Sheet'
+  manager:'Manager — Tour Sheet',
+  settings:'Settings'
 };
 
 function toggleMenu(){
@@ -3308,6 +3441,7 @@ document.addEventListener('DOMContentLoaded',function(){
     if(v==='expenses')renderExpenses();
     if(v==='guestlist')renderGuestList();
     if(v==='manager')renderManagerTours();
+    if(v==='settings')renderSettingsPage();
   };
 
   // Init
@@ -4566,6 +4700,20 @@ function shareAllMemberLinks(tourId){
   };
   document.getElementById('modal-share-event').querySelector('.modal-title').textContent='All member links — '+tour.name;
   openModal('modal-share-event');
+}
+
+function renderSettingsPage(){
+  // Fill in user info
+  const emailEl = document.getElementById('settings-email');
+  const avatarEl = document.getElementById('settings-avatar');
+  const goalEl = document.getElementById('settings-hours-goal');
+  const emailSub = document.getElementById('user-email-sub');
+  const email = emailSub ? emailSub.textContent : '';
+  if(emailEl && email && email !== 'Your account') {
+    emailEl.textContent = email;
+    if(avatarEl) avatarEl.textContent = email[0].toUpperCase();
+  }
+  if(goalEl) goalEl.value = hoursGoal;
 }
 
 function renderManagerTours(){
