@@ -317,7 +317,10 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
   <header>
     <div class="hinner">
       <div class="logo"><div class="logo-icon">♩</div><div><div class="logo-name">Tour<span style="color:var(--gold)">Desk</span></div><div class="logo-sub">Artist Agenda</div></div></div>
-      <button class="btn-p" onclick="showApp()" style="padding:9px 18px;font-size:13px">Open App →</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="/auth/login" style="background:none;border:1px solid var(--bdr);color:var(--text);border-radius:9px;padding:8px 16px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;text-decoration:none">Sign in</a>
+        <a href="/auth/login#signup" style="background:var(--gold);color:#0A0A0F;border-radius:9px;padding:8px 16px;cursor:pointer;font-family:inherit;font-weight:900;font-size:13px;text-decoration:none">Sign up free</a>
+      </div>
     </div>
   </header>
   <section class="hero">
@@ -325,8 +328,8 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
     <h1>Every gig.<br><span>Zero conflicts.</span></h1>
     <p>Track every artist, spot scheduling conflicts instantly, check new tour offers before saying yes — and manage your meetings, all in one place.</p>
     <div class="hero-btns">
-      <button class="btn-p" onclick="showApp()" style="padding:14px 28px;font-size:15px;border-radius:12px">Try it free</button>
-      <button onclick="showApp()" style="background:none;border:1px solid var(--bdr);color:var(--text);border-radius:12px;padding:14px 22px;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px">See demo →</button>
+      <a href="/auth/login#signup" class="btn-p" style="padding:14px 28px;font-size:15px;border-radius:12px;text-decoration:none;display:inline-block">Try it free →</a>
+      <a href="/auth/login" style="background:none;border:1px solid var(--bdr);color:var(--text);border-radius:12px;padding:14px 22px;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px;text-decoration:none;display:inline-block">Sign in</a>
     </div>
   </section>
   <div class="ticker"><div class="ticker-inner" id="ticker"></div></div>

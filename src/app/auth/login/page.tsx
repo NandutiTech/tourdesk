@@ -6,6 +6,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
+
+  useEffect(() => {
+    if (window.location.hash === '#signup') setIsSignUp(true)
+  }, [])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
