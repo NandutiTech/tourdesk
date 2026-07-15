@@ -1460,8 +1460,13 @@ function saveData(){
   // Save to cloud using cookies (credentials:include sends session cookie automatically)
   var headers = {'Content-Type':'application/json'};
   try{
-    var tok = window._supabaseToken || sessionStorage.getItem('td_token');
-    if(tok) headers['Authorization'] = 'Bearer ' + tok;
+    var tok = window._supabaseToken 
+      || sessionStorage.getItem('td_token')
+      || localStorage.getItem('td_token');
+    if(tok){ 
+      headers['Authorization'] = 'Bearer ' + tok;
+      window._supabaseToken = tok; // cache it
+    }
   }catch(e){}
 
   fetch('/api/sync', {

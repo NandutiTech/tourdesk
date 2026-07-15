@@ -10,18 +10,26 @@ export async function GET() {
     const { data: { session } } = await supabase.auth.getSession()
 
     if (!user || !session) {
-      return NextResponse.redirect(new URL('/auth/login', 'https://tourdesk-lilac.vercel.app'))
+      return NextResponse.redirect('https://tourdesk-lilac.vercel.app/auth/login')
     }
 
-    // Read the HTML file
     const htmlPath = join(process.cwd(), 'public', 'tourdesk-app.html')
     let html = readFileSync(htmlPath, 'utf-8')
 
-    // Inject user data directly into the HTML
+    // Inject token AND save it to localStorage so it persists
     const injection = `<script>
-window._supabaseToken = ${JSON.stringify(session.access_token)};
-window._supabaseUser = ${JSON.stringify({ email: user.email, id: user.id })};
-window._supabaseSession = { access_token: window._supabaseToken, user: window._supabaseUser };
+(function(){
+  var token = ${JSON.stringify(session.access_token)};
+  var email = ${JSON.stringify(user.email)};
+  var uid = ${JSON.stringify(user.id)};
+  window._supabaseToken = token;
+  window._supabaseUser = {email: email, id: uid};
+  // Save to sessionStorage AND localStorage for persistence
+  try { sessionStorage.setItem('td_token', token); } catch(e) {}
+  try { sessionStorage.setItem('td_email', email); } catch(e) {}
+  try { localStorage.setItem('td_token', token); } catch(e) {}
+  try { localStorage.setItem('td_email', email); } catch(e) {}
+})();
 </script>`
 
     html = html.replace('</head>', injection + '</head>')
@@ -31,6 +39,6 @@ window._supabaseSession = { access_token: window._supabaseToken, user: window._s
     })
   } catch (err) {
     console.error('App shell error:', err)
-    return NextResponse.redirect('/auth/login')
+    return NextResponse.redirect('https://tourdesk-lilac.vercel.app/auth/login')
   }
 }
