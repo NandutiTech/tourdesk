@@ -3573,18 +3573,29 @@ document.addEventListener('DOMContentLoaded',function(){
     applyUserSession(window._supabaseUser.email, window._supabaseToken);
     initAppWithSession();
   } else {
-    fetch('/api/me').then(r=>r.json()).then(function(data){
-      if(!data.user) {
-        // No session - load from local only
-        loadFromLocal();
-        return;
-      }
-      applyUserSession(data.user.email, data.access_token);
+    // Try localStorage token first
+    var storedTok = null;
+    try{ storedTok = localStorage.getItem('td_token'); }catch(e){}
+    
+    if(storedTok){
+      window._supabaseToken = storedTok;
+      var storedEmail = '';
+      try{ storedEmail = localStorage.getItem('td_email')||''; }catch(e){}
+      applyUserSession(storedEmail, storedTok);
       initAppWithSession();
-    }).catch(function(e){ 
-      console.warn('Could not get user:', e);
-      loadFromLocal();
-    });
+    } else {
+      fetch('/api/me').then(r=>r.json()).then(function(data){
+        if(!data.user) {
+          loadFromLocal();
+          return;
+        }
+        applyUserSession(data.user.email, data.access_token);
+        initAppWithSession();
+      }).catch(function(e){ 
+        console.warn('Could not get user:', e);
+        loadFromLocal();
+      });
+    }
   }
 
   // Calendar nav
