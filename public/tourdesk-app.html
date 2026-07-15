@@ -324,7 +324,7 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
     </div>
   </header>
   <section class="hero">
-    <div class="hero-badge">🎭 For Artists & Performers — musicians, actors, dancers & more</div>
+    <div class="hero-badge">🎭 For Artists & Performers — musicians, actors, dancers, technicians & more</div>
     <h1>Every gig.<br><span>Zero conflicts.</span></h1>
     <p>Track every artist, spot scheduling conflicts instantly, check new tour offers before saying yes — and manage your meetings, all in one place.</p>
     <div class="hero-btns">
@@ -595,7 +595,7 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
       <div id="tab-travel" class="menu-item" onclick="showView('travel');closeMenu()"> <div class="menu-icon">✈</div> <div><div class="menu-label">Travel</div>        <div class="menu-sub">Tickets &amp; trips</div></div></div>
       <div class="menu-item" onclick="showView('expenses');closeMenu()"><div class="menu-icon">🧾</div><div><div class="menu-label">Expenses</div><div class="menu-sub">Track your tour expenses</div></div></div>
       <div class="menu-item" onclick="showView('guestlist');closeMenu()"><div class="menu-icon">🎫</div><div><div class="menu-label">Guest List</div><div class="menu-sub">Manage invitations per show</div></div></div>
-      <div id="tab-subs"   class="menu-item" onclick="showView('subs');closeMenu()">   <div class="menu-icon">🔄</div><div><div class="menu-label">Replacements</div>  <div class="menu-sub">Your go-to contacts</div></div></div>
+      <div id="tab-subs"   class="menu-item" onclick="showView('subs');closeMenu()">   <div class="menu-icon">🔄</div><div><div class="menu-label">Replacements</div>  <div class="menu-sub">Your go-to performers & crew</div></div></div>
 
       <div style="padding:8px 10px 4px;font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)">📄  Documents</div>
       <div class="menu-item" onclick="showView('fiche');closeMenu()"><div class="menu-icon">🎛</div><div><div class="menu-label">Technical Rider</div><div class="menu-sub">Create & send to productions</div></div></div>
@@ -1328,10 +1328,10 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
 
 <div class="modal-ov" id="modal-sub">
   <div class="modal-box">
-    <div class="modal-title">New Replacement Musician</div>
+    <div class="modal-title">New Replacement</div>
     <div class="frow">
       <div class="field"><label>Name *</label><input type="text" id="sub-name" placeholder="e.g. Marco Rossi"></div>
-      <div class="field"><label>Instrument *</label><input type="text" id="sub-inst" placeholder="e.g. Drums"></div>
+      <div class="field"><label>Role / Instrument</label><input type="text" id="sub-inst" placeholder="e.g. Drums, Actor, Dancer"></div>
     </div>
     <div class="field"><label>📱 Phone / WhatsApp</label>
       <div style="display:flex;gap:6px">
@@ -1356,8 +1356,8 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
       </div>
     </div>
     <div class="field"><label>✉ Email</label><input type="email" id="sub-email" placeholder="e.g. marco@email.com"></div>
-    <div class="field"><label>Genre / Style</label><input type="text" id="sub-genre" placeholder="e.g. Rock, Jazz, Latin"></div>
-    <div class="field"><label>Notes</label><textarea id="sub-notes" placeholder="e.g. Very reliable, knows Pierre's setlist, available most weekends"></textarea></div>
+    <div class="field"><label>Style / Specialty</label><input type="text" id="sub-genre" placeholder="e.g. Jazz, Contemporary dance, Comedy"></div>
+    <div class="field"><label>Notes</label><textarea id="sub-notes" placeholder="e.g. Very reliable, available most weekends, knows the show"></textarea></div>
     <div class="mact">
       <button class="btn-s" id="btn-cancel-sub">Cancel</button>
       <button class="btn-p" id="btn-save-sub">Save</button>
@@ -4836,7 +4836,7 @@ function renderMgrMembersList(){
   const el = document.getElementById('mgr-members-list');
   if(!el) return;
   if(!mgrMembers.length){
-    el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px;border:1px dashed var(--bdr);border-radius:8px;margin-bottom:10px">No members yet — add the musicians, dancers, crew…</div>';
+    el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px;border:1px dashed var(--bdr);border-radius:8px;margin-bottom:10px">No members yet — add performers, dancers, musicians, crew…</div>';
     return;
   }
   el.innerHTML = mgrMembers.map(function(m){
