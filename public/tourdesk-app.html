@@ -3548,30 +3548,25 @@ document.addEventListener('DOMContentLoaded',function(){
   }
 
   function initAppWithSession(){
-    // Load data from cloud now that we have token
-    fetch('/api/sync', {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + window._supabaseToken
-      }
-    }).then(function(r){ return r.json(); }).then(function(d){
-      if(d && !d.error){
-        applyData(d);
-        console.log('Cloud data loaded — artists:', artists.length);
-      }
-      // Load from local as fallback if cloud is empty
-      if(artists.length === 0) loadFromLocal();
-      // Show app if has data or already in app
-      if(artists.length > 0 || tours.length > 0 || document.getElementById('app').style.display==='block'){
-        document.getElementById('landing').style.display='none';
-        document.getElementById('app').style.display='block';
-        showView('tours');
-        render();
-      }
-    }).catch(function(e){
-      console.warn('Cloud load failed:', e);
-      loadFromLocal();
-    });
+    var tok = window._supabaseToken;
+    try{ if(!tok) tok = localStorage.getItem('td_token'); }catch(e){}
+    if(!tok){ loadFromLocal(); showAppUI(); return; }
+    window._supabaseToken = tok;
+    fetch('/api/sync',{
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok}
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d&&!d.error){applyData(d);}
+      if(artists.length===0) loadFromLocal();
+      showAppUI();
+    }).catch(function(e){loadFromLocal();showAppUI();});
+  }
+
+  function showAppUI(){
+    localStorage.setItem('tourdesk_ob_done','1');
+    document.getElementById('landing').style.display='none';
+    document.getElementById('app').style.display='block';
+    showView('tours');
+    render();
   }
 
   if(window._supabaseUser && window._supabaseUser.email){
