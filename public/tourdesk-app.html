@@ -3522,10 +3522,30 @@ function closeMenu(){
 
 document.addEventListener('DOMContentLoaded',function(){
 
-  // Always restore token from localStorage at startup
+  // Always restore token from ALL possible storage locations
   try{
     var _t = localStorage.getItem('td_token');
     var _e = localStorage.getItem('td_email');
+    // Also check Supabase's own storage keys
+    if(!_t){
+      for(var _i=0;_i<localStorage.length;_i++){
+        var _k=localStorage.key(_i);
+        if(_k && _k.startsWith('sb-') && _k.includes('auth-token')){
+          try{
+            var _raw=localStorage.getItem(_k);
+            var _parsed=JSON.parse(_raw||'');
+            if(_parsed && _parsed.access_token){
+              _t=_parsed.access_token;
+              _e=_parsed.user&&_parsed.user.email||_e;
+              // Save to td_token for next time
+              localStorage.setItem('td_token',_t);
+              if(_e) localStorage.setItem('td_email',_e);
+              break;
+            }
+          }catch(e2){}
+        }
+      }
+    }
     if(_t) {
       window._supabaseToken = _t;
       if(_e) window._supabaseUser = {email:_e};
