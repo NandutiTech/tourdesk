@@ -1471,9 +1471,19 @@ function saveData(){
     credentials: 'include',
     body: JSON.stringify({action:'saveAll', data: payload})
   }).then(r => r.json()).then(d => {
-    if(d.success) console.log('Cloud save OK');
-    else { console.warn('Cloud save failed:', d.error); toast('Sync error — data saved locally', false); }
-  }).catch(e => console.warn('Cloud save error:', e));
+    if(d.success){
+      console.log('Cloud save OK');
+      // Show small green indicator
+      var ind=document.createElement('div');
+      ind.textContent='☁ Saved';
+      ind.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(93,201,160,.15);border:1px solid rgba(93,201,160,.3);color:#5DC9A0;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;z-index:9999;pointer-events:none;transition:opacity .5s';
+      document.body.appendChild(ind);
+      setTimeout(function(){ind.style.opacity='0';setTimeout(function(){ind.remove();},500);},1500);
+    } else {
+      console.warn('Cloud save failed:', d);
+      toast('Could not sync to cloud: '+(d.error||'check connection'), false);
+    }
+  }).catch(function(e){ console.warn('Cloud save error:', e); toast('Sync error: '+e.message, false); });
 }
 
 function loadData(){
