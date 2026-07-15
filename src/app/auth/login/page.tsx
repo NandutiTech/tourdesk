@@ -33,9 +33,17 @@ export default function LoginPage() {
       if (error) setError(error.message)
       else setMessage('Check your email to confirm your account!')
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setError(error.message)
-      else window.location.href = '/app'
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        setError(error.message)
+      } else if (data.session) {
+        // Save token to localStorage so mobile can access it
+        try {
+          localStorage.setItem('td_token', data.session.access_token)
+          localStorage.setItem('td_email', email)
+        } catch(e) {}
+        window.location.href = '/app-shell'
+      }
     }
     setLoading(false)
   }
