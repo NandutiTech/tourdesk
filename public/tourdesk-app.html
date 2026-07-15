@@ -3522,6 +3522,16 @@ function closeMenu(){
 
 document.addEventListener('DOMContentLoaded',function(){
 
+  // Always restore token from localStorage at startup
+  try{
+    var _t = localStorage.getItem('td_token');
+    var _e = localStorage.getItem('td_email');
+    if(_t) {
+      window._supabaseToken = _t;
+      if(_e) window._supabaseUser = {email:_e};
+    }
+  }catch(e){}
+
   // Use injected session (from /app-shell) or fetch from API
   function applyUserSession(email, token){
     window._supabaseToken = token;
