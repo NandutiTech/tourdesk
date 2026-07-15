@@ -857,8 +857,8 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
         <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">💳 Plan</div>
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div>
-            <div style="font-weight:800;font-size:15px">Free trial</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">Upgrade to unlock all features</div>
+            <div style="font-weight:800;font-size:15px" id="settings-plan-label">Solo</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px" id="settings-plan-sub">Upgrade to unlock Pro features</div>
           </div>
           <button onclick="showLanding()" class="btn-p" style="padding:8px 14px;font-size:12px">Upgrade →</button>
         </div>
@@ -1685,6 +1685,74 @@ function saveSettingsHours(){
   renderHoursCounter();
 }
 
+// Plan features definition
+var PLAN_FEATURES = {
+  solo: ['cal','tours','meets','alerts','check','subs','money','declaration','simulator','employers','avail','fiche'],
+  pro: ['cal','tours','meets','alerts','check','subs','money','declaration','simulator','employers','avail','fiche','travel','expenses','guestlist','contacts'],
+  manager: ['cal','tours','meets','alerts','check','subs','money','declaration','simulator','employers','avail','fiche','travel','expenses','guestlist','contacts','manager','settings']
+};
+
+function applyPlanRestrictions(plan){
+  var allowed = PLAN_FEATURES[plan] || PLAN_FEATURES.solo;
+  // Update menu items — lock features not in plan
+  var allViews = ['travel','expenses','guestlist','contacts','manager'];
+  allViews.forEach(function(view){
+    var menuItem = document.querySelector('[onclick*="showView(''+view+''"]');
+    if(!menuItem) return;
+    if(allowed.indexOf(view)===-1){
+      menuItem.style.opacity='0.4';
+      menuItem.style.pointerEvents='none';
+      var label = menuItem.querySelector('.menu-label');
+      if(label && !label.querySelector('.plan-badge')){
+        var badge=document.createElement('span');
+        badge.className='plan-badge';
+        badge.textContent=' PRO';
+        badge.style.cssText='background:var(--gold);color:#0A0A0F;font-size:9px;font-weight:900;border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle';
+        label.appendChild(badge);
+      }
+    } else {
+      menuItem.style.opacity='1';
+      menuItem.style.pointerEvents='auto';
+    }
+  });
+  // Manager view only for manager plan
+  var mgrItem = document.querySelector('[onclick*="showView('manager'"]');
+  if(mgrItem){
+    if(plan!=='manager'){
+      mgrItem.style.opacity='0.4';
+      mgrItem.style.pointerEvents='none';
+      var lbl=mgrItem.querySelector('.menu-label');
+      if(lbl && !lbl.querySelector('.plan-badge')){
+        var b=document.createElement('span');
+        b.className='plan-badge';
+        b.textContent=' MANAGER';
+        b.style.cssText='background:var(--gold);color:#0A0A0F;font-size:9px;font-weight:900;border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle';
+        lbl.appendChild(b);
+      }
+    }
+  }
+  // Update plan in settings
+  var planEl=document.querySelector('[id="settings-plan-label"]');
+  if(planEl) planEl.textContent=plan.charAt(0).toUpperCase()+plan.slice(1);
+}
+
+function checkPlanAccess(view){
+  var plan = window._userPlan || 'solo';
+  var allowed = PLAN_FEATURES[plan] || PLAN_FEATURES.solo;
+  if(allowed.indexOf(view)===-1){
+    document.getElementById('ai-content').innerHTML=
+      '<div style="text-align:center;padding:20px 0">'
+      +'<div style="font-size:36px;margin-bottom:12px">⭐</div>'
+      +'<div style="font-weight:900;font-size:16px;margin-bottom:8px">'+view.charAt(0).toUpperCase()+view.slice(1)+' is a Pro feature</div>'
+      +'<div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">Upgrade your plan to access this feature.</div>'
+      +'<button onclick="showView('settings');closeModal('modal-ai')" style="background:var(--gold);border:none;color:#0A0A0F;border-radius:10px;padding:12px 24px;cursor:pointer;font-family:inherit;font-weight:900;font-size:14px">Upgrade plan →</button>'
+      +'</div>';
+    openModal('modal-ai');
+    return false;
+  }
+  return true;
+}
+
 function shareViaWhatsApp(){
   var text = document.getElementById('share-event-content').textContent;
   window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
@@ -1935,6 +2003,9 @@ function showToastGlobal(msg) {
   setTimeout(() => el.style.display = 'none', 2500);
 }
 function showView(v){
+  // Check plan access for restricted views
+  var restricted=['travel','expenses','guestlist','contacts','manager'];
+  if(restricted.indexOf(v)!==-1 && !checkPlanAccess(v)) return;
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('on'));
   document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('on'));
   document.getElementById('view-'+v).classList.add('on');
@@ -3299,6 +3370,15 @@ document.addEventListener('DOMContentLoaded',function(){
       avatar.title = email;
     }
     console.log('Logged in as:', email, '| token:', token.slice(0,20)+'...');
+    // Detect user plan
+    fetch('/api/plan', {headers:{'Authorization':'Bearer '+token}})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        window._userPlan = d.plan || 'solo';
+        window._planExpires = d.expires_at || null;
+        applyPlanRestrictions(window._userPlan);
+        console.log('Plan:', window._userPlan);
+      }).catch(function(){window._userPlan='solo';});
   }
 
   function initAppWithSession(){
@@ -4897,6 +4977,17 @@ function renderSettingsPage(){
     if(avatarEl) avatarEl.textContent = email[0].toUpperCase();
   }
   if(goalEl) goalEl.value = hoursGoal;
+
+  // Show plan info
+  const plan = window._userPlan || 'solo';
+  const planLabel = document.getElementById('settings-plan-label');
+  const planSub = document.getElementById('settings-plan-sub');
+  if(planLabel) planLabel.textContent = plan.charAt(0).toUpperCase()+plan.slice(1);
+  if(planSub){
+    if(plan==='solo') planSub.textContent='Upgrade to unlock Pro features';
+    else if(plan==='pro') planSub.textContent='Pro plan active ✓';
+    else if(plan==='manager') planSub.textContent='Manager plan active ✓';
+  }
 
   // Show admin panel only for admin
   const adminPanel = document.getElementById('admin-panel');
