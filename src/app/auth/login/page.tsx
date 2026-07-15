@@ -55,7 +55,13 @@ export default function LoginPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/auth/callback`,
+        skipBrowserRedirect: false,
+        scopes: 'email profile',
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
       }
     })
   }
