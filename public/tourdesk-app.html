@@ -1676,6 +1676,7 @@ function openContactUs(){
 
 function openReportBug(){
   var el=document.getElementById('ai-content');
+  el.innerHTML='';
   el.innerHTML='<div style="font-size:14px;font-weight:800;margin-bottom:8px">Report a bug</div><div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6">Describe what happened and we will fix it quickly.</div><textarea id="bug-report-text" placeholder="e.g. When I import a PDF, the dates are wrong..." style="width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:10px;color:var(--text);font-family:inherit;font-size:13px;min-height:80px;box-sizing:border-box"></textarea>';
   var sendBtn=document.createElement('button');
   sendBtn.textContent='Send report';
