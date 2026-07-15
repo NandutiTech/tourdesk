@@ -3256,23 +3256,49 @@ document.addEventListener('DOMContentLoaded',function(){
     console.log('Logged in as:', email, '| token:', token.slice(0,20)+'...');
   }
 
-  if(window._supabaseUser && window._supabaseUser.email){
-    applyUserSession(window._supabaseUser.email, window._supabaseToken);
-  } else {
-    fetch('/api/me').then(r=>r.json()).then(function(data){
-      if(!data.user) return;
-      applyUserSession(data.user.email, data.access_token);
-    }).catch(function(e){ console.warn('Could not get user:', e); });
+  function initAppWithSession(){
+    // Load data from cloud now that we have token
+    fetch('/api/sync', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + window._supabaseToken
+      }
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if(d && !d.error){
+        applyData(d);
+        console.log('Cloud data loaded — artists:', artists.length);
+      }
+      // Load from local as fallback if cloud is empty
+      if(artists.length === 0) loadFromLocal();
+      // Show app if has data or already in app
+      if(artists.length > 0 || tours.length > 0 || document.getElementById('app').style.display==='block'){
+        document.getElementById('landing').style.display='none';
+        document.getElementById('app').style.display='block';
+        showView('tours');
+        render();
+      }
+    }).catch(function(e){
+      console.warn('Cloud load failed:', e);
+      loadFromLocal();
+    });
   }
 
-  // Auto-load data and skip landing if user has existing data
-  loadData();
-  if(artists.length > 0 || tours.length > 0){
-    // User has data — skip landing and go straight to app
-    document.getElementById('landing').style.display='none';
-    document.getElementById('app').style.display='block';
-    showView('tours');
-    render();
+  if(window._supabaseUser && window._supabaseUser.email){
+    applyUserSession(window._supabaseUser.email, window._supabaseToken);
+    initAppWithSession();
+  } else {
+    fetch('/api/me').then(r=>r.json()).then(function(data){
+      if(!data.user) {
+        // No session - load from local only
+        loadFromLocal();
+        return;
+      }
+      applyUserSession(data.user.email, data.access_token);
+      initAppWithSession();
+    }).catch(function(e){ 
+      console.warn('Could not get user:', e);
+      loadFromLocal();
+    });
   }
 
   // Calendar nav
