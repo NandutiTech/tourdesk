@@ -2195,7 +2195,7 @@ function bulkDeleteEvents(){
   if(isAll) tours=[];
   else tours=tours.filter(t=>t.aId!==aId);
   toast(`${count} event${count!==1?'s':''} deleted`);
-  render();saveData();
+  render();saveData();saveData();
 }
 
 function delMeetingFromDay(id){
