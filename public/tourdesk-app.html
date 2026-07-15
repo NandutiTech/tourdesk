@@ -3232,6 +3232,9 @@ document.addEventListener('DOMContentLoaded',function(){
   // Use injected session (from /app-shell) or fetch from API
   function applyUserSession(email, token){
     window._supabaseToken = token;
+    // Persist token so it survives refresh
+    try{ localStorage.setItem('td_token', token); localStorage.setItem('td_email', email); }catch(e){}
+    try{ sessionStorage.setItem('td_token', token); }catch(e){}
     const sub = document.getElementById('user-email-sub');
     if(sub) sub.textContent = email;
     const avatar = document.getElementById('user-avatar');
@@ -3240,7 +3243,16 @@ document.addEventListener('DOMContentLoaded',function(){
       avatar.style.display = 'flex';
       avatar.title = email;
     }
-    console.log('Logged in as:', email);
+    console.log('Logged in as:', email, '| token:', token.slice(0,20)+'...');
+    // Test cloud connectivity
+    fetch('/api/sync',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({action:'saveAll',data:{_test:true,artists:[],tours:[]}})
+    }).then(function(r){return r.json();}).then(function(d){
+      if(d.success) toast('Connected to cloud!',true);
+      else toast('Cloud error: '+(d.error||'?'),false);
+    }).catch(function(e){toast('Fetch error: '+e.message,false);});
   }
 
   if(window._supabaseUser && window._supabaseUser.email){
@@ -5475,4 +5487,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 </body>
-<!-- Wed Jul 15 17:37:10 UTC 2026 -->
