@@ -909,6 +909,10 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
             </select>
           </div>
           <input type="text" id="admin-note" placeholder="Note (e.g. Beta tester)" style="width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:13px;box-sizing:border-box;margin-bottom:8px">
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer;font-size:13px;color:var(--muted)">
+            <input type="checkbox" id="admin-send-invite" checked style="accent-color:var(--gold);width:16px;height:16px">
+            Send invitation email
+          </label>
           <button onclick="adminAddUser()" class="btn-p" style="width:100%">Add free access</button>
         </div>
       </div>
@@ -4940,6 +4944,7 @@ function adminAddUser(){
   var plan = document.getElementById('admin-plan').value;
   var months = parseInt(document.getElementById('admin-months').value)||0;
   var note = document.getElementById('admin-note').value.trim();
+  var sendInvite = document.getElementById('admin-send-invite').checked;
   if(!email){toast('Enter an email',false);return;}
   var tok = window._supabaseToken;
   fetch('/api/admin',{
@@ -4952,6 +4957,17 @@ function adminAddUser(){
       document.getElementById('admin-email').value='';
       document.getElementById('admin-note').value='';
       adminLoadUsers();
+      // Send invite email if checked
+      if(sendInvite){
+        fetch('/api/invite',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+          body:JSON.stringify({email,plan,months,note})
+        }).then(function(r){return r.json();}).then(function(d){
+          if(d.success) toast('Invite sent to '+email+' ✓');
+          else toast('Added but email failed: '+(d.error||'?'),false);
+        });
+      }
     } else {
       toast('Error: '+(d.error||'?'),false);
     }
