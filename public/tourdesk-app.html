@@ -1462,7 +1462,12 @@ function saveData(){
   if(!window._supabaseToken){
     try{ window._supabaseToken = sessionStorage.getItem('td_token'); }catch(e){}
   }
-  if(!window._supabaseToken){ console.warn('No token for cloud save'); return; }
+  if(!window._supabaseToken){
+    console.warn('No token for cloud save');
+    toast('No auth token — re-login to sync', false);
+    return;
+  }
+  console.log('Saving with token:', window._supabaseToken.slice(0,20)+'...');
   const payload = {
     artists, tours, meetings, subs, trips, cachets, artistHours,
     hoursGoal, hourTypes, contacts, expenses, guests, mgrTours,
