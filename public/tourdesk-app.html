@@ -3081,25 +3081,28 @@ function closeMenu(){
 
 document.addEventListener('DOMContentLoaded',function(){
 
-  // Get user session from Next.js API (uses cookies)
-  fetch('/api/me').then(r=>r.json()).then(function(data){
-    if(!data.user) return;
-    const email = data.user.email;
-    window._supabaseToken = data.access_token;
-    // Menu subtitle
+  // Use injected session (from /app-shell) or fetch from API
+  function applyUserSession(email, token){
+    window._supabaseToken = token;
     const sub = document.getElementById('user-email-sub');
     if(sub) sub.textContent = email;
-    // Avatar in header
     const avatar = document.getElementById('user-avatar');
     if(avatar){
       avatar.textContent = email[0].toUpperCase();
       avatar.style.display = 'flex';
       avatar.title = email + ' — tap to sign out';
     }
-    // Now load cloud data with the token
-    if(artists.length===0) loadData();
     console.log('Logged in as:', email);
-  }).catch(function(e){ console.warn('Could not get user:', e); });
+  }
+
+  if(window._supabaseUser && window._supabaseUser.email){
+    applyUserSession(window._supabaseUser.email, window._supabaseToken);
+  } else {
+    fetch('/api/me').then(r=>r.json()).then(function(data){
+      if(!data.user) return;
+      applyUserSession(data.user.email, data.access_token);
+    }).catch(function(e){ console.warn('Could not get user:', e); });
+  }
 
   // Auto-load data and skip landing if user has existing data
   loadData();
