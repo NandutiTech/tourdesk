@@ -2030,8 +2030,7 @@ function delArtist(id){
   tours=tours.filter(t=>t.aId!==id);
   cachets[id]=undefined;
   toast(a.name+' deleted');
-  saveData();
-  render();
+  render();saveData();
 }
 
 function editArtist(id){
@@ -2179,9 +2178,8 @@ function saveEditTour(id){
   t.hotel=document.getElementById('edit-hotel')?.value.trim()||t.hotel||'';
   closeModal('modal-ai');
   toast('Event updated');
-  saveData();
   render();
-  openDay(t.start);
+  openDay(t.start);saveData();
 }
 
 function bulkDeleteEvents(){
@@ -2631,7 +2629,7 @@ function renderHoursCounter(){
   const goalInp=document.getElementById('hours-goal-input');
   if(goalInp) goalInp.addEventListener('change',function(){hoursGoal=Number(this.value)||507;renderHoursCounter();});
   document.querySelectorAll('#hours-counter input[data-htype]').forEach(inp=>{
-    inp.addEventListener('change',function(){hoursPerEventType[this.dataset.htype]=Number(this.value)||0;renderHoursCounter();});
+    inp.addEventListener('change',function(){hoursPerEventType[this.dataset.htype]=Number(this.value)||0;renderHoursCounter();saveData();});
   });
 }
 
@@ -4701,9 +4699,8 @@ function saveMgrTour(){
   editingMgrTourId=null;
   mgrMembers=[];
   closeModal('modal-manager-tour');
-  toast('Tour sheet saved ✓');
-  saveData();
-  renderManagerTours();
+  toast('Tour sheet saved');
+  renderManagerTours();saveData();
 }
 
 function editMgrTour(id){
@@ -4864,7 +4861,7 @@ function saveExpense(){
   document.getElementById('exp-cat').value='transport';
   closeModal('modal-expense');
   toast('Expense saved');
-  renderExpenses();saveData();
+  renderExpenses();saveData();saveData();
 }
 
 function delExpense(id){expenses=expenses.filter(e=>e.id!==id);toast('Removed');renderExpenses();saveData();}
@@ -5056,7 +5053,7 @@ function saveGuest(){
   document.getElementById('gs-count').value='1';
   closeModal('modal-guest');
   toast('Guest added');
-  renderGuestList();saveData();
+  renderGuestList();saveData();saveData();
 }
 
 function toggleGuestStatus(id){
@@ -5064,10 +5061,10 @@ function toggleGuestStatus(id){
   if(!g)return;
   const statuses=['confirmed','pending','cancelled'];
   g.status=statuses[(statuses.indexOf(g.status)+1)%statuses.length];
-  renderGuestList();saveData();
+  renderGuestList();saveData();saveData();
 }
 
-function delGuest(id){guests=guests.filter(g=>g.id!==id);renderGuestList();saveData();}
+function delGuest(id){guests=guests.filter(g=>g.id!==id);renderGuestList();saveData();saveData();}
 
 function renderGuestList(){
   const sel=document.getElementById('guest-event-sel');
@@ -5143,7 +5140,7 @@ function saveTrip(){
   closeModal('modal-travel');toast('Trip saved ✓');renderTravel();
 }
 
-function delTrip(id){trips=trips.filter(t=>t.id!==id);toast('Removed');renderTravel();saveData();}
+function delTrip(id){trips=trips.filter(t=>t.id!==id);toast('Removed');renderTravel();saveData();saveData();}
 
 function openTripDetail(id){
   const trip=trips.find(t=>t.id===id);
