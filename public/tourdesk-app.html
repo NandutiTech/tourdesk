@@ -3569,7 +3569,10 @@ document.addEventListener('DOMContentLoaded',function(){
     render();
   }
 
-  if(window._supabaseUser && window._supabaseUser.email){
+  // Skip auth if we're on the landing page
+  if(window._landingMode){
+    loadFromLocal();
+  } else if(window._supabaseUser && window._supabaseUser.email){
     applyUserSession(window._supabaseUser.email, window._supabaseToken);
     initAppWithSession();
   } else {
@@ -3584,17 +3587,7 @@ document.addEventListener('DOMContentLoaded',function(){
       applyUserSession(storedEmail, storedTok);
       initAppWithSession();
     } else {
-      fetch('/api/me').then(r=>r.json()).then(function(data){
-        if(!data.user) {
-          loadFromLocal();
-          return;
-        }
-        applyUserSession(data.user.email, data.access_token);
-        initAppWithSession();
-      }).catch(function(e){ 
-        console.warn('Could not get user:', e);
-        loadFromLocal();
-      });
+      loadFromLocal();
     }
   }
 
