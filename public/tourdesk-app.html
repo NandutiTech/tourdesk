@@ -1984,7 +1984,7 @@ function saveTour(){
   ['t-title','t-start','t-end','t-city','t-custom-cachet','t-custom-hours','t-notes','t-doclink','t-address','t-wifi','t-hotel','t-room','t-hotel-addr'].forEach(i=>document.getElementById(i).value='');
   // Reset modal state
   setEventType('show');
-  closeModal('modal-tour');toast('Event added ✓');render();
+  closeModal('modal-tour');toast('Event added ✓');render();saveData();
 }
 function saveMeeting(){
   const title=document.getElementById('m-title').value.trim();
