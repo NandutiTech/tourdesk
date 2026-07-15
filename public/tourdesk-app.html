@@ -3244,15 +3244,6 @@ document.addEventListener('DOMContentLoaded',function(){
       avatar.title = email;
     }
     console.log('Logged in as:', email, '| token:', token.slice(0,20)+'...');
-    // Test cloud connectivity
-    fetch('/api/sync',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body:JSON.stringify({action:'saveAll',data:{_test:true,artists:[],tours:[]}})
-    }).then(function(r){return r.json();}).then(function(d){
-      if(d.success) toast('Connected to cloud!',true);
-      else toast('Cloud error: '+(d.error||'?'),false);
-    }).catch(function(e){toast('Fetch error: '+e.message,false);});
   }
 
   if(window._supabaseUser && window._supabaseUser.email){
