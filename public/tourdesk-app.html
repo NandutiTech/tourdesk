@@ -2600,7 +2600,7 @@ async function handleFileImport(file){
       ]}];
     }
 
-    const resp=await fetch('/api/claude', {method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window._supabaseToken||'')},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages})});
+    const resp=await fetch('/api/claude', {method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window._supabaseToken||localStorage.getItem('td_token')||'')},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages})});
     const data=await resp.json();
     const raw=data.content?.find(b=>b.type==='text')?.text||'';
     const parsed=(()=>{let cr=raw.replace(/```json|```/g,'').trim();if(!cr.endsWith(']')&&!cr.endsWith('}')){const lc=cr.lastIndexOf(',\n  {');if(lc>0)cr=cr.slice(0,lc)+'\n]';else cr+=cr.includes('[')? '\n]':'\n}';}return JSON.parse(cr);})()
@@ -3167,7 +3167,7 @@ async function handleFeuilleFile(file, tid){
     const mediaType=file.type||'image/jpeg';
     const isImage=mediaType.startsWith('image/');
 
-    const resp=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window._supabaseToken||'')},
+    const resp=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window._supabaseToken||localStorage.getItem('td_token')||'')},
       body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:500,messages:[{role:'user',content:[
         isImage?{type:'image',source:{type:'base64',media_type:mediaType,data:b64}}:{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
         {type:'text',text:'Extract from this feuille de cachet: the gross cachet amount (cachet brut) and the date. Return ONLY JSON: {"amount": 140, "date": "2026-11-05"}'}
@@ -5283,7 +5283,7 @@ async function handleExpenseReceipt(file){
   try{
     const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
     const mt=file.type||'image/jpeg';
-    const resp=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window._supabaseToken||'')},
+    const resp=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window._supabaseToken||localStorage.getItem('td_token')||'')},
       body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:300,messages:[{role:'user',content:[
         {type:'image',source:{type:'base64',media_type:mt,data:b64}},
         {type:'text',text:'Extract from this receipt: total amount, date, merchant/description. Return ONLY JSON: {"amount":12.50,"date":"YYYY-MM-DD","desc":"merchant name"}'}
@@ -5693,7 +5693,7 @@ async function handleTravelTicketImport(file){
 {"outFrom":"departure city/station","outTo":"arrival city/station","outDate":"YYYY-MM-DD","outTime":"HH:MM","outRef":"train or flight number",
 "retFrom":"return departure","retTo":"return arrival","retDate":"YYYY-MM-DD","retTime":"HH:MM","retRef":"return train/flight number","notes":"any extra info"}
 If no return trip found, leave ret fields empty. For dates like "05/11/2026" or "5 nov" interpret correctly.`}];
-    const resp=await fetch('/api/claude', {method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window._supabaseToken||'')},
+    const resp=await fetch('/api/claude', {method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window._supabaseToken||localStorage.getItem('td_token')||'')},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,messages:[{role:'user',content:content_}]})});
     const data=await resp.json();
     const raw=data.content?.find(b=>b.type==='text')?.text||'';
