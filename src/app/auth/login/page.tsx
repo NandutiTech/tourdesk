@@ -14,8 +14,8 @@ export default function LoginPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
-  async function handleEmailAuth(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleEmailAuth(e?: any) {
+    if(e?.preventDefault) e.preventDefault()
     setLoading(true)
     setError('')
     setMessage('')
@@ -127,15 +127,20 @@ export default function LoginPage() {
             <span style={s.dividerText}>or</span>
             <div style={s.dividerLine}/>
           </div>
-          <form onSubmit={handleEmailAuth}>
-            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" required style={s.input}/>
-            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password (min 8 characters)" required minLength={8} style={{...s.input, marginBottom:'16px'}}/>
+          <div>
+            <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" style={s.input}/>
+            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password (min 8 characters)" style={{...s.input, marginBottom:'16px'}}/>
             {error && <div style={s.error}>{error}</div>}
             {message && <div style={s.success}>{message}</div>}
-            <button type="submit" disabled={loading} style={s.primaryBtn}>
+            <button 
+              type="button" 
+              disabled={loading} 
+              style={s.primaryBtn}
+              onClick={(e) => handleEmailAuth(e as any)}
+            >
               {loading ? '...' : isSignUp ? 'Create account' : 'Sign in'}
             </button>
-          </form>
+          </div>
           <button onClick={handleMagicLink} disabled={loading} style={s.secondaryBtn}>
             ✉ Send magic link to my email
           </button>
