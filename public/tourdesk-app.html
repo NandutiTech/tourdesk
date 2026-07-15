@@ -1454,37 +1454,41 @@ function saveData(){
     calY, calM, earnY, earnM
   };
 
-  // Always save to localStorage first
+  // Always save to localStorage
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); }catch(e){}
 
-  // Save to cloud using cookies (credentials:include sends session cookie automatically)
-  var headers = {'Content-Type':'application/json'};
+  // Get token
+  var tok = window._supabaseToken;
   try{
-    var tok = window._supabaseToken 
-      || sessionStorage.getItem('td_token')
-      || localStorage.getItem('td_token');
-    if(tok){ 
-      headers['Authorization'] = 'Bearer ' + tok;
-      window._supabaseToken = tok; // cache it
-    }
+    if(!tok) tok = sessionStorage.getItem('td_token');
+    if(!tok) tok = localStorage.getItem('td_token');
   }catch(e){}
 
+  if(!tok){
+    toast('Not connected — data saved locally only', false);
+    return;
+  }
+
+  // Save to Supabase via Next.js API
   fetch('/api/sync', {
     method: 'POST',
-    headers: headers,
-    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + tok
+    },
     body: JSON.stringify({action:'saveAll', data: payload})
-  }).then(function(r){ return r.json(); }).then(function(d){
+  }).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(d){
     if(d.success){
-      var ind=document.createElement('div');
-      ind.textContent='☁ Saved';
-      ind.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(93,201,160,.9);color:#0A0A0F;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:800;z-index:9999;pointer-events:none';
-      document.body.appendChild(ind);
-      setTimeout(function(){ind.remove();},2000);
+      toast('☁ Synced', true);
     } else {
-      toast('Sync error: '+(d.error||'unknown'), false);
+      toast('Sync failed: '+(d.error||'unknown'), false);
     }
-  }).catch(function(e){ toast('Sync error: '+e.message, false); });
+  }).catch(function(e){
+    toast('Sync error: '+e.message, false);
+  });
 }
 
 function loadData(){
