@@ -619,7 +619,10 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
       <div class="toolbar">
         <div class="cal-hdr">
           <button class="btn-nav" id="prev-mo">‹</button>
-          <div class="cal-month" id="cal-title" onclick="openMonthPicker('cal')" style="cursor:pointer;user-select:none" title="Tap to jump to a month"></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="cal-month" id="cal-title"></div>
+            <button onclick="openMonthPicker('cal')" style="background:var(--surf);border:1px solid var(--bdr);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">📅 Jump</button>
+          </div>
           <button class="btn-nav" id="next-mo">›</button>
         </div>
         <div class="tbar-actions">
@@ -717,7 +720,10 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
         <div class="tbar-title">Earnings & Hours</div>
         <div class="tbar-actions">
           <button class="btn-nav" id="earn-prev">‹</button>
-          <div id="earn-month" style="font-weight:900;font-size:16px;letter-spacing:-.03em;min-width:160px;text-align:center;cursor:pointer;user-select:none" onclick="openMonthPicker('earn')" title="Click to jump to a month"></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div id="earn-month" style="font-weight:900;font-size:16px;letter-spacing:-.03em;text-align:center"></div>
+            <button onclick="openMonthPicker('earn')" style="background:var(--surf);border:1px solid var(--bdr);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">📅 Jump</button>
+          </div>
           <button class="btn-nav" id="earn-next">›</button>
         </div>
       </div>
@@ -2917,7 +2923,7 @@ function renderHoursCounter(){
 function renderEarnings(){
   renderHoursCounter();
   const yEl=document.getElementById('earn-month');if(!yEl)return;
-  yEl.innerHTML=`${MONTHS[earnM]} <span style="color:var(--muted);font-weight:400">${earnY}</span> <span style="font-size:11px;opacity:.5">▾</span>`;
+  yEl.innerHTML=`${MONTHS[earnM]} <span style="color:var(--muted);font-weight:400">${earnY}</span>`;
   const monthStr=`${earnY}-${p2(earnM+1)}`;
   const mt=tours.filter(t=>t.start.startsWith(monthStr));
   const byArtist={};
@@ -3366,7 +3372,7 @@ function render(){
   else rib.style.display='none';
 
   // Calendar
-  document.getElementById('cal-title').innerHTML=`${MONTHS[calM]} <span>${calY}</span> <span style="font-size:11px;opacity:.5">▾</span>`;
+  document.getElementById('cal-title').innerHTML=`${MONTHS[calM]} <span>${calY}</span>`;
   const totalD=new Date(calY,calM+1,0).getDate();
   const fd=new Date(calY,calM,1).getDay();
   const cells=Math.ceil((fd+totalD)/7)*7;
