@@ -717,7 +717,7 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
         <div class="tbar-title">Earnings & Hours</div>
         <div class="tbar-actions">
           <button class="btn-nav" id="earn-prev">‹</button>
-          <div id="earn-month" style="font-weight:900;font-size:16px;letter-spacing:-.03em;min-width:160px;text-align:center"></div>
+          <div id="earn-month" style="font-weight:900;font-size:16px;letter-spacing:-.03em;min-width:160px;text-align:center;cursor:pointer;user-select:none" onclick="openMonthPicker('earn')" title="Click to jump to a month"></div>
           <button class="btn-nav" id="earn-next">›</button>
         </div>
       </div>
@@ -1128,6 +1128,21 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
     <div class="modal-title" id="contact-bug-title">Contact us</div>
     <div id="contact-bug-content"></div>
     <button onclick="closeModal('modal-contact-bug')" style="width:100%;background:none;border:1px solid var(--bdr);color:var(--muted);border-radius:10px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px;margin-top:10px">Close</button>
+  </div>
+</div>
+
+<!-- Month/Year picker modal -->
+<div class="modal-ov" id="modal-month-picker">
+  <div class="modal-box" style="max-width:320px">
+    <div class="modal-title">Jump to month</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <select id="picker-year" style="flex:1;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:10px;color:var(--text);font-family:inherit;font-size:15px;font-weight:700"></select>
+      <select id="picker-month" style="flex:2;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:10px;color:var(--text);font-family:inherit;font-size:15px"></select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="closeModal('modal-month-picker')" class="btn-s" style="flex:1">Cancel</button>
+      <button onclick="applyMonthPicker()" class="btn-p" style="flex:2">Go →</button>
+    </div>
   </div>
 </div>
 
@@ -1784,6 +1799,43 @@ function checkPlanAccess(view){
     return false;
   }
   return true;
+}
+
+var _pickerTarget = 'cal';
+
+function openMonthPicker(target){
+  _pickerTarget = target;
+  var curY = target==='cal' ? calY : earnY;
+  var curM = target==='cal' ? calM : earnM;
+  // Populate year select (5 years back, 2 ahead)
+  var ySel = document.getElementById('picker-year');
+  ySel.innerHTML = '';
+  for(var y=curY-5; y<=curY+2; y++){
+    var opt=document.createElement('option');
+    opt.value=y; opt.textContent=y;
+    if(y===curY) opt.selected=true;
+    ySel.appendChild(opt);
+  }
+  // Populate month select
+  var mSel = document.getElementById('picker-month');
+  mSel.innerHTML = '';
+  var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  months.forEach(function(m,i){
+    var opt=document.createElement('option');
+    opt.value=i; opt.textContent=m;
+    if(i===curM) opt.selected=true;
+    mSel.appendChild(opt);
+  });
+  openModal('modal-month-picker');
+}
+
+function applyMonthPicker(){
+  var y=parseInt(document.getElementById('picker-year').value);
+  var m=parseInt(document.getElementById('picker-month').value);
+  if(_pickerTarget==='cal'){calY=y;calM=m;render();}
+  else {earnY=y;earnM=m;renderEarnings();}
+  saveData();
+  closeModal('modal-month-picker');
 }
 
 function shareViaWhatsApp(phone){
