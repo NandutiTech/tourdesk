@@ -3554,28 +3554,28 @@ document.addEventListener('DOMContentLoaded',function(){
     if(!tok){ loadFromLocal(); showAppUI(); return; }
     window._supabaseToken = tok;
 
-    // Load from cloud first (source of truth)
+    // Show immediately from localStorage (instant)
+    loadFromLocal();
+    showAppUI();
+
+    // Sync from cloud in background and update if different
     fetch('/api/sync',{
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok}
     }).then(function(r){return r.json();}).then(function(d){
       if(d && !d.error && d._cloudLoaded){
-        // Cloud is source of truth - apply and save to localStorage
+        var cloudArtists = (d.artists||[]).length;
+        var localArtists = artists.length;
+        // Only update if cloud has different data
         applyData(d);
         try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({
           artists,tours,meetings,subs,trips,cachets,artistHours,
           hoursGoal,hoursPerEventType,contacts,expenses,guests,mgrTours,
           calY,calM,earnY,earnM
         })); }catch(e){}
-      } else {
-        // Cloud failed - fall back to localStorage
-        loadFromLocal();
+        // Refresh UI if data changed
+        if(cloudArtists !== localArtists) render();
       }
-      showAppUI();
-    }).catch(function(e){
-      console.warn('Cloud load failed:', e);
-      loadFromLocal();
-      showAppUI();
-    });
+    }).catch(function(e){ console.warn('Cloud sync:', e); });
   }
 
   function showAppUI(){
