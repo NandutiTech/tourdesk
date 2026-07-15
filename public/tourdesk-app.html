@@ -4481,6 +4481,7 @@ function confirmPlanningImport(art){
   toast(`${added} event${added!==1?'s':''} added ✓`);
   render();
   showView('tours');
+  saveData(); // Save to cloud after import
 }
 
 // ══════════════════════════════════════════════════════════════
