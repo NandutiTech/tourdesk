@@ -1508,8 +1508,14 @@ function signOut(){
   const email = document.getElementById('user-email-sub')?.textContent || '';
   if(!confirm('Sign out' + (email && email !== 'Your account' ? ' (' + email + ')' : '') + '?')) return;
   // Clear Supabase session
-  const keys = Object.keys(localStorage).filter(k => k.includes('supabase') || k.includes('auth'));
-  keys.forEach(k => localStorage.removeItem(k));
+  const keysToRemove = [];
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k && (k.includes('auth-token') || k.includes('supabase') || k.includes(STORAGE_KEY))){
+      keysToRemove.push(k);
+    }
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k));
   window.location.href = '/auth/login';
 }
 
@@ -3075,30 +3081,42 @@ function closeMenu(){
 
 document.addEventListener('DOMContentLoaded',function(){
 
-  // Show user info from Supabase session
-  try{
-    const keys = Object.keys(localStorage).filter(k => k.includes('auth-token') || k.includes('supabase'));
-    keys.forEach(k => {
-      try{
-        const parsed = JSON.parse(localStorage.getItem(k)||'{}');
-        if(parsed.user && parsed.user.email){
-          const email = parsed.user.email;
-          // Menu subtitle
-          const sub = document.getElementById('user-email-sub');
-          if(sub) sub.textContent = email;
-          // Avatar in header
-          const avatar = document.getElementById('user-avatar');
-          if(avatar){
-            avatar.textContent = email[0].toUpperCase();
-            avatar.style.display = 'flex';
-            avatar.title = email + ' — click to sign out';
+  // Detect Supabase session — key format: sb-{ref}-auth-token
+  (function detectSession(){
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(!k || !k.includes('auth-token')) continue;
+        try{
+          const raw = localStorage.getItem(k);
+          if(!raw) continue;
+          const parsed = JSON.parse(raw);
+          // New format: {access_token, user:{email}}
+          // Old format: direct object
+          const session = parsed.session || parsed;
+          const user = session.user || parsed.user;
+          const token = session.access_token || parsed.access_token;
+          if(user && user.email && token){
+            const email = user.email;
+            window._supabaseToken = token;
+            window._supabaseSession = session;
+            // Menu subtitle
+            const sub = document.getElementById('user-email-sub');
+            if(sub) sub.textContent = email;
+            // Avatar in header
+            const avatar = document.getElementById('user-avatar');
+            if(avatar){
+              avatar.textContent = email[0].toUpperCase();
+              avatar.style.display = 'flex';
+              avatar.title = email + ' — tap to sign out';
+            }
+            console.log('Session found for:', email);
+            break;
           }
-          window._supabaseToken = parsed.access_token;
-          window._supabaseSession = parsed;
-        }
-      }catch(e){}
-    });
-  }catch(e){}
+        }catch(e){}
+      }
+    }catch(e){ console.warn('Session detect error:', e); }
+  })();
 
   // Auto-load data and skip landing if user has existing data
   loadData();
