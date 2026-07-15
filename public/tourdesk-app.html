@@ -886,6 +886,32 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
         <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:12px">⚠️ Danger zone</div>
         <button onclick="clearAllData()" style="width:100%;background:none;border:1px solid var(--redbd);color:var(--red);border-radius:8px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700">Delete all my data</button>
       </div>
+
+      <!-- Admin panel — only visible for admin -->
+      <div id="admin-panel" style="display:none;background:var(--card);border:2px solid var(--gold);border-radius:14px;padding:18px 20px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:14px">👑 Admin — Free Access</div>
+        <div id="admin-users-list" style="margin-bottom:14px"></div>
+        <div style="border-top:1px solid var(--bdr);padding-top:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">Add free access</div>
+          <input type="email" id="admin-email" placeholder="user@email.com" style="width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:13px;box-sizing:border-box;margin-bottom:8px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <select id="admin-plan" style="background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:9px;color:var(--text);font-family:inherit;font-size:13px">
+              <option value="solo">Solo</option>
+              <option value="pro" selected>Pro</option>
+              <option value="manager">Manager</option>
+            </select>
+            <select id="admin-months" style="background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:9px;color:var(--text);font-family:inherit;font-size:13px">
+              <option value="0">Indefinite</option>
+              <option value="1">1 month</option>
+              <option value="3">3 months</option>
+              <option value="6">6 months</option>
+              <option value="12">12 months</option>
+            </select>
+          </div>
+          <input type="text" id="admin-note" placeholder="Note (e.g. Beta tester)" style="width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:13px;box-sizing:border-box;margin-bottom:8px">
+          <button onclick="adminAddUser()" class="btn-p" style="width:100%">Add free access</button>
+        </div>
+      </div>
     </div>
 
     <!-- MANAGER TOUR SHEET -->
@@ -4782,6 +4808,65 @@ function shareAllMemberLinks(tourId){
   openModal('modal-share-event');
 }
 
+function adminLoadUsers(){
+  var tok = window._supabaseToken;
+  if(!tok) return;
+  fetch('/api/admin',{headers:{'Authorization':'Bearer '+tok}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.error) return;
+      var el = document.getElementById('admin-users-list');
+      if(!el) return;
+      if(!d.users.length){el.innerHTML='<div style="color:var(--muted);font-size:12px">No free access users yet.</div>';return;}
+      el.innerHTML = d.users.map(function(u){
+        var exp = u.expires_at ? new Date(u.expires_at).toLocaleDateString('en-GB') : 'Indefinite';
+        var expired = u.expires_at && new Date(u.expires_at) < new Date();
+        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bdr)">'
+          +'<div style="flex:1;min-width:0">'
+            +'<div style="font-size:13px;font-weight:700;'+(expired?'color:var(--red)':'')+'">'+u.email+'</div>'
+            +'<div style="font-size:11px;color:var(--muted)">'+u.plan+' · '+exp+(u.note?' · '+u.note:'')+'</div>'
+          +'</div>'
+          +'<button onclick="adminRemoveUser(''+u.email+'')" style="background:var(--redbg);border:1px solid var(--redbd);color:var(--red);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:inherit;font-size:11px">✕</button>'
+          +'</div>';
+      }).join('');
+    });
+}
+
+function adminAddUser(){
+  var email = document.getElementById('admin-email').value.trim();
+  var plan = document.getElementById('admin-plan').value;
+  var months = parseInt(document.getElementById('admin-months').value)||0;
+  var note = document.getElementById('admin-note').value.trim();
+  if(!email){toast('Enter an email',false);return;}
+  var tok = window._supabaseToken;
+  fetch('/api/admin',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+    body:JSON.stringify({email,plan,months,note})
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.success){
+      toast(email+' added ✓');
+      document.getElementById('admin-email').value='';
+      document.getElementById('admin-note').value='';
+      adminLoadUsers();
+    } else {
+      toast('Error: '+(d.error||'?'),false);
+    }
+  });
+}
+
+function adminRemoveUser(email){
+  if(!confirm('Remove free access for '+email+'?')) return;
+  var tok = window._supabaseToken;
+  fetch('/api/admin',{
+    method:'DELETE',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+    body:JSON.stringify({email})
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d.success){toast('Removed ✓');adminLoadUsers();}
+  });
+}
+
 function renderSettingsPage(){
   // Fill in user info
   const emailEl = document.getElementById('settings-email');
@@ -4794,6 +4879,13 @@ function renderSettingsPage(){
     if(avatarEl) avatarEl.textContent = email[0].toUpperCase();
   }
   if(goalEl) goalEl.value = hoursGoal;
+
+  // Show admin panel only for admin
+  const adminPanel = document.getElementById('admin-panel');
+  if(adminPanel && email === 'sannie.patron@gmail.com'){
+    adminPanel.style.display = 'block';
+    adminLoadUsers();
+  }
 }
 
 function renderManagerTours(){
