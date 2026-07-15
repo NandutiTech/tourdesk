@@ -1009,7 +1009,7 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
       <button onclick="shareViaSMS()" style="background:#4C9AC9;border:none;color:white;border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">📱 SMS</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-      <button onclick="shareViaEmail()" style="background:var(--surf);border:1px solid var(--bdr);color:var(--text);border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">✉ Email</button>
+      <button onclick="shareViaGmail()" style="background:#EA4335;border:none;color:white;border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">✉ Gmail</button>
       <button id="btn-copy-share-event" style="background:var(--surf);border:1px solid var(--bdr);color:var(--text);border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">📋 Copy</button>
     </div>
     <button onclick="closeModal('modal-share-event')" style="width:100%;background:none;border:1px solid var(--bdr);color:var(--muted);border-radius:10px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px">Close</button>
@@ -1693,10 +1693,10 @@ function shareViaSMS(){
   var text = document.getElementById('share-event-content').textContent;
   window.open('sms:?body='+encodeURIComponent(text));
 }
-function shareViaEmail(){
+function shareViaGmail(){
   var text = document.getElementById('share-event-content').textContent;
   var title = document.getElementById('modal-share-event').querySelector('.modal-title').textContent;
-  window.open('mailto:?subject='+encodeURIComponent(title)+'&body='+encodeURIComponent(text));
+  window.open('https://mail.google.com/mail/?view=cm&su='+encodeURIComponent(title)+'&body='+encodeURIComponent(text),'_blank');
 }
 
 function signOut(){
