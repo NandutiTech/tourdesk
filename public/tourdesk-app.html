@@ -1009,11 +1009,11 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
     <div class="modal-title">📤 Share</div>
     <div id="share-event-content" style="background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;font-family:monospace;max-height:220px;overflow-y:auto;margin-bottom:14px"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-      <button onclick="shareViaWhatsApp()" style="background:#25D366;border:none;color:white;border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">💬 WhatsApp</button>
-      <button onclick="shareViaSMS()" style="background:#4C9AC9;border:none;color:white;border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">📱 SMS</button>
+      <button onclick="shareViaWhatsApp(window._sharePhone)" style="background:#25D366;border:none;color:white;border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">💬 WhatsApp</button>
+      <button onclick="shareViaSMS(window._sharePhone)" style="background:#4C9AC9;border:none;color:white;border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">📱 SMS</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-      <button onclick="shareViaGmail()" style="background:#EA4335;border:none;color:white;border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">✉ Gmail</button>
+      <button onclick="shareViaGmail(window._shareEmail)" style="background:#EA4335;border:none;color:white;border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">✉ Gmail</button>
       <button id="btn-copy-share-event" style="background:var(--surf);border:1px solid var(--bdr);color:var(--text);border-radius:10px;padding:12px 8px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">📋 Copy</button>
     </div>
     <button onclick="closeModal('modal-share-event')" style="width:100%;background:none;border:1px solid var(--bdr);color:var(--muted);border-radius:10px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px">Close</button>
@@ -1333,7 +1333,29 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
       <div class="field"><label>Name *</label><input type="text" id="sub-name" placeholder="e.g. Marco Rossi"></div>
       <div class="field"><label>Instrument *</label><input type="text" id="sub-inst" placeholder="e.g. Drums"></div>
     </div>
-    <div class="field"><label>Phone / WhatsApp *</label><input type="text" id="sub-phone" placeholder="e.g. +33 6 12 34 56 78"></div>
+    <div class="field"><label>📱 Phone / WhatsApp</label>
+      <div style="display:flex;gap:6px">
+        <select id="sub-prefix" style="background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:8px 6px;color:var(--text);font-family:inherit;font-size:13px;flex-shrink:0;max-width:130px">
+          <option value="+33">🇫🇷 +33</option>
+          <option value="+34">🇪🇸 +34</option>
+          <option value="+595">🇵🇾 +595</option>
+          <option value="+32">🇧🇪 +32</option>
+          <option value="+41">🇨🇭 +41</option>
+          <option value="+39">🇮🇹 +39</option>
+          <option value="+44">🇬🇧 +44</option>
+          <option value="+49">🇩🇪 +49</option>
+          <option value="+351">🇵🇹 +351</option>
+          <option value="+31">🇳🇱 +31</option>
+          <option value="+1">🇺🇸 +1</option>
+          <option value="+54">🇦🇷 +54</option>
+          <option value="+55">🇧🇷 +55</option>
+          <option value="+52">🇲🇽 +52</option>
+          <option value="">Other</option>
+        </select>
+        <input type="tel" id="sub-phone" placeholder="6 12 34 56 78" style="flex:1">
+      </div>
+    </div>
+    <div class="field"><label>✉ Email</label><input type="email" id="sub-email" placeholder="e.g. marco@email.com"></div>
     <div class="field"><label>Genre / Style</label><input type="text" id="sub-genre" placeholder="e.g. Rock, Jazz, Latin"></div>
     <div class="field"><label>Notes</label><textarea id="sub-notes" placeholder="e.g. Very reliable, knows Pierre's setlist, available most weekends"></textarea></div>
     <div class="mact">
@@ -1762,15 +1784,40 @@ function checkPlanAccess(view){
   return true;
 }
 
-function shareViaWhatsApp(){
+function shareViaWhatsApp(phone){
+  var text = document.getElementById('share-event-content').textContent;
+  // If phone provided, open direct conversation
+  if(phone){
+    var clean = phone.replace(/[^+0-9]/g,'');
+    window.open('https://wa.me/'+clean+'?text='+encodeURIComponent(text),'_blank');
+  } else {
+    window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
+  }
+}
+function _shareViaWhatsApp(){
   var text = document.getElementById('share-event-content').textContent;
   window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
 }
-function shareViaSMS(){
+function shareViaSMS(phone){
+  var text = document.getElementById('share-event-content').textContent;
+  if(phone){
+    var clean = phone.replace(/[^+0-9]/g,'');
+    window.open('sms:'+clean+'?body='+encodeURIComponent(text));
+  } else {
+    window.open('sms:?body='+encodeURIComponent(text));
+  }
+}
+function _shareViaSMS(){
   var text = document.getElementById('share-event-content').textContent;
   window.open('sms:?body='+encodeURIComponent(text));
 }
-function shareViaGmail(){
+function shareViaGmail(email){
+  var text = document.getElementById('share-event-content').textContent;
+  var title = document.getElementById('modal-share-event').querySelector('.modal-title').textContent;
+  var to = email || '';
+  window.open('https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(title)+'&body='+encodeURIComponent(text),'_blank');
+}
+function _shareViaGmail(){
   var text = document.getElementById('share-event-content').textContent;
   var title = document.getElementById('modal-share-event').querySelector('.modal-title').textContent;
   window.open('https://mail.google.com/mail/?view=cm&su='+encodeURIComponent(title)+'&body='+encodeURIComponent(text),'_blank');
@@ -2540,12 +2587,15 @@ function importToCheck(dates){
 function saveSub(){
   const name=document.getElementById('sub-name').value.trim();
   const inst=document.getElementById('sub-inst').value.trim();
-  const phone=document.getElementById('sub-phone').value.trim();
+  const prefix=document.getElementById('sub-prefix').value;
+  const phoneRaw=document.getElementById('sub-phone').value.trim().replace(/\s/g,'');
+  const phone = phoneRaw ? (prefix + phoneRaw.replace(/^0/,'')) : '';
+  const email=document.getElementById('sub-email').value.trim();
   const genre=document.getElementById('sub-genre').value.trim();
   const notes=document.getElementById('sub-notes').value.trim();
-  if(!name||!phone){toast('Name and phone required',false);return;}
-  subs.push({id:newId(),name,inst,phone,genre,notes});
-  ['sub-name','sub-inst','sub-phone','sub-genre','sub-notes'].forEach(i=>document.getElementById(i).value='');
+  if(!name){toast('Name required',false);return;}
+  subs.push({id:newId(),name,inst,phone,email,genre,notes});
+  ['sub-name','sub-inst','sub-phone','sub-email','sub-genre','sub-notes'].forEach(i=>document.getElementById(i).value='');
   closeModal('modal-sub');toast(name+' added');renderSubs();saveData();
 }
 function delSub(id){subs=subs.filter(s=>s.id!==id);toast('Removed');renderSubs();saveData();}
@@ -2644,7 +2694,10 @@ function generateSubShareText(subId, checkboxIds, tourIds){
   document.getElementById('btn-copy-share-event').onclick=function(){
     navigator.clipboard&&navigator.clipboard.writeText(text).then(function(){toast('Copied');});
   };
-  document.getElementById('modal-share-event').querySelector('.modal-title').textContent='Share dates with '+sub.name;
+  document.getElementById('modal-share-event').querySelector('.modal-title').textContent='Share with '+sub.name;
+  // Store contact info for share buttons
+  window._sharePhone = sub.phone||'';
+  window._shareEmail = sub.email||'';
   openModal('modal-share-event');
 }
 function renderSubs(){
