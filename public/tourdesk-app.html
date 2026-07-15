@@ -1468,10 +1468,11 @@ function saveData(){
   fetch('/api/sync', {
     method: 'POST',
     headers: {'Content-Type':'application/json', ...(window._supabaseToken?{'Authorization':'Bearer '+window._supabaseToken}:{})},
+    credentials: 'include',
     body: JSON.stringify({action:'saveAll', data: payload})
-  }).then(r => {
-    if(r.ok) console.log('Cloud save OK');
-    else console.warn('Cloud save failed:', r.status);
+  }).then(r => r.json()).then(d => {
+    if(d.success) console.log('Cloud save OK');
+    else { console.warn('Cloud save failed:', d.error); toast('Sync error — data saved locally', false); }
   }).catch(e => console.warn('Cloud save error:', e));
 }
 
@@ -1479,7 +1480,8 @@ function loadData(){
   // Try loading from Supabase first
   if(window._supabaseSession){
     fetch('/api/sync', {
-      headers: {'Content-Type':'application/json', ...(window._supabaseToken?{'Authorization':'Bearer '+window._supabaseToken}:{})}
+      headers: {'Content-Type':'application/json', ...(window._supabaseToken?{'Authorization':'Bearer '+window._supabaseToken}:{})},
+      credentials: 'include'
     }).then(r => r.json()).then(d => {
       if(d.error){ console.warn('Cloud load error:', d.error); loadFromLocal(); return; }
       applyData(d);
