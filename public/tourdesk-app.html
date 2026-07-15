@@ -1459,7 +1459,10 @@ function saveData(){
   }catch(e){ console.warn('localStorage save failed:', e); }
 
   // Save to Supabase cloud
-  if(!window._supabaseSession) return;
+  if(!window._supabaseToken){
+    try{ window._supabaseToken = sessionStorage.getItem('td_token'); }catch(e){}
+  }
+  if(!window._supabaseToken){ console.warn('No token for cloud save'); return; }
   const payload = {
     artists, tours, meetings, subs, trips, cachets, artistHours,
     hoursGoal, hourTypes, contacts, expenses, guests, mgrTours,
