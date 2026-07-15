@@ -1697,8 +1697,7 @@ function applyPlanRestrictions(plan){
   // Update menu items — lock features not in plan
   var allViews = ['travel','expenses','guestlist','contacts','manager'];
   allViews.forEach(function(view){
-    var menuItem = document.querySelector('[onclick*="showView(''+view+''"]');
-    if(!menuItem) return;
+    // menu item found via querySelectorAll
     if(allowed.indexOf(view)===-1){
       menuItem.style.opacity='0.4';
       menuItem.style.pointerEvents='none';
@@ -1716,7 +1715,6 @@ function applyPlanRestrictions(plan){
     }
   });
   // Manager view only for manager plan
-  var mgrItem = document.querySelector('[onclick*="showView('manager'"]');
   if(mgrItem){
     if(plan!=='manager'){
       mgrItem.style.opacity='0.4';
@@ -1745,8 +1743,15 @@ function checkPlanAccess(view){
       +'<div style="font-size:36px;margin-bottom:12px">⭐</div>'
       +'<div style="font-weight:900;font-size:16px;margin-bottom:8px">'+view.charAt(0).toUpperCase()+view.slice(1)+' is a Pro feature</div>'
       +'<div style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">Upgrade your plan to access this feature.</div>'
-      +'<button onclick="showView('settings');closeModal('modal-ai')" style="background:var(--gold);border:none;color:#0A0A0F;border-radius:10px;padding:12px 24px;cursor:pointer;font-family:inherit;font-weight:900;font-size:14px">Upgrade plan →</button>'
+      +'<div id="plan-upgrade-btns"></div>'
       +'</div>';
+  // Wire upgrade button after render
+  var upBtn=document.createElement('button');
+  upBtn.textContent='Upgrade plan →';
+  upBtn.style.cssText='background:var(--gold);border:none;color:#0A0A0F;border-radius:10px;padding:12px 24px;cursor:pointer;font-family:inherit;font-weight:900;font-size:14px';
+  upBtn.onclick=function(){showView('settings');closeModal('modal-ai');};
+  var upDiv=document.getElementById('plan-upgrade-btns');
+  if(upDiv) upDiv.appendChild(upBtn);
     openModal('modal-ai');
     return false;
   }
