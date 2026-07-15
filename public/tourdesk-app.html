@@ -550,7 +550,7 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
     <div class="hinner">
       <div class="logo" onclick="showLanding()"><div class="logo-icon">♩</div><div><div class="logo-name">Tour<span style="color:var(--gold)">Desk</span></div><div class="logo-sub">Artist Agenda</div></div></div>
       <div id="nav-current" style="font-weight:800;font-size:14px;letter-spacing:-.02em;color:var(--text);flex:1;text-align:center;padding:0 8px">Calendar</div>
-      <div id="user-avatar" onclick="signOut()" title="Sign out" style="display:none;width:32px;height:32px;border-radius:50%;background:var(--gold);color:#0A0A0F;font-weight:900;font-size:13px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:6px"></div>
+      <div id="user-avatar" title="" style="display:none;width:32px;height:32px;border-radius:50%;background:var(--gold);color:#0A0A0F;font-weight:900;font-size:13px;align-items:center;justify-content:center;cursor:default;flex-shrink:0;margin-right:6px"></div>
       <button id="hamburger-btn" onclick="toggleMenu()" style="background:var(--surf);border:1px solid var(--bdr);border-radius:10px;cursor:pointer;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;width:44px;height:44px;flex-shrink:0">
         <span style="display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:all .25s"></span>
         <span style="display:block;width:18px;height:2px;background:var(--text);border-radius:2px;transition:all .25s"></span>
@@ -1505,8 +1505,7 @@ function showDataStatus(){
 }
 
 function signOut(){
-  const email = document.getElementById('user-email-sub')?.textContent || '';
-  if(!confirm('Sign out' + (email && email !== 'Your account' ? ' (' + email + ')' : '') + '?')) return;
+  if(!confirm('Sign out of TourDesk?')) return;
   // Clear Supabase session
   const keysToRemove = [];
   for(let i=0;i<localStorage.length;i++){
@@ -3090,7 +3089,7 @@ document.addEventListener('DOMContentLoaded',function(){
     if(avatar){
       avatar.textContent = email[0].toUpperCase();
       avatar.style.display = 'flex';
-      avatar.title = email + ' — tap to sign out';
+      avatar.title = email;
     }
     console.log('Logged in as:', email);
   }
