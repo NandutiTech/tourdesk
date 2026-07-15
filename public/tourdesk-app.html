@@ -3552,13 +3552,20 @@ document.addEventListener('DOMContentLoaded',function(){
     try{ if(!tok) tok = localStorage.getItem('td_token'); }catch(e){}
     if(!tok){ loadFromLocal(); showAppUI(); return; }
     window._supabaseToken = tok;
+
+    // Show app immediately from localStorage (fast)
+    loadFromLocal();
+    showAppUI();
+
+    // Then update from cloud in background (non-blocking)
     fetch('/api/sync',{
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok}
     }).then(function(r){return r.json();}).then(function(d){
-      if(d&&!d.error){applyData(d);}
-      if(artists.length===0) loadFromLocal();
-      showAppUI();
-    }).catch(function(e){loadFromLocal();showAppUI();});
+      if(d&&!d.error && d._cloudLoaded){
+        applyData(d);
+        render();
+      }
+    }).catch(function(e){ console.warn('Cloud sync failed:', e); });
   }
 
   function showAppUI(){
