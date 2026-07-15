@@ -1609,7 +1609,7 @@ function showDataStatus(){
   var closeBtn=document.createElement('button');
   closeBtn.textContent='Close';
   closeBtn.style.cssText='flex:1;background:var(--surf);border:1px solid var(--bdr);color:var(--muted);border-radius:9px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px;width:50%';
-  closeBtn.onclick=function(){closeModal('modal-ai');};
+  closeBtn.onclick=function(){closeModal("modal-ai");};
   var btns=document.getElementById('data-status-btns');
   if(btns){btns.appendChild(saveBtn);btns.appendChild(closeBtn);}
 
@@ -1638,7 +1638,7 @@ function openContactUs(){
   var closeBtn=document.createElement('button');
   closeBtn.textContent='Close';
   closeBtn.style.cssText='width:100%;background:none;border:1px solid var(--bdr);color:var(--muted);border-radius:10px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px';
-  closeBtn.onclick=function(){closeModal('modal-ai');};
+  closeBtn.onclick=function(){closeModal("modal-ai");};
   document.getElementById('ai-content').innerHTML=html;
   document.getElementById('ai-content').appendChild(closeBtn);
   openModal('modal-ai');
