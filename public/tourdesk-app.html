@@ -1671,16 +1671,11 @@ function closeAvatarMenu(){
 }
 
 function openContactUs(){
-  var html='<div style="font-size:14px;font-weight:800;margin-bottom:8px">Contact us</div>';
-  html+='<div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">Have a question or suggestion? Send us an email.</div>';
-  html+='<a href="mailto:sannie.patron@gmail.com?subject=TourDesk feedback" style="display:block;background:var(--gold);color:#0A0A0F;border-radius:10px;padding:12px;text-align:center;font-weight:900;font-size:14px;text-decoration:none;margin-bottom:10px">Send email</a>';
-  var closeBtn=document.createElement('button');
-  closeBtn.textContent='Close';
-  closeBtn.style.cssText='width:100%;background:none;border:1px solid var(--bdr);color:var(--muted);border-radius:10px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px';
-  closeBtn.onclick=function(){closeModal("modal-ai");};
-  document.getElementById('ai-content').innerHTML=html;
-  document.getElementById('ai-content').appendChild(closeBtn);
-  openModal('modal-ai');
+  document.getElementById('contact-bug-title').textContent='Contact us';
+  document.getElementById('contact-bug-content').innerHTML=
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">Have a question or suggestion? Send us an email.</div>'
+    +'<a href="mailto:sannie.patron@gmail.com?subject=TourDesk feedback" style="display:block;background:var(--gold);color:#0A0A0F;border-radius:10px;padding:12px;text-align:center;font-weight:900;font-size:14px;text-decoration:none">Send email</a>';
+  openModal('modal-contact-bug');
 }
 
 function openReportBug(){
