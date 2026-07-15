@@ -4844,7 +4844,7 @@ function adminLoadUsers(){
             +'<div style="font-size:13px;font-weight:700;'+(expired?'color:var(--red)':'')+'">'+u.email+'</div>'
             +'<div style="font-size:11px;color:var(--muted)">'+u.plan+' · '+exp+(u.note?' · '+u.note:'')+'</div>'
           +'</div>'
-          +'<button onclick="adminRemoveUser(''+u.email+'')" style="background:var(--redbg);border:1px solid var(--redbd);color:var(--red);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:inherit;font-size:11px">✕</button>'
+          +'<button onclick="window._adminDel=\''+u.email+'\';adminRemoveUser(window._adminDel)" style="background:var(--redbg);border:1px solid var(--redbd);color:var(--red);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:inherit;font-size:11px">✕</button>'
           +'</div>';
       }).join('');
     });
