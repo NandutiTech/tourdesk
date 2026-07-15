@@ -16,26 +16,29 @@ export async function GET() {
     const htmlPath = join(process.cwd(), 'public', 'tourdesk-app.html')
     let html = readFileSync(htmlPath, 'utf-8')
 
-    // Inject token AND save it to localStorage so it persists
     const injection = `<script>
 (function(){
   var token = ${JSON.stringify(session.access_token)};
   var email = ${JSON.stringify(user.email)};
-  var uid = ${JSON.stringify(user.id)};
   window._supabaseToken = token;
-  window._supabaseUser = {email: email, id: uid};
-  // Save to sessionStorage AND localStorage for persistence
+  window._supabaseUser = {email: email, id: ${JSON.stringify(user.id)}};
+  try { localStorage.setItem('td_token', token); localStorage.setItem('td_email', email); } catch(e) {}
   try { sessionStorage.setItem('td_token', token); } catch(e) {}
-  try { sessionStorage.setItem('td_email', email); } catch(e) {}
-  try { localStorage.setItem('td_token', token); } catch(e) {}
-  try { localStorage.setItem('td_email', email); } catch(e) {}
+  // Redirect refresh to app-shell so token is always fresh
+  if(window.location.pathname !== '/app-shell'){
+    window.history.replaceState(null,'','/app-shell');
+  }
 })();
 </script>`
 
     html = html.replace('</head>', injection + '</head>')
 
+    // Set headers to prevent caching so token is always fresh
     return new NextResponse(html, {
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      }
     })
   } catch (err) {
     console.error('App shell error:', err)
