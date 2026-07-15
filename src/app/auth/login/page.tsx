@@ -37,12 +37,14 @@ export default function LoginPage() {
       if (error) {
         setError(error.message)
       } else if (data.session) {
-        // Save token to localStorage so mobile can access it
         try {
           localStorage.setItem('td_token', data.session.access_token)
           localStorage.setItem('td_email', email)
         } catch(e) {}
         window.location.href = '/app-shell'
+      } else {
+        // No session returned - email may not be confirmed
+        setError('Could not sign in. Please confirm your email first.')
       }
     }
     setLoading(false)
