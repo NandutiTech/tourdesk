@@ -1654,16 +1654,26 @@ function saveSettingsHours(){
 
 function signOut(){
   if(!confirm('Sign out of TourDesk?')) return;
-  // Clear Supabase session
-  const keysToRemove = [];
-  for(let i=0;i<localStorage.length;i++){
-    const k = localStorage.key(i);
-    if(k && (k.includes('auth-token') || k.includes('supabase') || k.includes(STORAGE_KEY))){
-      keysToRemove.push(k);
+  // Clear local storage
+  try{
+    var keys=[];
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k&&(k.includes('auth')||k.includes('supabase')||k.includes('td_')||k===STORAGE_KEY)) keys.push(k);
     }
+    keys.forEach(function(k){localStorage.removeItem(k);});
+    sessionStorage.clear();
+  }catch(e){}
+  // Sign out via Supabase API
+  var tok = window._supabaseToken;
+  if(tok){
+    fetch('https://roftxxsmciznwgzsjmje.supabase.co/auth/v1/logout', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+tok,'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvZnR4eHNtY2l6bndnenNqbWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc0NjgsImV4cCI6MjA5OTY5MzQ2OH0.RDsuoKxUG5hj9MpB7uloJ3MJNND9ec39MzzvPDt0otc'}
+    }).finally(function(){ window.location.href='/auth/login'; });
+  } else {
+    window.location.href='/auth/login';
   }
-  keysToRemove.forEach(k => localStorage.removeItem(k));
-  window.location.href = '/auth/login';
 }
 
 function clearAllData(){
