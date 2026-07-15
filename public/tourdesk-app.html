@@ -1122,6 +1122,15 @@ footer{border-top:1px solid var(--bdr);padding:20px 24px;display:flex;align-item
   </div>
 </div>
 
+<!-- Contact / Bug modal -->
+<div class="modal-ov" id="modal-contact-bug">
+  <div class="modal-box">
+    <div class="modal-title" id="contact-bug-title">Contact us</div>
+    <div id="contact-bug-content"></div>
+    <button onclick="closeModal('modal-contact-bug')" style="width:100%;background:none;border:1px solid var(--bdr);color:var(--muted);border-radius:10px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px;margin-top:10px">Close</button>
+  </div>
+</div>
+
 <!-- Manager tour sheet modal -->
 <div class="modal-ov" id="modal-manager-tour">
   <div class="modal-box" style="max-height:92vh;overflow-y:auto">
@@ -1675,29 +1684,28 @@ function openContactUs(){
 }
 
 function openReportBug(){
-  var el=document.getElementById('ai-content');
-  el.innerHTML='';
-  el.innerHTML='<div style="font-size:14px;font-weight:800;margin-bottom:8px">Report a bug</div><div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6">Describe what happened and we will fix it quickly.</div><textarea id="bug-report-text" placeholder="e.g. When I import a PDF, the dates are wrong..." style="width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:10px;color:var(--text);font-family:inherit;font-size:13px;min-height:80px;box-sizing:border-box"></textarea>';
+  document.getElementById('contact-bug-title').textContent='Report a bug';
+  document.getElementById('contact-bug-content').innerHTML=
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6">Describe what happened and we will fix it quickly.</div>'
+    +'<textarea id="bug-report-text" placeholder="e.g. When I import a PDF, the dates are wrong..." style="width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:10px;color:var(--text);font-family:inherit;font-size:13px;min-height:80px;box-sizing:border-box;margin-bottom:10px"></textarea>';
+  var el=document.getElementById('contact-bug-content');
   var sendBtn=document.createElement('button');
   sendBtn.textContent='Send report';
-  sendBtn.style.cssText='width:100%;background:var(--gold);border:none;color:#0A0A0F;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:900;font-size:14px;margin-top:10px;margin-bottom:8px';
+  sendBtn.style.cssText='width:100%;background:var(--gold);border:none;color:#0A0A0F;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:900;font-size:14px';
   sendBtn.onclick=sendBugReport;
-  var cancelBtn=document.createElement('button');
-  cancelBtn.textContent='Cancel';
-  cancelBtn.style.cssText='width:100%;background:none;border:1px solid var(--bdr);color:var(--muted);border-radius:10px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px';
-  cancelBtn.onclick=function(){closeModal('modal-ai');};
   el.appendChild(sendBtn);
-  el.appendChild(cancelBtn);
-  openModal('modal-ai');
+  openModal('modal-contact-bug');
 }
 
 function sendBugReport(){
-  const text = document.getElementById('bug-report-text')?.value||'';
+  var text=document.getElementById('bug-report-text')?.value||'';
   if(!text.trim()){toast('Please describe the bug',false);return;}
   window.open('mailto:sannie.patron@gmail.com?subject=TourDesk bug report&body='+encodeURIComponent(text),'_blank');
-  closeModal('modal-ai');
+  closeModal('modal-contact-bug');
   toast('Thanks for the report! ✓');
 }
+
+
 
 function saveSettingsProfile(){
   const name = document.getElementById('settings-name')?.value.trim();
