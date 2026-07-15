@@ -4352,16 +4352,33 @@ async function handlePlanningFile(file){
       return;
     }
 
-    const prompt = `Extract all events from this artist planning document. Return ONLY a JSON array, no other text:
-[{"date":"YYYY-MM-DD","endDate":"YYYY-MM-DD","venue":"name","city":"city","type":"show|rehearsal|travel|workday","notes":""}]
-CRITICAL RULES FOR DATES:
-- Read dates EXACTLY as written — do NOT swap day and month under any circumstances
-- Format DD/MM/YYYY or "23 juin" → YYYY-MM-DD (e.g. 23/06/2026 = 2026-06-23, NOT 2026-07-23)
+    const prompt = `You are extracting tour dates from an artist planning document.
+
+IMPORTANT — DOCUMENT STRUCTURE:
+Many tour plannings use a TWO-COLUMN layout where each column represents a different month.
+- LEFT column = earlier month (e.g. June)
+- RIGHT column = later month (e.g. July)
+- Each row has: day number | venue/city on the LEFT | day number | venue/city on the RIGHT
+- When text is extracted linearly, dates from both columns get mixed together
+- You MUST identify which month header each date belongs to, not its physical position in the extracted text
+- A date of "23" under a "JUIN" header = June 23rd, even if surrounded by July text
+
+CRITICAL DATE RULES:
+- NEVER swap day and month — format is always DD/MM or day + French month name
 - French months: janvier=01, février=02, mars=03, avril=04, mai=05, juin=06, juillet=07, août=08, septembre=09, octobre=10, novembre=11, décembre=12
-- If you see "23 juin" that is June 23rd = 2026-06-23. "23 juillet" is July 23rd = 2026-07-23
-- Infer the year from context (tour year, column headers)
-- VOYAGE=travel, ARRIVÉE=travel, RÉPÉTITIONS=rehearsal, shows=show
-- One object per event, return nothing but the JSON array`;
+- Find the month headers first (e.g. "JUIN 2026", "JUILLET 2026"), then assign each day number to the correct month
+- 23 juin = 2026-06-23 — 23 juillet = 2026-07-23 — never confuse them
+
+EVENT TYPES:
+- VOYAGE / DÉPART = travel
+- ARRIVÉE = travel  
+- RÉPÉTITIONS / MONTAGE / BALANCE = rehearsal
+- Concert / Show / Spectacle = show
+- RÉSIDENCE = residence
+- Everything else = workday
+
+Return ONLY a valid JSON array, no markdown, no explanation:
+[{"date":"YYYY-MM-DD","endDate":"YYYY-MM-DD","venue":"venue name","city":"city","type":"show|rehearsal|travel|workday|residence","notes":""}]`;
 
     const contentBlocks = [
       isImage
