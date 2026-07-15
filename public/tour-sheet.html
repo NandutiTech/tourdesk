@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tour Sheet — TourDesk</title>
+<style>
+:root{--bg:#0A0A0F;--surf:#12121A;--card:#17171F;--bdr:#1F1F2E;--gold:#C9A84C;--text:#E8E0F0;--muted:#5A5570;--blu:#4C9AC9;--grn:#5DC9A0;--red:#E8453C;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'Inter',system-ui,sans-serif;min-height:100vh;padding:0}
+header{background:var(--bg);border-bottom:1px solid var(--bdr);padding:14px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.logo-icon{width:30px;height:30px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.logo-name{font-weight:900;font-size:14px;letter-spacing:-.04em}
+.logo-sub{font-size:9px;color:var(--gold);letter-spacing:.15em;text-transform:uppercase;font-weight:700}
+main{max-width:600px;margin:0 auto;padding:24px 16px}
+.hero-card{background:var(--gold);border-radius:16px;padding:20px;margin-bottom:20px;color:#0A0A0F}
+.hero-tour{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.7;margin-bottom:4px}
+.hero-name{font-size:24px;font-weight:900;letter-spacing:-.04em;margin-bottom:4px}
+.hero-role{font-size:14px;font-weight:600;opacity:.8}
+.hero-dates{font-size:12px;margin-top:8px;opacity:.7}
+.section{background:var(--card);border:1px solid var(--bdr);border-radius:14px;padding:16px;margin-bottom:12px}
+.section-title{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.info-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.info-icon{font-size:20px;flex-shrink:0;width:28px;text-align:center}
+.info-content{flex:1;min-width:0}
+.info-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.info-value{font-size:14px;font-weight:700}
+.info-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--surf);border:1px solid var(--bdr);color:var(--text);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;text-decoration:none;margin-top:8px}
+.btn-gold{background:var(--gold);border-color:var(--gold);color:#0A0A0F}
+.btn-blue{background:rgba(76,154,201,.1);border-color:rgba(76,154,201,.3);color:var(--blu)}
+.notes-box{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:12px;font-size:13px;line-height:1.6;white-space:pre-wrap}
+.error{text-align:center;padding:60px 20px}
+.error-icon{font-size:48px;margin-bottom:16px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-icon">🎵</div>
+  <div>
+    <div class="logo-name">Tour<span style="color:var(--gold)">Desk</span></div>
+    <div class="logo-sub">Tour Sheet</div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="error">
+    <div class="error-icon">⏳</div>
+    <div style="font-weight:700;font-size:16px;margin-bottom:8px">Loading your tour sheet…</div>
+  </div>
+</main>
+
+<script>
+function humanDate(str){
+  if(!str) return '';
+  const d=new Date(str+'T12:00:00');
+  return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+}
+
+function render(data){
+  const m=data.member;
+  const main=document.getElementById('main');
+  document.title=data.tourName+' — '+m.name;
+
+  let html='<div class="hero-card">';
+  html+='<div class="hero-tour">'+data.tourName+(data.artistName?' · '+data.artistName:'')+'</div>';
+  html+='<div class="hero-name">'+m.name+'</div>';
+  if(m.role) html+='<div class="hero-role">'+m.role+'</div>';
+  if(data.start) html+='<div class="hero-dates">'+humanDate(data.start)+(data.end&&data.end!==data.start?' → '+humanDate(data.end):'')+'</div>';
+  html+='</div>';
+
+  // Hotel
+  if(m.hotel){
+    html+='<div class="section"><div class="section-title">Accommodation</div>';
+    html+='<div class="info-row"><div class="info-icon">🏨</div><div class="info-content">';
+    html+='<div class="info-label">Hotel</div>';
+    html+='<div class="info-value">'+m.hotel+(m.room?' · Room '+m.room:'')+'</div>';
+    if(m.hotelAddr) html+='<div class="info-sub">'+m.hotelAddr+'</div>';
+    html+='</div></div>';
+    if(m.hotelAddr){
+      html+='<a href="https://maps.google.com/?q='+encodeURIComponent(m.hotel+' '+m.hotelAddr)+'" target="_blank" class="btn btn-blue">🗺 Navigate to hotel</a>';
+    }
+    html+='</div>';
+  }
+
+  // Ticket
+  if(m.ticketRef||m.ticketLink){
+    html+='<div class="section"><div class="section-title">Travel Ticket</div>';
+    if(m.ticketRef){
+      html+='<div class="info-row"><div class="info-icon">🎫</div><div class="info-content">';
+      html+='<div class="info-label">Reference</div>';
+      html+='<div class="info-value">'+m.ticketRef+'</div>';
+      html+='</div></div>';
+    }
+    if(m.ticketLink){
+      const isBase64 = m.ticketLink.startsWith('data:');
+      const isImage = m.ticketLink.startsWith('data:image');
+      if(isImage){
+        // Show image inline
+        html+='<img src="'+m.ticketLink+'" style="width:100%;border-radius:10px;margin-top:8px;border:1px solid var(--bdr)">';
+      } else if(isBase64){
+        // PDF — show download button
+        html+='<a href="'+m.ticketLink+'" download="'+(m.ticketFileName||'ticket.pdf')+'" class="btn btn-gold" style="display:flex;align-items:center;gap:8px;margin-top:8px">📄 Download ticket '+(m.ticketFileName?'('+m.ticketFileName+')':'PDF')+'</a>';
+      } else {
+        // External link
+        html+='<a href="'+m.ticketLink+'" target="_blank" class="btn btn-gold" style="display:flex;align-items:center;gap:8px;margin-top:8px">📄 Open ticket</a>';
+      }
+    }
+    html+='</div>';
+  }
+
+  // Personal notes
+  if(m.notes){
+    html+='<div class="section"><div class="section-title">Your Notes</div>';
+    html+='<div class="notes-box">'+m.notes+'</div>';
+    html+='</div>';
+  }
+
+  // General notes
+  if(data.generalNotes){
+    html+='<div class="section"><div class="section-title">General Info</div>';
+    html+='<div class="notes-box">'+data.generalNotes+'</div>';
+    html+='</div>';
+  }
+
+  // Footer
+  html+='<div style="text-align:center;padding:20px 0;font-size:11px;color:var(--muted)">Generated by <strong style="color:var(--gold)">TourDesk</strong></div>';
+
+  main.innerHTML=html;
+}
+
+// Parse hash
+try{
+  const hash=window.location.hash.slice(1);
+  if(!hash) throw new Error('No data');
+  const data=JSON.parse(decodeURIComponent(escape(atob(hash))));
+  render(data);
+} catch(e){
+  document.getElementById('main').innerHTML='<div class="error"><div class="error-icon">❌</div><div style="font-weight:700;font-size:16px;margin-bottom:8px">Invalid tour sheet link</div><div style="color:var(--muted);font-size:13px">Ask your manager to send you the link again.</div></div>';
+}
+</script>
+</body>
+</html>

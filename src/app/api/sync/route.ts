@@ -1,113 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerClient } from '@supabase/ssr'
 
-// Rate limiting: max 60 requests per minute per user
-const rateLimitMap = new Map<string, { count: number; reset: number }>()
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now()
-  const limit = rateLimitMap.get(userId)
-  if (!limit || now > limit.reset) {
-    rateLimitMap.set(userId, { count: 1, reset: now + 60000 })
-    return true
+async function getUserFromRequest(request: NextRequest) {
+  // Try Bearer token first (from HTML app)
+  const authHeader = request.headers.get('Authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7)
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: { getAll: () => [], setAll: () => {} },
+      global: { headers: { Authorization: `Bearer ${token}` } }
+    })
+    const { data: { user } } = await supabase.auth.getUser(token)
+    if (user) return { user, supabase }
   }
-  if (limit.count >= 60) return false
-  limit.count++
-  return true
+
+  // Try cookies (from Next.js pages)
+  const { cookies } = await import('next/headers')
+  const cookieStore = await cookies()
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() { return cookieStore.getAll() },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) =>
+          cookieStore.set(name, value, options)
+        )
+      },
+    },
+  })
+  const { data: { user } } = await supabase.auth.getUser()
+  return { user, supabase }
 }
 
 // GET — load all user data
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { user, supabase } = await getUserFromRequest(request)
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    if (settings?.data_blob) {
+      return NextResponse.json({ ...settings.data_blob, _cloudLoaded: true })
     }
 
-    // Load all data in parallel
-    const [
-      artists, tours, meetings, replacements, trips,
-      expenses, guests, contacts, managerTours, managerMembers, settings
-    ] = await Promise.all([
-      supabase.from('artists').select('*').order('name'),
-      supabase.from('tours').select('*').order('start_date'),
-      supabase.from('meetings').select('*').order('date'),
-      supabase.from('replacements').select('*').order('name'),
-      supabase.from('trips').select('*').order('out_date'),
-      supabase.from('expenses').select('*').order('date', { ascending: false }),
-      supabase.from('guests').select('*'),
-      supabase.from('contacts').select('*').order('name'),
-      supabase.from('manager_tours').select('*').order('created_at'),
-      supabase.from('manager_members').select('*'),
-      supabase.from('user_settings').select('*').eq('user_id', user.id).single(),
-    ])
-
-    return NextResponse.json({
-      artists: artists.data || [],
-      tours: tours.data || [],
-      meetings: meetings.data || [],
-      replacements: replacements.data || [],
-      trips: trips.data || [],
-      expenses: expenses.data || [],
-      guests: guests.data || [],
-      contacts: contacts.data || [],
-      managerTours: managerTours.data || [],
-      managerMembers: managerMembers.data || [],
-      settings: settings.data || {},
-    })
+    return NextResponse.json({ _cloudLoaded: true })
   } catch (err) {
     console.error('Sync GET error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// POST — save a specific collection
+// POST — save all data
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Rate limiting
-    if (!checkRateLimit(user.id)) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
-    }
+    const { user, supabase } = await getUserFromRequest(request)
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const { table, action, data, id } = body
+    const { action, data } = body
 
-    // Whitelist allowed tables
-    const allowedTables = [
-      'artists', 'tours', 'meetings', 'replacements', 'trips',
-      'expenses', 'guests', 'contacts', 'manager_tours', 'manager_members', 'user_settings'
-    ]
-    if (!allowedTables.includes(table)) {
-      return NextResponse.json({ error: 'Invalid table' }, { status: 400 })
+    if (action === 'saveAll') {
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          data_blob: data,
+          updated_at: new Date().toISOString()
+        })
+
+      if (error) {
+        console.error('Save error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true })
     }
 
-    // Always inject user_id
-    const record = { ...data, user_id: user.id }
-
-    let result
-    if (action === 'upsert') {
-      result = await supabase.from(table).upsert(record).select().single()
-    } else if (action === 'delete' && id) {
-      result = await supabase.from(table).delete().eq('id', id).eq('user_id', user.id)
-    } else if (action === 'update' && id) {
-      result = await supabase.from(table).update(record).eq('id', id).eq('user_id', user.id).select().single()
-    } else {
-      return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-    }
-
-    if (result.error) {
-      console.error('DB error:', result.error)
-      return NextResponse.json({ error: result.error.message }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, data: result.data })
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (err) {
     console.error('Sync POST error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
