@@ -2594,11 +2594,48 @@ function saveSub(){
   const genre=document.getElementById('sub-genre').value.trim();
   const notes=document.getElementById('sub-notes').value.trim();
   if(!name){toast('Name required',false);return;}
-  subs.push({id:newId(),name,inst,phone,email,genre,notes});
+  if(editingSubId){
+    const idx=subs.findIndex(x=>x.id===editingSubId);
+    if(idx>-1) subs[idx]=Object.assign(subs[idx],{name,inst,phone,email,genre,notes});
+    editingSubId=null;
+  } else {
+    subs.push({id:newId(),name,inst,phone,email,genre,notes});
+  }
   ['sub-name','sub-inst','sub-phone','sub-email','sub-genre','sub-notes'].forEach(i=>document.getElementById(i).value='');
-  closeModal('modal-sub');toast(name+' added');renderSubs();saveData();
+  document.querySelector('#modal-sub .modal-title').textContent='New Replacement';
+  document.getElementById('btn-save-sub').textContent='Save';
+  closeModal('modal-sub');toast(name+(editingSubId?'updated':'added'));renderSubs();saveData();
 }
 function delSub(id){subs=subs.filter(s=>s.id!==id);toast('Removed');renderSubs();saveData();}
+
+var editingSubId=null;
+function editSub(id){
+  const s=subs.find(x=>x.id===id);
+  if(!s)return;
+  editingSubId=id;
+  document.getElementById('sub-name').value=s.name||'';
+  document.getElementById('sub-inst').value=s.inst||'';
+  document.getElementById('sub-email').value=s.email||'';
+  document.getElementById('sub-genre').value=s.genre||'';
+  document.getElementById('sub-notes').value=s.notes||'';
+  // Set phone prefix and number
+  const phone=s.phone||'';
+  const prefixSel=document.getElementById('sub-prefix');
+  const prefixes=['+595','+33','+34','+32','+41','+39','+44','+49','+351','+31','+1','+54','+55','+52'];
+  let matched='';
+  for(var i=0;i<prefixes.length;i++){
+    if(phone.startsWith(prefixes[i])){matched=prefixes[i];break;}
+  }
+  if(matched){
+    prefixSel.value=matched;
+    document.getElementById('sub-phone').value=phone.slice(matched.length);
+  } else {
+    document.getElementById('sub-phone').value=phone;
+  }
+  document.querySelector('#modal-sub .modal-title').textContent='Edit Replacement';
+  document.getElementById('btn-save-sub').textContent='Update';
+  openModal('modal-sub');
+}
 
 function whatsappSub(id,conflictDate){
   const sub=subs.find(s=>s.id===id);if(!sub)return;
@@ -2709,12 +2746,14 @@ function renderSubs(){
       <div style="flex:1;min-width:0">
         <div style="font-weight:800;font-size:14px;margin-bottom:3px">${s.name}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">${s.inst?`<span class="tag tag-m">${s.inst}</span>`:''}${s.genre?`<span class="tag tag-m">${s.genre}</span>`:''}</div>
-        <div style="font-size:12px;color:var(--muted)">${s.phone}</div>
+        ${s.phone?`<div style="font-size:12px;color:var(--muted)">📱 ${s.phone}</div>`:''}
+        ${s.email?`<div style="font-size:12px;color:var(--muted)">✉ ${s.email}</div>`:''}
         ${s.notes?`<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:3px">"${s.notes}"</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
         <button onclick="whatsappSub(${s.id})" style="background:#25D366;border:none;color:white;border-radius:8px;padding:7px 11px;cursor:pointer;font-family:inherit;font-weight:700;font-size:12px">💬 WhatsApp</button>
         <button onclick="shareConflictsWithSub(${s.id})" style="background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);color:var(--gold);border-radius:8px;padding:7px 11px;cursor:pointer;font-family:inherit;font-weight:700;font-size:12px">📋 Share dates</button>
+        <button onclick="editSub(${s.id})" style="background:var(--surf);border:1px solid var(--bdr);color:var(--text);border-radius:8px;padding:7px 11px;cursor:pointer;font-family:inherit;font-weight:700;font-size:12px">✏ Edit</button>
         <button class="btn-g" onclick="delSub(${s.id})" style="text-align:center">✕</button>
       </div>
     </div>`).join('');
