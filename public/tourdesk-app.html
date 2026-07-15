@@ -1450,7 +1450,7 @@ const STORAGE_KEY = 'tourdesk_data_v1';
 function saveData(){
   const payload = {
     artists, tours, meetings, subs, trips, cachets, artistHours,
-    hoursGoal, hourTypes, contacts, expenses, guests, mgrTours,
+    hoursGoal, hoursPerEventType, contacts, expenses, guests, mgrTours,
     calY, calM, earnY, earnM
   };
 
@@ -1532,7 +1532,7 @@ function applyData(d){
   if(d.cachets) cachets = d.cachets;
   if(d.artistHours) artistHours = d.artistHours;
   if(d.hoursGoal) hoursGoal = d.hoursGoal;
-  if(d.hourTypes) hourTypes = d.hourTypes;
+  if(d.hoursPerEventType) hoursPerEventType = d.hoursPerEventType;
   if(d.contacts) contacts = d.contacts;
   if(d.expenses) expenses = d.expenses;
   if(d.guests) guests = d.guests;
