@@ -1815,7 +1815,12 @@ function shareViaGmail(email){
   var text = document.getElementById('share-event-content').textContent;
   var title = document.getElementById('modal-share-event').querySelector('.modal-title').textContent;
   var to = email || '';
-  window.open('https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(title)+'&body='+encodeURIComponent(text),'_blank');
+  // Use tf=1 to force compose mode with recipient
+  var url = 'https://mail.google.com/mail/u/0/?view=cm&tf=1'
+    + '&to=' + encodeURIComponent(to)
+    + '&su=' + encodeURIComponent(title)
+    + '&body=' + encodeURIComponent(text);
+  window.open(url, '_blank');
 }
 function _shareViaGmail(){
   var text = document.getElementById('share-event-content').textContent;
