@@ -1448,50 +1448,38 @@ function buildConflicts(){
 const STORAGE_KEY = 'tourdesk_data_v1';
 
 function saveData(){
-  // Save to localStorage as backup
-  try{
-    const data = JSON.stringify({
-      artists, tours, meetings, subs, trips, cachets, artistHours,
-      hoursGoal, hourTypes, contacts, expenses, guests, mgrTours,
-      calY, calM, earnY, earnM
-    });
-    localStorage.setItem(STORAGE_KEY, data);
-  }catch(e){ console.warn('localStorage save failed:', e); }
-
-  // Save to Supabase cloud
-  if(!window._supabaseToken){
-    try{ window._supabaseToken = sessionStorage.getItem('td_token'); }catch(e){}
-  }
-  if(!window._supabaseToken){
-    console.warn('No token for cloud save');
-    toast('No auth token — re-login to sync', false);
-    return;
-  }
-  console.log('Saving with token:', window._supabaseToken.slice(0,20)+'...');
   const payload = {
     artists, tours, meetings, subs, trips, cachets, artistHours,
     hoursGoal, hourTypes, contacts, expenses, guests, mgrTours,
     calY, calM, earnY, earnM
   };
+
+  // Always save to localStorage first
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); }catch(e){}
+
+  // Save to cloud using cookies (credentials:include sends session cookie automatically)
+  var headers = {'Content-Type':'application/json'};
+  try{
+    var tok = window._supabaseToken || sessionStorage.getItem('td_token');
+    if(tok) headers['Authorization'] = 'Bearer ' + tok;
+  }catch(e){}
+
   fetch('/api/sync', {
     method: 'POST',
-    headers: {'Content-Type':'application/json', ...(window._supabaseToken?{'Authorization':'Bearer '+window._supabaseToken}:{})},
+    headers: headers,
     credentials: 'include',
     body: JSON.stringify({action:'saveAll', data: payload})
-  }).then(r => r.json()).then(d => {
+  }).then(function(r){ return r.json(); }).then(function(d){
     if(d.success){
-      console.log('Cloud save OK');
-      // Show small green indicator
       var ind=document.createElement('div');
       ind.textContent='☁ Saved';
-      ind.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(93,201,160,.15);border:1px solid rgba(93,201,160,.3);color:#5DC9A0;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;z-index:9999;pointer-events:none;transition:opacity .5s';
+      ind.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(93,201,160,.9);color:#0A0A0F;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:800;z-index:9999;pointer-events:none';
       document.body.appendChild(ind);
-      setTimeout(function(){ind.style.opacity='0';setTimeout(function(){ind.remove();},500);},1500);
+      setTimeout(function(){ind.remove();},2000);
     } else {
-      console.warn('Cloud save failed:', d);
-      toast('Could not sync to cloud: '+(d.error||'check connection'), false);
+      toast('Sync error: '+(d.error||'unknown'), false);
     }
-  }).catch(function(e){ console.warn('Cloud save error:', e); toast('Sync error: '+e.message, false); });
+  }).catch(function(e){ toast('Sync error: '+e.message, false); });
 }
 
 function loadData(){
