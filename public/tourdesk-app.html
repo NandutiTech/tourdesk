@@ -3081,42 +3081,25 @@ function closeMenu(){
 
 document.addEventListener('DOMContentLoaded',function(){
 
-  // Detect Supabase session — key format: sb-{ref}-auth-token
-  (function detectSession(){
-    try{
-      for(let i=0;i<localStorage.length;i++){
-        const k = localStorage.key(i);
-        if(!k || !k.includes('auth-token')) continue;
-        try{
-          const raw = localStorage.getItem(k);
-          if(!raw) continue;
-          const parsed = JSON.parse(raw);
-          // New format: {access_token, user:{email}}
-          // Old format: direct object
-          const session = parsed.session || parsed;
-          const user = session.user || parsed.user;
-          const token = session.access_token || parsed.access_token;
-          if(user && user.email && token){
-            const email = user.email;
-            window._supabaseToken = token;
-            window._supabaseSession = session;
-            // Menu subtitle
-            const sub = document.getElementById('user-email-sub');
-            if(sub) sub.textContent = email;
-            // Avatar in header
-            const avatar = document.getElementById('user-avatar');
-            if(avatar){
-              avatar.textContent = email[0].toUpperCase();
-              avatar.style.display = 'flex';
-              avatar.title = email + ' — tap to sign out';
-            }
-            console.log('Session found for:', email);
-            break;
-          }
-        }catch(e){}
-      }
-    }catch(e){ console.warn('Session detect error:', e); }
-  })();
+  // Get user session from Next.js API (uses cookies)
+  fetch('/api/me').then(r=>r.json()).then(function(data){
+    if(!data.user) return;
+    const email = data.user.email;
+    window._supabaseToken = data.access_token;
+    // Menu subtitle
+    const sub = document.getElementById('user-email-sub');
+    if(sub) sub.textContent = email;
+    // Avatar in header
+    const avatar = document.getElementById('user-avatar');
+    if(avatar){
+      avatar.textContent = email[0].toUpperCase();
+      avatar.style.display = 'flex';
+      avatar.title = email + ' — tap to sign out';
+    }
+    // Now load cloud data with the token
+    if(artists.length===0) loadData();
+    console.log('Logged in as:', email);
+  }).catch(function(e){ console.warn('Could not get user:', e); });
 
   // Auto-load data and skip landing if user has existing data
   loadData();
