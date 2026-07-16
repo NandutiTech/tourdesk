@@ -90,7 +90,7 @@ export default function PricingPage() {
     const subject = `TourDesk ${planId} upgrade request`
     const body = `Hi, I'd like to upgrade to the ${planId} plan.\n\nAccount: ${userEmail}`
     window.open(`mailto:sannie.patron@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank')
-    setMessage('We received your request! We'll activate your plan within 24h. 🎉')
+    setMessage("We received your request! We'll activate your plan within 24h. 🎉")
     setLoading(false)
   }
 
