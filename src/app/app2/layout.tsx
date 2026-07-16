@@ -91,6 +91,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const currentSection = NAV.flatMap(s => s.items).find(i => pathname.startsWith(i.href))
 
+  const [avatarMenu, setAvatarMenu] = useState(false)
+
+  const handleSignOut = () => {
+    if (!confirm('Sign out?')) return
+    try {
+      const keys: string[] = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        if (k && (k.includes('auth') || k.includes('supabase') || k === 'td_token' || k === 'td_email')) keys.push(k)
+      }
+      keys.forEach(k => localStorage.removeItem(k))
+      sessionStorage.clear()
+    } catch {}
+    window.location.href = '/auth/login'
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#0A0A0F', color: '#E8E0F0', fontFamily: '-apple-system, Inter, system-ui, sans-serif' }}>
       {/* Sync loading bar */}
@@ -121,15 +137,43 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {currentSection?.label || 'TourDesk'}
         </div>
 
-        {/* Avatar */}
+        {/* Avatar with dropdown */}
         {userEmail && (
-          <div style={{
-            width: '32px', height: '32px', borderRadius: '50%', background: '#C9A84C',
-            color: '#0A0A0F', fontWeight: 900, fontSize: '13px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'default', flexShrink: 0, marginRight: '6px'
-          }} title={userEmail}>
-            {userEmail[0].toUpperCase()}
+          <div style={{ position: 'relative' }}>
+            <div
+              onClick={() => setAvatarMenu(!avatarMenu)}
+              style={{
+                width: '32px', height: '32px', borderRadius: '50%', background: '#C9A84C',
+                color: '#0A0A0F', fontWeight: 900, fontSize: '13px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', flexShrink: 0, marginRight: '6px'
+              }}>
+              {userEmail[0].toUpperCase()}
+            </div>
+            {avatarMenu && (
+              <div onClick={() => setAvatarMenu(false)} style={{
+                position: 'fixed', inset: 0, zIndex: 150
+              }}>
+                <div onClick={e => e.stopPropagation()} style={{
+                  position: 'absolute', top: '40px', right: '50px',
+                  background: '#17171F', border: '1px solid #1F1F2E', borderRadius: '12px',
+                  padding: '8px', minWidth: '180px', zIndex: 151, boxShadow: '0 8px 32px rgba(0,0,0,.5)'
+                }}>
+                  <div style={{ fontSize: '12px', color: '#5A5570', padding: '6px 10px', marginBottom: '4px', borderBottom: '1px solid #1F1F2E' }}>
+                    {userEmail}
+                  </div>
+                  <Link href="/app2/settings" onClick={() => setAvatarMenu(false)} style={{
+                    display: 'block', padding: '8px 10px', borderRadius: '8px', fontSize: '13px',
+                    fontWeight: 600, color: '#E8E0F0', textDecoration: 'none'
+                  }}>⚙️ Settings</Link>
+                  <button onClick={handleSignOut} style={{
+                    width: '100%', background: 'none', border: 'none', color: '#E8453C',
+                    padding: '8px 10px', borderRadius: '8px', cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: '13px', fontWeight: 600, textAlign: 'left'
+                  }}>Sign out</button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
