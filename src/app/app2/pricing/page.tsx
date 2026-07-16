@@ -7,8 +7,8 @@ const PLANS = [
   {
     id: 'solo',
     name: 'Solo',
-    monthly: 0,
-    annual: 0,
+    monthly: 9,
+    annual: 6,
     color: '#5A5570',
     icon: '🎤',
     features: [
@@ -20,14 +20,14 @@ const PLANS = [
       'Indemnisation simulator',
       'Replacements',
     ],
-    cta: 'Current plan',
-    ctaDisabled: true,
+    cta: 'Get Solo',
+    ctaDisabled: false,
   },
   {
     id: 'pro',
     name: 'Pro',
     monthly: 19,
-    annual: 159,
+    annual: 13,
     color: '#C9A84C',
     icon: '⭐',
     popular: true,
@@ -49,7 +49,7 @@ const PLANS = [
     id: 'manager',
     name: 'Manager',
     monthly: 39,
-    annual: 390,
+    annual: 32,
     color: '#5DC9A0',
     icon: '🎭',
     features: [
@@ -158,21 +158,18 @@ export default function PricingPage() {
                   <div style={{ fontWeight: 900, fontSize: '20px', color: plan.color }}>{plan.name}</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
                     <span style={{ fontWeight: 900, fontSize: '28px', color: '#E8E0F0' }}>
-                      {plan.monthly === 0 ? 'Free' : annual ? `€${Math.round(plan.annual / 12)}` : `€${plan.monthly}`}
+                      €{annual ? plan.annual : plan.monthly}
                     </span>
-                    {plan.monthly > 0 && <span style={{ fontSize: '13px', color: '#5A5570' }}>/month</span>}
+                    <span style={{ fontSize: '13px', color: '#5A5570' }}>/month</span>
                   </div>
-                  {plan.monthly === 0 && (
-                    <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>Forever free</div>
-                  )}
-                  {plan.monthly > 0 && !annual && (
+                  {!annual && (
                     <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>
-                      Annual: €{Math.round(plan.annual / 12)}/month (€{plan.annual}/year)
+                      Annual: €{plan.annual}/month (billed yearly)
                     </div>
                   )}
-                  {plan.monthly > 0 && annual && (
-                    <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>
-                      Billed €{plan.annual}/year · monthly: €{plan.monthly}/month
+                  {annual && (
+                    <div style={{ fontSize: '11px', color: '#5DC9A0', marginTop: '2px' }}>
+                      Billed annually · monthly: €{plan.monthly}/month
                     </div>
                   )}
                 </div>
