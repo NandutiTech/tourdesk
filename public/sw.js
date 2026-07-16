@@ -1,4 +1,4 @@
-const CACHE = 'tourdesk-v3'
+const CACHE = 'tourdesk-v4'
 const STATIC = ['/auth/login', '/manifest.json']
 
 self.addEventListener('install', e => {
