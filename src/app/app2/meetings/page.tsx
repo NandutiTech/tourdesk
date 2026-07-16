@@ -67,7 +67,7 @@ export default function MeetingsPage() {
     if (!confirm(`Delete "${m.title}"?`)) return
     deleteMeeting(m.id)
     await syncToCloud()
-    setSaving(false)
+
     showToast('Meeting deleted')
   }
 

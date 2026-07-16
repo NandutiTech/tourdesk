@@ -145,7 +145,7 @@ export default function ManagerPage() {
     }
     const text = lines.join('\n')
     navigator.clipboard?.writeText(text)
-    setSaving(false)
+
     showToast('Tour sheet copied!')
   }
 
