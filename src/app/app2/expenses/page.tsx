@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useStore, newId } from '@/lib/store'
 import { syncToCloud } from '@/lib/sync'
 import { Button, Card, Input, Select, Textarea, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
+import { SendToContact } from '@/components/SendToContact'
 import { Expense } from '@/lib/types'
 
 const CATS = { transport: '🚆 Transport', hotel: '🏨 Hotel', food: '🍽 Food', equipment: '🎛 Equipment', other: '📦 Other' }
@@ -51,6 +52,7 @@ export default function ExpensesPage() {
   const { expenses, artists, deleteExpense } = useStore()
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Expense | null>(null)
+  const [showSend, setShowSend] = useState(false)
 
   const sorted = [...expenses].sort((a, b) => b.date.localeCompare(a.date))
   const total = expenses.reduce((s, e) => s + (e.amount || 0), 0)
@@ -63,7 +65,7 @@ export default function ExpensesPage() {
 
   return (
     <div style={{ padding: '0 0 100px' }}>
-      <Toolbar title="Expenses" actions={<Button size="sm" onClick={() => { setEditing(null); setShowModal(true) }}>+ Expense</Button>} />
+      <Toolbar title="Expenses" actions={<><Button variant="secondary" size="sm" onClick={() => setShowSend(true)}>📤 Send</Button><Button size="sm" onClick={() => { setEditing(null); setShowModal(true) }}>+ Expense</Button></>} />
       <div style={{ padding: '0 16px' }}>
         {expenses.length > 0 && (
           <Card style={{ marginBottom: '16px', textAlign: 'center' }}>
@@ -91,6 +93,12 @@ export default function ExpensesPage() {
         )}
       </div>
       <ExpenseModal open={showModal} onClose={() => setShowModal(false)} editing={editing} />
+      <SendToContact
+        open={showSend}
+        onClose={() => setShowSend(false)}
+        subject="Expense report"
+        body={`Expense report\n\n${sorted.map(e => `• ${e.date} — ${e.desc || (CATS as any)[e.cat]} — €${(e.amount||0).toFixed(2)}`).join('\n')}\n\nTotal: €${total.toFixed(2)}`}
+      />
     </div>
   )
 }

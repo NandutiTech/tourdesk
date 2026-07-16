@@ -94,7 +94,10 @@ export interface Contact {
   name: string
   role?: string
   company?: string
-  contact?: string
+  contact?: string  // legacy
+  phone?: string
+  email?: string
+  aId?: string | null  // linked artist/project
   last?: string
   followup?: string
   notes?: string

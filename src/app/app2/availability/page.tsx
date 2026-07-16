@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
 import { Button, Card, Input, Toolbar } from '@/components/ui'
+import { SendToContact } from '@/components/SendToContact'
 import { EVENT_COLORS, EVENT_LABELS } from '@/lib/types'
 
 function getDatesInRange(start: string, end: string): string[] {
@@ -20,6 +21,7 @@ export default function AvailabilityPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [result, setResult] = useState<{ free: boolean, conflicts: any[] } | null>(null)
+  const [showSend, setShowSend] = useState(false)
 
   const check = () => {
     if (!startDate) return
@@ -52,6 +54,7 @@ export default function AvailabilityPage() {
             <Input label="To" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
           </div>
           <Button onClick={check} style={{ width: '100%' }}>Check availability</Button>
+        {result && <Button variant="secondary" onClick={() => setShowSend(true)} style={{ width: '100%', marginTop: '8px' }}>📤 Send result to contact</Button>}
         </Card>
 
         {result && (
@@ -82,6 +85,14 @@ export default function AvailabilityPage() {
           </Card>
         )}
       </div>
+      <SendToContact
+        open={showSend}
+        onClose={() => setShowSend(false)}
+        subject="Availability check"
+        body={result
+          ? (result.free ? `I'm FREE on the requested dates!` : `I'm BUSY on the requested dates`)
+          : 'Availability check'}
+      />
     </div>
   )
 }

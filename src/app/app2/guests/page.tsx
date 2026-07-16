@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useStore, newId } from '@/lib/store'
 import { syncToCloud } from '@/lib/sync'
 import { Button, Card, Input, Select, Textarea, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
+import { SendToContact } from '@/components/SendToContact'
 import { Guest } from '@/lib/types'
 
 const STATUS_COLORS = { confirmed: '#5DC9A0', pending: '#C9A84C', cancelled: '#E8453C' }
@@ -52,6 +53,7 @@ function GuestModal({ open, onClose, editing }: { open: boolean, onClose: () => 
 export default function GuestsPage() {
   const { guests, tours, artists, deleteGuest, cycleGuestStatus } = useStore()
   const [showModal, setShowModal] = useState(false)
+  const [showSend, setShowSend] = useState(false)
   const [editing, setEditing] = useState<Guest | null>(null)
   const [filterTourId, setFilterTourId] = useState('all')
 
@@ -72,7 +74,7 @@ export default function GuestsPage() {
 
   return (
     <div style={{ padding: '0 0 100px' }}>
-      <Toolbar title="Guest List" actions={<Button size="sm" onClick={() => { setEditing(null); setShowModal(true) }}>+ Guest</Button>} />
+      <Toolbar title="Guest List" actions={<><Button variant="secondary" size="sm" onClick={() => setShowSend(true)}>📤 Send</Button><Button size="sm" onClick={() => { setEditing(null); setShowModal(true) }}>+ Guest</Button></>} />
       <div style={{ padding: '0 16px' }}>
         {upcomingTours.length > 0 && (
           <select value={filterTourId} onChange={e => setFilterTourId(e.target.value)} style={{ width: '100%', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px', fontFamily: 'inherit', fontSize: '13px', marginBottom: '16px' }}>
@@ -111,6 +113,12 @@ export default function GuestsPage() {
         )}
       </div>
       <GuestModal open={showModal} onClose={() => setShowModal(false)} editing={editing} />
+      <SendToContact
+        open={showSend}
+        onClose={() => setShowSend(false)}
+        subject="Guest list"
+        body={guests.map(g => `• ${g.name}${g.count > 1 ? ` ×${g.count}` : ''} — ${g.status}`).join('\n')}
+      />
     </div>
   )
 }
