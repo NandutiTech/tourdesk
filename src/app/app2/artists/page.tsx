@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore, newId } from '@/lib/store'
 import { syncToCloud, deleteFromCloud } from '@/lib/sync'
 import { Button, Card, Input, Select, Textarea, Modal, EmptyState, Toolbar, showToast, ColorDot } from '@/components/ui'
@@ -8,7 +8,7 @@ import { Artist } from '@/lib/types'
 const COLORS = ['#C9A84C','#7B8CDE','#5DC9A0','#E8453C','#F39C12','#9B59B6','#1ABC9C','#E67E22','#3498DB','#E91E63']
 
 function ArtistModal({ open, onClose, editing }: { open: boolean, onClose: () => void, editing?: Artist | null }) {
-  const { addArtist, updateArtist } = useStore()
+  const { artists, addArtist, updateArtist } = useStore()
   const [name, setName] = useState(editing?.name || '')
   const [genre, setGenre] = useState(editing?.genre || '')
   const [color, setColor] = useState(editing?.color || COLORS[0])
@@ -16,10 +16,23 @@ function ArtistModal({ open, onClose, editing }: { open: boolean, onClose: () =>
   const [address, setAddress] = useState(editing?.address || '')
   const [nature, setNature] = useState(editing?.nature || '')
   const [saving, setSaving] = useState(false)
+  const [plan, setPlan] = useState('solo')
+
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('td_token') || '') : ''
+    if (!token) return
+    fetch('/api/plan', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => setPlan(d.plan || 'solo')).catch(() => {})
+  }, [])
 
   const save = async () => {
     if (!name.trim()) { showToast('Name required', false); return }
     if (saving) return
+    // Plan limit check
+    if (!editing && plan === 'solo' && artists.length >= 3) {
+      showToast('Solo plan is limited to 3 artists. Upgrade to Pro for unlimited.', false)
+      return
+    }
     setSaving(true)
     const artist: Artist = {
       id: editing?.id || newId(),
@@ -99,7 +112,21 @@ export default function ArtistsPage() {
       />
 
       <div style={{ padding: '0 16px' }}>
-        {artists.length === 0 ? (
+        {/* Solo plan limit warning */}
+      {plan === 'solo' && (
+        <div style={{ margin: '0 16px 16px', padding: '12px 14px', background: artists.length >= 3 ? 'rgba(232,69,60,.08)' : 'rgba(201,168,76,.06)', border: `1px solid ${artists.length >= 3 ? 'rgba(232,69,60,.2)' : 'rgba(201,168,76,.15)'}`, borderRadius: '10px', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+          <span style={{ color: artists.length >= 3 ? '#E8453C' : '#5A5570' }}>
+            {artists.length >= 3
+              ? '⚠️ Limit reached — Solo plan allows 3 artists max'
+              : `🎤 ${artists.length}/3 artists — Solo plan`}
+          </span>
+          {artists.length >= 3 && (
+            <button onClick={() => window.location.href = '/app2/pricing'} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 800, flexShrink: 0 }}>
+              Upgrade →
+            </button>
+          )}
+        </div>
+      )}
           <EmptyState
             icon="🎤"
             title="No artists yet"
