@@ -80,16 +80,7 @@ export default function PricingPage() {
 
   const handleUpgrade = async (planId: string) => {
     if (planId === currentPlan) return
-    setLoading(true)
-    setMessage('')
-
-    // TODO: Replace with Stripe checkout when ready
-    // For now, send email request
-    const subject = `TourDesk ${planId} upgrade request`
-    const body = `Hi, I'd like to upgrade to the ${planId} plan.\n\nAccount: ${userEmail}`
-    window.open(`mailto:sannie.patron@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank')
-    setMessage("We received your request! We'll activate your plan within 24h. 🎉")
-    setLoading(false)
+    setMessage(`✅ Thank you for your interest in the ${planId} plan! Stripe payments are coming very soon. We'll notify you at ${userEmail} when it's ready.`)
   }
 
   return (
