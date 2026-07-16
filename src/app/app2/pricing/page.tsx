@@ -7,8 +7,8 @@ const PLANS = [
   {
     id: 'solo',
     name: 'Solo',
-    price: 0,
-    period: 'Free forever',
+    monthly: 6,
+    annual: 79,
     color: '#5A5570',
     icon: '🎤',
     features: [
@@ -20,15 +20,14 @@ const PLANS = [
       'Indemnisation simulator',
       'Replacements',
     ],
-    locked: [],
     cta: 'Current plan',
     ctaDisabled: true,
   },
   {
     id: 'pro',
     name: 'Pro',
-    price: 9,
-    period: '/month',
+    monthly: 13,
+    annual: 159,
     color: '#C9A84C',
     icon: '⭐',
     popular: true,
@@ -43,15 +42,14 @@ const PLANS = [
       'My availability page',
       'Send to contact (WhatsApp/SMS/Gmail)',
     ],
-    locked: [],
     cta: 'Upgrade to Pro',
     ctaDisabled: false,
   },
   {
     id: 'manager',
     name: 'Manager',
-    price: 19,
-    period: '/month',
+    monthly: 39,
+    annual: 390,
     color: '#5DC9A0',
     icon: '🎭',
     features: [
@@ -61,7 +59,6 @@ const PLANS = [
       'Share hotel & transport info',
       'Multi-artist management',
     ],
-    locked: [],
     cta: 'Upgrade to Manager',
     ctaDisabled: false,
   },
@@ -72,6 +69,7 @@ export default function PricingPage() {
   const [currentPlan, setCurrentPlan] = useState('solo')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [annual, setAnnual] = useState(false)
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? (localStorage.getItem('td_token') || '') : ''
@@ -106,7 +104,16 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {message && (
+      {/* Billing toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '24px' }}>
+        <span style={{ fontSize: '13px', color: annual ? '#5A5570' : '#E8E0F0', fontWeight: annual ? 400 : 700 }}>Monthly</span>
+        <div onClick={() => setAnnual(!annual)} style={{ width: '44px', height: '24px', borderRadius: '12px', background: annual ? '#C9A84C' : '#1F1F2E', cursor: 'pointer', position: 'relative', transition: 'background .2s' }}>
+          <div style={{ position: 'absolute', top: '2px', left: annual ? '22px' : '2px', width: '20px', height: '20px', borderRadius: '50%', background: 'white', transition: 'left .2s' }} />
+        </div>
+        <span style={{ fontSize: '13px', color: annual ? '#E8E0F0' : '#5A5570', fontWeight: annual ? 700 : 400 }}>
+          Annual <span style={{ background: 'rgba(93,201,160,.2)', color: '#5DC9A0', borderRadius: '6px', padding: '1px 6px', fontSize: '11px', fontWeight: 800 }}>Save ~15%</span>
+        </span>
+      </div>
         <div style={{ margin: '0 16px 16px', background: 'rgba(93,201,160,.1)', border: '1px solid rgba(93,201,160,.3)', borderRadius: '12px', padding: '14px 16px', fontSize: '13px', color: '#5DC9A0', lineHeight: 1.6 }}>
           {message}
         </div>
@@ -146,17 +153,24 @@ export default function PricingPage() {
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
                 <div style={{ fontSize: '28px' }}>{plan.icon}</div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 900, fontSize: '20px', color: plan.color }}>{plan.name}</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
                     <span style={{ fontWeight: 900, fontSize: '28px', color: '#E8E0F0' }}>
-                      {plan.price === 0 ? 'Free' : `€${plan.price}`}
+                      {annual ? `€${plan.annual}` : `€${plan.monthly}`}
                     </span>
-                    {plan.price > 0 && <span style={{ fontSize: '14px', color: '#5A5570', fontWeight: 600 }}>/month</span>}
+                    <span style={{ fontSize: '13px', color: '#5A5570' }}>
+                      {annual ? '/year' : '/month'}
+                    </span>
                   </div>
-                  {plan.price > 0 && (
+                  {!annual && (
                     <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>
-                      €{plan.price * 12}/year · billed monthly
+                      or €{plan.annual}/year (save ~15%)
+                    </div>
+                  )}
+                  {annual && (
+                    <div style={{ fontSize: '11px', color: '#5DC9A0', marginTop: '2px' }}>
+                      ~€{Math.round(plan.annual / 12)}/month · 2 months free
                     </div>
                   )}
                 </div>
