@@ -148,12 +148,17 @@ export default function PricingPage() {
                 <div style={{ fontSize: '28px' }}>{plan.icon}</div>
                 <div>
                   <div style={{ fontWeight: 900, fontSize: '20px', color: plan.color }}>{plan.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px', marginTop: '2px' }}>
-                    <span style={{ fontWeight: 900, fontSize: plan.price === 0 ? '18px' : '28px', color: '#E8E0F0' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
+                    <span style={{ fontWeight: 900, fontSize: '28px', color: '#E8E0F0' }}>
                       {plan.price === 0 ? 'Free' : `€${plan.price}`}
                     </span>
-                    {plan.price > 0 && <span style={{ fontSize: '13px', color: '#5A5570' }}>{plan.period}</span>}
+                    {plan.price > 0 && <span style={{ fontSize: '14px', color: '#5A5570', fontWeight: 600 }}>/month</span>}
                   </div>
+                  {plan.price > 0 && (
+                    <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>
+                      €{plan.price * 12}/year · billed monthly
+                    </div>
+                  )}
                 </div>
               </div>
 
