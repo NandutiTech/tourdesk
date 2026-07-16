@@ -42,9 +42,9 @@ export async function syncToCloud(): Promise<boolean> {
   }
 }
 
-export async function loadFromCloud(): Promise<Partial<AppState> | null> {
+export async function loadFromCloud(): Promise<Partial<AppState> | null | 'unauthorized'> {
   const token = getToken()
-  if (!token) return null
+  if (!token) return 'unauthorized'
 
   try {
     const res = await fetch('/api/sync', {
@@ -53,13 +53,13 @@ export async function loadFromCloud(): Promise<Partial<AppState> | null> {
         'Authorization': `Bearer ${token}`
       }
     })
-    // Token expired or invalid
-    if (res.status === 401) return null
+    if (res.status === 401) return 'unauthorized'
     const data = await res.json()
-    if (data.error) return null
+    if (data.error === 'Unauthorized') return 'unauthorized'
+    if (data.error) return null  // other error, don't logout
     return data
   } catch {
-    return null
+    return null  // network error, don't logout
   }
 }
 

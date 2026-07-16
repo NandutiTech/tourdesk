@@ -14,6 +14,8 @@ export default function CallbackPage() {
       // Save token directly from hash
       try {
         localStorage.setItem('td_token', accessToken)
+        const refreshToken = params.get('refresh_token')
+        if (refreshToken) localStorage.setItem('td_refresh_token', refreshToken)
       } catch(e) {}
       
       // Also set session in Supabase client
@@ -44,6 +46,7 @@ export default function CallbackPage() {
         if (data.session) {
           try {
             localStorage.setItem('td_token', data.session.access_token)
+            localStorage.setItem('td_refresh_token', data.session.refresh_token || '')
             localStorage.setItem('td_email', data.user?.email || '')
           } catch(e) {}
           window.location.href = '/app-shell'

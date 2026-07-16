@@ -76,6 +76,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       return
     }
 
+    // Try to refresh the token silently using Supabase
+    const refreshToken = localStorage.getItem('td_refresh_token') || ''
+    if (refreshToken) {
+      const { createClient } = await import('@/lib/supabase')
+      const supabase = createClient()
+      try {
+        const { data } = await supabase.auth.setSession({
+          access_token: token,
+          refresh_token: refreshToken
+        })
+        if (data?.session) {
+          token = data.session.access_token
+          localStorage.setItem('td_token', token)
+          localStorage.setItem('td_refresh_token', data.session.refresh_token || '')
+          email = data.user?.email || email
+        }
+      } catch {}
+    }
+
     setToken(token, email)
 
     // Clear old HTML app data from localStorage (migration to React)
@@ -84,26 +103,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // Load from cloud - if token invalid, clear and redirect to login
     setSyncing(true)
     loadFromCloud().then((data) => {
-      if (data === null) {
-        // Token invalid or expired - clear and go to login
+      if (data === 'unauthorized') {
+        // Token definitely invalid - clear and go to login
         try {
-          localStorage.removeItem('td_token')
-          localStorage.removeItem('td_email')
-          // Clear all supabase keys
           const keys: string[] = []
           for (let i = 0; i < localStorage.length; i++) {
             const k = localStorage.key(i)
-            if (k?.startsWith('sb-')) keys.push(k)
+            if (k) keys.push(k)
           }
-          keys.forEach(k => localStorage.removeItem(k))
+          keys.forEach(k => {
+            if (k.startsWith('sb-') || k === 'td_token' || k === 'td_email') {
+              localStorage.removeItem(k)
+            }
+          })
+          sessionStorage.clear()
         } catch {}
-        router.push('/auth/login')
+        window.location.replace('/auth/login')
         return
       }
       if (data) applyCloudData(data as any)
       setLoaded(true)
       setSyncing(false)
     }).catch(() => {
+      // Network error - show app anyway with local data
       setLoaded(true)
       setSyncing(false)
     })
@@ -123,7 +145,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (k) keys.push(k)
       }
       keys.forEach(k => {
-        if (k.includes('auth') || k.includes('supabase') || k.startsWith('sb-') || k === 'td_token' || k === 'td_email') {
+        if (k.includes('auth') || k.includes('supabase') || k.startsWith('sb-') || k === 'td_token' || k === 'td_email' || k === 'td_refresh_token') {
           localStorage.removeItem(k)
         }
       })
