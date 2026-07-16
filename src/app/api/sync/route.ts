@@ -168,12 +168,12 @@ async function saveAll(uid: string, data: any): Promise<void> {
   ]
 
   // Batch insert per table (one request per table, not one per record)
-  if (artists.length) ops.push(admin.from('artists').upsert(artists))
-  if (tours.length) ops.push(admin.from('tours').upsert(tours))
-  if (meetings.length) ops.push(admin.from('meetings').upsert(meetings))
-  if (replacements.length) ops.push(admin.from('replacements').upsert(replacements))
-  if (expenses.length) ops.push(admin.from('expenses').upsert(expenses))
-  if (contacts.length) ops.push(admin.from('contacts').upsert(contacts))
+  if (artists.length) ops.push(admin.from('artists').upsert(artists) as unknown as Promise<any>)
+  if (tours.length) ops.push(admin.from('tours').upsert(tours) as unknown as Promise<any>)
+  if (meetings.length) ops.push(admin.from('meetings').upsert(meetings) as unknown as Promise<any>)
+  if (replacements.length) ops.push(admin.from('replacements').upsert(replacements) as unknown as Promise<any>)
+  if (expenses.length) ops.push(admin.from('expenses').upsert(expenses) as unknown as Promise<any>)
+  if (contacts.length) ops.push(admin.from('contacts').upsert(contacts) as unknown as Promise<any>)
 
   await Promise.allSettled(ops)
 }
