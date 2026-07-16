@@ -6,6 +6,7 @@ import { Button, Card, Input, Select, Textarea, Modal, EmptyState, Toolbar, show
 import { Artist, Tour, EventType, EVENT_LABELS, EVENT_COLORS } from '@/lib/types'
 
 const COLORS = ['#C9A84C','#7B8CDE','#5DC9A0','#E8453C','#F39C12','#9B59B6','#1ABC9C','#E67E22','#3498DB','#E91E63']
+type SortMode = 'date' | 'artist'
 
 // ── Artist Modal ────────────────────────────────────────────
 function ArtistModal({ open, onClose, editing }: { open: boolean, onClose: () => void, editing?: Artist | null }) {
@@ -280,6 +281,27 @@ EVENT TYPES: VOYAGE/DÉPART=travel, ARRIVÉE=travel, RÉPÉTITIONS/MONTAGE/BALAN
 Return ONLY a valid JSON array:
 [{"date":"YYYY-MM-DD","endDate":"YYYY-MM-DD","venue":"venue name","city":"city","type":"show|rehearsal|travel|workday|residence","notes":""}]`
 
+// ── Tour Row ─────────────────────────────────────────────────
+function TourRow({ tour, artist, onEdit, onDelete }: { tour: Tour, artist?: Artist, onEdit: () => void, onDelete: () => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderTop: '1px solid #1F1F2E' }}>
+      <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: EVENT_COLORS[tour.type], flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '13px', fontWeight: 700 }}>{tour.start}{tour.end && tour.end !== tour.start ? ` → ${tour.end}` : ''}</div>
+        <div style={{ fontSize: '12px', color: '#5A5570' }}>
+          {tour.title}{tour.city ? ` · ${tour.city}` : ''}
+          {artist && <span style={{ color: artist.color }}> · {artist.name}</span>}
+        </div>
+      </div>
+      <div style={{ fontSize: '11px', color: '#5A5570', flexShrink: 0 }}>{EVENT_LABELS[tour.type]}</div>
+      <div style={{ display: 'flex', gap: '4px' }}>
+        <Button variant="secondary" size="sm" onClick={onEdit}>✏</Button>
+        <Button variant="danger" size="sm" onClick={onDelete}>✕</Button>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ────────────────────────────────────────────────
 export default function ToursPage() {
   const { artists, tours, deleteArtist, deleteTour } = useStore()
@@ -289,6 +311,7 @@ export default function ToursPage() {
   const [editingArtist, setEditingArtist] = useState<Artist | null>(null)
   const [editingTour, setEditingTour] = useState<Tour | null>(null)
   const [selectedArtistId, setSelectedArtistId] = useState<string>('all')
+  const [sortMode, setSortMode] = useState<SortMode>('date')
 
   const filteredArtists = selectedArtistId === 'all' ? artists : artists.filter(a => a.id === selectedArtistId)
 
@@ -328,77 +351,95 @@ export default function ToursPage() {
         <Button size="sm" onClick={() => setShowImportModal(true)} style={{ flexShrink: 0 }}>📎 Import</Button>
       </div>
 
-      {/* Artist filter */}
-      {artists.length > 1 && (
-        <div style={{ padding: '0 16px', marginBottom: '16px' }}>
-          <select value={selectedArtistId} onChange={e => setSelectedArtistId(e.target.value)} style={{
-            background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0',
-            borderRadius: '8px', padding: '8px 12px', fontFamily: 'inherit', fontSize: '13px', width: '100%'
-          }}>
+      {/* Sort toggle + Artist filter */}
+      <div style={{ padding: '0 16px', marginBottom: '16px', display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', background: '#12121A', borderRadius: '8px', border: '1px solid #1F1F2E', overflow: 'hidden' }}>
+          <button onClick={() => setSortMode('date')} style={{ padding: '7px 12px', background: sortMode === 'date' ? '#C9A84C' : 'transparent', color: sortMode === 'date' ? '#0A0A0F' : '#5A5570', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>📅 By date</button>
+          <button onClick={() => setSortMode('artist')} style={{ padding: '7px 12px', background: sortMode === 'artist' ? '#C9A84C' : 'transparent', color: sortMode === 'artist' ? '#0A0A0F' : '#5A5570', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>🎤 By artist</button>
+        </div>
+        {sortMode === 'artist' && artists.length > 1 && (
+          <select value={selectedArtistId} onChange={e => setSelectedArtistId(e.target.value)} style={{ flex: 1, background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 12px', fontFamily: 'inherit', fontSize: '13px' }}>
             <option value="all">All artists</option>
             {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
+        )}
+      </div>
+
+      {/* By date view */}
+      {sortMode === 'date' && (
+        <div style={{ padding: '0 16px' }}>
+          {tours.length === 0 ? (
+            <EmptyState icon="🎤" title="No events yet" sub='Add an employer / artist with "+ Artist", then add dates or import a planning PDF.' />
+          ) : (
+            <>
+              {(() => {
+                const today = new Date().toISOString().slice(0, 10)
+                const sorted = [...tours].sort((a, b) => a.start.localeCompare(b.start))
+                const upcoming = sorted.filter(t => t.start >= today)
+                const past = sorted.filter(t => t.start < today).reverse()
+                return (
+                  <>
+                    {upcoming.length > 0 && (
+                      <>
+                        <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase', color: '#5A5570', marginBottom: '10px' }}>Upcoming</div>
+                        {upcoming.map(tour => {
+                          const artist = artists.find(a => a.id === tour.aId)
+                          return <TourRow key={tour.id} tour={tour} artist={artist} onEdit={() => { setEditingTour(tour); setShowTourModal(true) }} onDelete={() => handleDeleteTour(tour)} />
+                        })}
+                      </>
+                    )}
+                    {past.length > 0 && (
+                      <>
+                        <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase', color: '#5A5570', margin: '16px 0 10px', opacity: 0.5 }}>Past</div>
+                        {past.map(tour => {
+                          const artist = artists.find(a => a.id === tour.aId)
+                          return <TourRow key={tour.id} tour={tour} artist={artist} onEdit={() => { setEditingTour(tour); setShowTourModal(true) }} onDelete={() => handleDeleteTour(tour)} />
+                        })}
+                      </>
+                    )}
+                  </>
+                )
+              })()}
+            </>
+          )}
         </div>
       )}
 
-      {/* Artists list */}
-      {artists.length === 0 ? (
-        <EmptyState icon="🎤" title="No artists yet" sub='Add an employer / artist with "+ Artist" to get started.' />
-      ) : (
+      {/* By artist view */}
+      {sortMode === 'artist' && (
         <div style={{ padding: '0 16px' }}>
-          {filteredArtists.map(artist => {
-            const artistTours = tours.filter(t => t.aId === artist.id).sort((a, b) => a.start.localeCompare(b.start))
-            return (
-              <Card key={artist.id} style={{ marginBottom: '12px' }}>
-                {/* Artist header */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: artistTours.length ? '12px' : '0' }}>
-                  <ColorDot color={artist.color} size={10} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 900, fontSize: '15px' }}>{artist.name}</div>
-                    {artist.genre && <div style={{ fontSize: '12px', color: '#5A5570' }}>{artist.genre}</div>}
-                    <div style={{ fontSize: '11px', color: '#5A5570' }}>{artistTours.length} event{artistTours.length !== 1 ? 's' : ''}</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <Button variant="secondary" size="sm" onClick={() => { setEditingArtist(artist); setShowArtistModal(true) }}>✏ Edit</Button>
-                    <Button variant="danger" size="sm" onClick={() => handleDeleteArtist(artist)}>✕</Button>
-                  </div>
-                </div>
-
-                {/* Events */}
-                {artistTours.length === 0 && (
-                  <div style={{ fontSize: '12px', color: '#5A5570', fontStyle: 'italic', marginTop: '8px' }}>
-                    No dates yet — add one or import a flyer.
-                  </div>
-                )}
-                {artistTours.map(tour => (
-                  <div key={tour.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '8px 0', borderTop: '1px solid #1F1F2E'
-                  }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: EVENT_COLORS[tour.type], flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '13px', fontWeight: 700 }}>{tour.start}{tour.end && tour.end !== tour.start ? ` → ${tour.end}` : ''}</div>
-                      <div style={{ fontSize: '12px', color: '#5A5570' }}>{tour.title}{tour.city ? ` · ${tour.city}` : ''}</div>
+          {artists.length === 0 ? (
+            <EmptyState icon="🎤" title="No artists yet" sub='Add an employer / artist with "+ Artist" to get started.' />
+          ) : (
+            (selectedArtistId === 'all' ? artists : artists.filter(a => a.id === selectedArtistId)).map(artist => {
+              const artistTours = tours.filter(t => t.aId === artist.id).sort((a, b) => a.start.localeCompare(b.start))
+              return (
+                <Card key={artist.id} style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: artistTours.length ? '12px' : '0' }}>
+                    <ColorDot color={artist.color} size={10} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 900, fontSize: '15px' }}>{artist.name}</div>
+                      {artist.genre && <div style={{ fontSize: '12px', color: '#5A5570' }}>{artist.genre}</div>}
+                      <div style={{ fontSize: '11px', color: '#5A5570' }}>{artistTours.length} event{artistTours.length !== 1 ? 's' : ''}</div>
                     </div>
-                    <div style={{ fontSize: '11px', color: '#5A5570', flexShrink: 0 }}>{EVENT_LABELS[tour.type]}</div>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <Button variant="secondary" size="sm" onClick={() => { setEditingTour(tour); setShowTourModal(true) }}>✏</Button>
-                      <Button variant="danger" size="sm" onClick={() => handleDeleteTour(tour)}>✕</Button>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <Button variant="secondary" size="sm" onClick={() => { setEditingArtist(artist); setShowArtistModal(true) }}>✏ Edit</Button>
+                      <Button variant="danger" size="sm" onClick={() => handleDeleteArtist(artist)}>✕</Button>
                     </div>
                   </div>
-                ))}
-
-                {/* Add date to this artist */}
-                <button onClick={() => { setEditingTour(null); setSelectedArtistId(artist.id); setShowTourModal(true) }} style={{
-                  width: '100%', background: 'none', border: '1px dashed #1F1F2E', color: '#5A5570',
-                  borderRadius: '8px', padding: '8px', cursor: 'pointer', fontFamily: 'inherit',
-                  fontSize: '12px', marginTop: '8px'
-                }}>
-                  + Add date for {artist.name}
-                </button>
-              </Card>
-            )
-          })}
+                  {artistTours.length === 0 && (
+                    <div style={{ fontSize: '12px', color: '#5A5570', fontStyle: 'italic', marginTop: '8px' }}>No dates yet.</div>
+                  )}
+                  {artistTours.map(tour => (
+                    <TourRow key={tour.id} tour={tour} artist={artist} onEdit={() => { setEditingTour(tour); setShowTourModal(true) }} onDelete={() => handleDeleteTour(tour)} />
+                  ))}
+                  <button onClick={() => { setEditingTour(null); setSelectedArtistId(artist.id); setShowTourModal(true) }} style={{ width: '100%', background: 'none', border: '1px dashed #1F1F2E', color: '#5A5570', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', marginTop: '8px' }}>
+                    + Add date for {artist.name}
+                  </button>
+                </Card>
+              )
+            })
+          )}
         </div>
       )}
 
