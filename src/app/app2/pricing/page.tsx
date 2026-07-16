@@ -7,8 +7,8 @@ const PLANS = [
   {
     id: 'solo',
     name: 'Solo',
-    monthly: 6,
-    annual: 79,
+    monthly: 0,
+    annual: 0,
     color: '#5A5570',
     icon: '🎤',
     features: [
@@ -158,18 +158,21 @@ export default function PricingPage() {
                   <div style={{ fontWeight: 900, fontSize: '20px', color: plan.color }}>{plan.name}</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '4px' }}>
                     <span style={{ fontWeight: 900, fontSize: '28px', color: '#E8E0F0' }}>
-                      {annual ? `€${plan.annual}` : `€${plan.monthly}`}
+                      {plan.monthly === 0 ? 'Free' : annual ? `€${plan.annual}` : `€${plan.monthly}`}
                     </span>
-                    <span style={{ fontSize: '13px', color: '#5A5570' }}>
+                    {plan.monthly > 0 && <span style={{ fontSize: '13px', color: '#5A5570' }}>
                       {annual ? '/year' : '/month'}
-                    </span>
+                    </span>}
                   </div>
-                  {!annual && (
+                  {plan.monthly === 0 && (
+                    <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>Forever free</div>
+                  )}
+                  {plan.monthly > 0 && !annual && (
                     <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>
                       or €{plan.annual}/year (save ~15%)
                     </div>
                   )}
-                  {annual && (
+                  {plan.monthly > 0 && annual && (
                     <div style={{ fontSize: '11px', color: '#5DC9A0', marginTop: '2px' }}>
                       ~€{Math.round(plan.annual / 12)}/month · 2 months free
                     </div>
