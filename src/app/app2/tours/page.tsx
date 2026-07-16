@@ -18,10 +18,14 @@ function ArtistModal({ open, onClose, editing }: { open: boolean, onClose: () =>
   const [address, setAddress] = useState(editing?.address || '')
   const [nature, setNature] = useState(editing?.nature || '')
 
+  const [saving, setSaving] = useState(false)
+
   const reset = () => { setName(''); setGenre(''); setColor(COLORS[0]); setSiret(''); setAddress(''); setNature('') }
 
   const save = async () => {
     if (!name.trim()) { showToast('Name required', false); return }
+    if (saving) return
+    setSaving(true)
     const artist: Artist = {
       id: editing?.id || newId(),
       name: name.trim(), genre, color, siret, address, nature
@@ -31,6 +35,7 @@ function ArtistModal({ open, onClose, editing }: { open: boolean, onClose: () =>
     await syncToCloud()
     showToast(name + (editing ? ' updated' : ' added'))
     reset()
+    setSaving(false)
     onClose()
   }
 
@@ -60,7 +65,7 @@ function ArtistModal({ open, onClose, editing }: { open: boolean, onClose: () =>
       <Textarea label="Address" value={address} onChange={e => setAddress(e.target.value)} placeholder="e.g. 12 rue de la Paix, Paris" style={{ minHeight: '60px' }} />
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+        <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
       </div>
     </Modal>
   )
@@ -85,9 +90,12 @@ function TourModal({ open, onClose, editing, defaultArtistId }: {
   const [customCachet, setCustomCachet] = useState(editing?.customCachet?.toString() || '')
   const [customHours, setCustomHours] = useState(editing?.customHours?.toString() || '')
   const [showExtra, setShowExtra] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const save = async () => {
     if (!start) { showToast('Date required', false); return }
+    if (saving) return
+    setSaving(true)
     const tour: Tour = {
       id: editing?.id || newId(),
       aId: aId || null,
@@ -101,6 +109,7 @@ function TourModal({ open, onClose, editing, defaultArtistId }: {
     else addTour(tour)
     await syncToCloud()
     showToast(tour.title + (editing ? ' updated' : ' added'))
+    setSaving(false)
     onClose()
   }
 
@@ -142,7 +151,7 @@ function TourModal({ open, onClose, editing, defaultArtistId }: {
 
       <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+        <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
       </div>
     </Modal>
   )
