@@ -164,7 +164,7 @@ async function saveAll(uid: string, data: any): Promise<void> {
 
   // Batch upsert all tables in parallel
   const ops: Promise<any>[] = [
-    admin.from('user_settings').upsert(settings)
+    admin.from('user_settings').upsert(settings) as unknown as Promise<any>
   ]
 
   // Batch insert per table (one request per table, not one per record)
