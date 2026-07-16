@@ -44,6 +44,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
+  const [authChecked, setAuthChecked] = useState(false)
+
   useEffect(() => {
     // Get token from localStorage
     let token = ''
@@ -72,6 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     } catch {}
 
     if (!token) {
+      setAuthChecked(true)
       router.push('/auth/login')
       return
     }
@@ -104,7 +107,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setSyncing(true)
     loadFromCloud().then((data) => {
       if (data === 'unauthorized') {
-        // Token definitely invalid - clear and go to login
         try {
           const keys: string[] = []
           for (let i = 0; i < localStorage.length; i++) {
@@ -112,7 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             if (k) keys.push(k)
           }
           keys.forEach(k => {
-            if (k.startsWith('sb-') || k === 'td_token' || k === 'td_email') {
+            if (k.startsWith('sb-') || k === 'td_token' || k === 'td_email' || k === 'td_refresh_token') {
               localStorage.removeItem(k)
             }
           })
@@ -124,10 +126,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (data) applyCloudData(data as any)
       setLoaded(true)
       setSyncing(false)
+      setAuthChecked(true)
     }).catch(() => {
-      // Network error - show app anyway with local data
       setLoaded(true)
       setSyncing(false)
+      setAuthChecked(true)
     })
   }, [])
 
@@ -152,6 +155,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       sessionStorage.clear()
     } catch {}
     window.location.replace('/auth/login')
+  }
+
+  // Don't render anything until auth is confirmed — prevents white blink
+  if (!authChecked) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0A0A0F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '44px', height: '44px', background: '#C9A84C', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', margin: '0 auto 16px' }}>♩</div>
+          <div style={{ color: '#5A5570', fontSize: '13px' }}>Loading...</div>
+        </div>
+      </div>
+    )
   }
 
   return (
