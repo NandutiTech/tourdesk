@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TourDesk — Sign in</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:#0A0A0F;display:flex;align-items:center;justify-content:center;padding:20px;font-family:-apple-system,Inter,system-ui,sans-serif;color:#E8E0F0}
+.wrap{width:100%;max-width:420px}
+.logo{text-align:center;margin-bottom:32px}
+.logo-icon{width:52px;height:52px;background:#C9A84C;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px}
+.logo-name{font-size:24px;font-weight:900;letter-spacing:-.04em}
+.logo-sub{font-size:12px;color:#5A5570;margin-top:4px}
+.card{background:#17171F;border:1px solid #1F1F2E;border-radius:20px;padding:32px 28px}
+.title{font-size:18px;font-weight:800;margin-bottom:24px}
+input{width:100%;background:#12121A;border:1px solid #1F1F2E;color:#E8E0F0;border-radius:10px;padding:12px 14px;font-family:inherit;font-size:14px;outline:none;margin-bottom:12px;-webkit-appearance:none}
+.btn-primary{width:100%;background:#C9A84C;border:none;color:#0A0A0F;border-radius:10px;padding:13px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:900;margin-bottom:10px;-webkit-appearance:none}
+.btn-google{width:100%;background:#12121A;border:1px solid #1F1F2E;color:#E8E0F0;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px;-webkit-appearance:none}
+.btn-magic{width:100%;background:none;border:1px solid #1F1F2E;color:#5A5570;border-radius:10px;padding:11px;cursor:pointer;font-family:inherit;font-size:13px;margin-bottom:20px;-webkit-appearance:none}
+.divider{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.divider-line{flex:1;height:1px;background:#1F1F2E}
+.divider-text{font-size:12px;color:#5A5570}
+.error{background:rgba(232,69,60,.1);border:1px solid rgba(232,69,60,.3);color:#E8453C;border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
+.success{background:rgba(93,201,160,.1);border:1px solid rgba(93,201,160,.3);color:#5DC9A0;border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
+.switch{text-align:center;font-size:13px;color:#5A5570}
+.switch a{color:#C9A84C;font-weight:700;cursor:pointer;text-decoration:none}
+.footer{text-align:center;margin-top:20px;font-size:11px;color:#5A5570}
+#signup-section{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">
+    <div class="logo-icon">♩</div>
+    <div class="logo-name">Tour<span style="color:#C9A84C">Desk</span></div>
+    <div class="logo-sub">ARTIST AGENDA</div>
+  </div>
+  <div class="card">
+    <div class="title" id="form-title">Welcome back</div>
+    
+    <button class="btn-google" id="btn-google">
+      <svg width="18" height="18" viewBox="0 0 18 18">
+        <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.05-.66-.15-1.17z"/>
+        <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 01-7.18-2.54H1.83v2.07A8 8 0 008.98 17z"/>
+        <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 010-3.04V5.41H1.83a8 8 0 000 7.18l2.67-2.07z"/>
+        <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 001.83 5.4L4.5 7.49a4.77 4.77 0 014.48-3.3z"/>
+      </svg>
+      Continue with Google
+    </button>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <span class="divider-text">or</span>
+      <div class="divider-line"></div>
+    </div>
+
+    <div id="error-msg" class="error"></div>
+    <div id="success-msg" class="success"></div>
+
+    <input type="email" id="email" placeholder="Email" autocomplete="email">
+    <input type="password" id="password" placeholder="Password (min 8 characters)" autocomplete="current-password" style="margin-bottom:16px">
+    
+    <button class="btn-primary" id="btn-submit">Sign in</button>
+    <button class="btn-magic" id="btn-magic">✉ Send magic link to my email</button>
+
+    <div class="switch">
+      <span id="switch-text">Don't have an account?</span>
+      <a id="switch-link"> Sign up free</a>
+    </div>
+  </div>
+  <div class="footer">Your data is encrypted and stored securely in Europe 🇪🇺</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+var SUPABASE_URL = 'https://roftxxsmciznwgzsjmje.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvZnR4eHNtY2l6bndnenNqbWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMTc0NjgsImV4cCI6MjA5OTY5MzQ2OH0.RDsuoKxUG5hj9MpB7uloJ3MJNND9ec39MzzvPDt0otc';
+var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+var isSignUp = window.location.hash === '#signup';
+updateUI();
+
+function updateUI() {
+  document.getElementById('form-title').textContent = isSignUp ? 'Create your account' : 'Welcome back';
+  document.getElementById('btn-submit').textContent = isSignUp ? 'Create account' : 'Sign in';
+  document.getElementById('switch-text').textContent = isSignUp ? 'Already have an account?' : "Don't have an account?";
+  document.getElementById('switch-link').textContent = isSignUp ? ' Sign in' : ' Sign up free';
+}
+
+function showError(msg) {
+  var el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('success-msg').style.display = 'none';
+}
+
+function showSuccess(msg) {
+  var el = document.getElementById('success-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('error-msg').style.display = 'none';
+}
+
+function setLoading(loading) {
+  document.getElementById('btn-submit').textContent = loading ? '...' : (isSignUp ? 'Create account' : 'Sign in');
+  document.getElementById('btn-submit').disabled = loading;
+}
+
+document.getElementById('switch-link').addEventListener('click', function() {
+  isSignUp = !isSignUp;
+  updateUI();
+});
+
+document.getElementById('btn-google').addEventListener('click', function() {
+  supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/auth/callback-client' }
+  });
+});
+
+document.getElementById('btn-submit').addEventListener('click', function() {
+  var email = document.getElementById('email').value.trim();
+  var password = document.getElementById('password').value;
+  if (!email || !password) { showError('Enter email and password'); return; }
+  setLoading(true);
+
+  if (isSignUp) {
+    supabase.auth.signUp({ email: email, password: password, options: { emailRedirectTo: window.location.origin + '/auth/callback-client' } })
+      .then(function(result) {
+        setLoading(false);
+        if (result.error) showError(result.error.message);
+        else showSuccess('Check your email to confirm your account!');
+      });
+  } else {
+    supabase.auth.signInWithPassword({ email: email, password: password })
+      .then(function(result) {
+        setLoading(false);
+        if (result.error) {
+          showError(result.error.message);
+        } else if (result.data && result.data.session) {
+          try {
+            localStorage.setItem('td_token', result.data.session.access_token);
+            localStorage.setItem('td_email', email);
+          } catch(e) {}
+          window.location.href = '/app-shell';
+        } else {
+          showError('Could not sign in. Please confirm your email first.');
+        }
+      });
+  }
+});
+
+document.getElementById('btn-magic').addEventListener('click', function() {
+  var email = document.getElementById('email').value.trim();
+  if (!email) { showError('Enter your email first'); return; }
+  supabase.auth.signInWithOtp({ email: email, options: { emailRedirectTo: window.location.origin + '/auth/callback-client' } })
+    .then(function(result) {
+      if (result.error) showError(result.error.message);
+      else showSuccess('Magic link sent! Check your email.');
+    });
+});
+</script>
+</body>
+</html>
