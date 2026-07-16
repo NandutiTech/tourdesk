@@ -8,7 +8,7 @@ import { Meeting } from '@/lib/types'
 function MeetingModal({ open, onClose, editing }: { open: boolean, onClose: () => void, editing?: Meeting | null }) {
   const { addMeeting, updateMeeting } = useStore()
   const [title, setTitle] = useState(editing?.title || '')
-  const [type, setType] = useState(editing?.type || 'online')
+  const [type, setType] = useState<'online' | 'person'>(editing?.type || 'online')
   const [date, setDate] = useState(editing?.date || '')
   const [time, setTime] = useState(editing?.time || '')
   const [location, setLocation] = useState(editing?.location || '')
@@ -31,7 +31,7 @@ function MeetingModal({ open, onClose, editing }: { open: boolean, onClose: () =
   return (
     <Modal open={open} onClose={onClose} title={editing ? 'Edit Meeting' : 'New Meeting'}>
       <Input label="Title *" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Production call with Pierre" />
-      <Select label="Type" value={type} onChange={e => setType(e.target.value)}>
+      <Select label="Type" value={type} onChange={e => setType(e.target.value as 'online' | 'person')}>
         <option value="online">Online / Phone</option>
         <option value="person">In person</option>
       </Select>
