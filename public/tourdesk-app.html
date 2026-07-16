@@ -4739,7 +4739,7 @@ Return ONLY a valid JSON array, no markdown, no explanation:
 
     const resp = await fetch('/api/claude', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+(window._supabaseToken||localStorage.getItem('td_token')||'') },
       body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4000, messages: [{ role: 'user', content: contentBlocks }] })
     });
 
