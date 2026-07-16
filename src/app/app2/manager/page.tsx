@@ -11,6 +11,7 @@ function MemberModal({ open, onClose, onSave, editing }: {
   editing?: ManagerMember | null
 }) {
   const [name, setName] = useState(editing?.name || '')
+  const [saving, setSaving] = useState(false)
   const [role, setRole] = useState(editing?.role || '')
   const [hotel, setHotel] = useState(editing?.hotel || '')
   const [room, setRoom] = useState(editing?.room || '')
@@ -39,7 +40,7 @@ function MemberModal({ open, onClose, onSave, editing }: {
       <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '60px' }} />
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+        <Button onClick={save} style={{ flex: 2 }} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
       </div>
     </Modal>
   )
@@ -53,6 +54,7 @@ function TourSheetModal({ open, onClose, editing }: { open: boolean, onClose: ()
   const [end, setEnd] = useState(editing?.end || '')
   const [notes, setNotes] = useState(editing?.notes || '')
   const [members, setMembers] = useState<ManagerMember[]>(editing?.members || [])
+  const [saving, setSaving] = useState(false)
   const [showMemberModal, setShowMemberModal] = useState(false)
   const [editingMember, setEditingMember] = useState<ManagerMember | null>(null)
 
@@ -61,12 +63,15 @@ function TourSheetModal({ open, onClose, editing }: { open: boolean, onClose: ()
   const removeMember = (id: string) => setMembers(prev => prev.filter(m => m.id !== id))
 
   const save = async () => {
+    if (saving) return
+    setSaving(true)
     if (!name.trim()) { showToast('Tour name required', false); return }
     const tour: ManagerTour = { id: editing?.id || newId(), name: name.trim(), aId: aId || null, start, end, notes, members }
     if (editing) updateMgrTour(tour)
     else addMgrTour(tour)
     await syncToCloud()
     showToast(name + (editing ? ' updated' : ' created'))
+    setSaving(false)
     onClose()
   }
 
@@ -140,6 +145,7 @@ export default function ManagerPage() {
     }
     const text = lines.join('\n')
     navigator.clipboard?.writeText(text)
+    setSaving(false)
     showToast('Tour sheet copied!')
   }
 

@@ -11,17 +11,21 @@ const CATS = { transport: '🚆 Transport', hotel: '🏨 Hotel', food: '🍽 Foo
 function ExpenseModal({ open, onClose, editing }: { open: boolean, onClose: () => void, editing?: Expense | null }) {
   const { artists, addExpense, updateExpense } = useStore()
   const [aId, setAId] = useState(editing?.aId || '')
+  const [saving, setSaving] = useState(false)
   const [date, setDate] = useState(editing?.date || '')
   const [amount, setAmount] = useState(editing?.amount?.toString() || '')
   const [cat, setCat] = useState<Expense['cat']>(editing?.cat || 'other')
   const [desc, setDesc] = useState(editing?.desc || '')
 
   const save = async () => {
+    if (saving) return
+    setSaving(true)
     if (!date || !amount) { showToast('Date and amount required', false); return }
     const expense: Expense = { id: editing?.id || newId(), aId: aId || null, date, amount: parseFloat(amount), cat, desc, receipt: '' }
     if (editing) updateExpense(expense)
     else addExpense(expense)
     await syncToCloud()
+    setSaving(false)
     showToast('Expense saved')
     onClose()
   }
@@ -42,7 +46,7 @@ function ExpenseModal({ open, onClose, editing }: { open: boolean, onClose: () =
       <Textarea label="Description" value={desc} onChange={e => setDesc(e.target.value)} style={{ minHeight: '60px' }} />
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+        <Button onClick={save} style={{ flex: 2 }} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
       </div>
     </Modal>
   )

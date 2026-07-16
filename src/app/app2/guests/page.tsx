@@ -12,17 +12,21 @@ const STATUS_LABELS = { confirmed: '✓ Confirmed', pending: '⏳ Pending', canc
 function GuestModal({ open, onClose, editing }: { open: boolean, onClose: () => void, editing?: Guest | null }) {
   const { tours, artists, addGuest, updateGuest } = useStore()
   const [tourId, setTourId] = useState(editing?.tourId || '')
+  const [saving, setSaving] = useState(false)
   const [name, setName] = useState(editing?.name || '')
   const [contact, setContact] = useState(editing?.contact || '')
   const [count, setCount] = useState(editing?.count?.toString() || '1')
   const [notes, setNotes] = useState(editing?.notes || '')
 
   const save = async () => {
+    if (saving) return
+    setSaving(true)
     if (!name.trim()) { showToast('Name required', false); return }
     const guest: Guest = { id: editing?.id || newId(), tourId: tourId || null, name: name.trim(), contact, count: parseInt(count) || 1, notes, status: editing?.status || 'confirmed' }
     if (editing) updateGuest(guest)
     else addGuest(guest)
     await syncToCloud()
+    setSaving(false)
     showToast(name + (editing ? ' updated' : ' added'))
     onClose()
   }
@@ -44,7 +48,7 @@ function GuestModal({ open, onClose, editing }: { open: boolean, onClose: () => 
       <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '60px' }} />
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+        <Button onClick={save} style={{ flex: 2 }} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
       </div>
     </Modal>
   )

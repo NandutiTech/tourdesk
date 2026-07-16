@@ -169,6 +169,7 @@ function ImportModal({ open, onClose }: { open: boolean, onClose: () => void }) 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (loading) return  // prevent double submit
 
     setLoading(true)
     setStep('upload')
@@ -219,6 +220,8 @@ function ImportModal({ open, onClose }: { open: boolean, onClose: () => void }) 
   }
 
   const confirm = async () => {
+    if (loading) return
+    setLoading(true)
     addTours(preview)
     await syncToCloud()
     showToast(`${preview.length} event${preview.length !== 1 ? 's' : ''} added ✓`)
@@ -264,7 +267,7 @@ function ImportModal({ open, onClose }: { open: boolean, onClose: () => void }) 
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button variant="secondary" onClick={() => setStep('upload')} style={{ flex: 1 }}>← Back</Button>
-            <Button onClick={confirm} style={{ flex: 2 }}>Add {preview.length} events ✓</Button>
+            <Button onClick={confirm} disabled={loading} style={{ flex: 2 }}>{loading ? "Adding..." : `Add ${preview.length} events ✓`}</Button>
           </div>
         </>
       )}

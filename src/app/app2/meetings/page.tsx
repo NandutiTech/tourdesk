@@ -8,6 +8,7 @@ import { Meeting } from '@/lib/types'
 function MeetingModal({ open, onClose, editing }: { open: boolean, onClose: () => void, editing?: Meeting | null }) {
   const { addMeeting, updateMeeting } = useStore()
   const [title, setTitle] = useState(editing?.title || '')
+  const [saving, setSaving] = useState(false)
   const [type, setType] = useState<'online' | 'person'>(editing?.type || 'online')
   const [date, setDate] = useState(editing?.date || '')
   const [time, setTime] = useState(editing?.time || '')
@@ -15,6 +16,8 @@ function MeetingModal({ open, onClose, editing }: { open: boolean, onClose: () =
   const [notes, setNotes] = useState(editing?.notes || '')
 
   const save = async () => {
+    if (saving) return
+    setSaving(true)
     if (!title.trim() || !date) { showToast('Title and date required', false); return }
     const meeting: Meeting = {
       id: editing?.id || newId(),
@@ -24,6 +27,7 @@ function MeetingModal({ open, onClose, editing }: { open: boolean, onClose: () =
     if (editing) updateMeeting(meeting)
     else addMeeting(meeting)
     await syncToCloud()
+    setSaving(false)
     showToast(title + (editing ? ' updated' : ' added'))
     onClose()
   }
@@ -43,7 +47,7 @@ function MeetingModal({ open, onClose, editing }: { open: boolean, onClose: () =
       <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} />
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+        <Button onClick={save} style={{ flex: 2 }} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
       </div>
     </Modal>
   )
@@ -63,6 +67,7 @@ export default function MeetingsPage() {
     if (!confirm(`Delete "${m.title}"?`)) return
     deleteMeeting(m.id)
     await syncToCloud()
+    setSaving(false)
     showToast('Meeting deleted')
   }
 

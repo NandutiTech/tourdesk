@@ -45,6 +45,7 @@ export default function AvailabilityPage() {
         : [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } }, { type: 'text', text: IMPORT_PROMPT }]
 
       const data = await callClaude([{ role: 'user', content: contentBlocks }], 1000)
+      if (!data) { setLoading(false); return }
       if (data.error) { showToast('Error reading file', false); setLoading(false); return }
 
       const text = data.content?.[0]?.text || ''
@@ -104,7 +105,7 @@ export default function AvailabilityPage() {
           <div style={{ fontSize: '12px', color: '#5A5570', marginBottom: '16px', lineHeight: 1.6 }}>
             Upload a PDF or photo with dates an artist sent you. Claude reads the dates automatically and checks for conflicts with your calendar.
           </div>
-          <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && processFile(e.target.files[0])} />
+          <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) { processFile(e.target.files[0]); e.target.value = '' } }} />
           <Button onClick={() => fileRef.current?.click()} disabled={loading} style={{ width: '100%' }}>
             {loading ? '⏳ Reading file...' : '📎 Choose PDF or photo'}
           </Button>

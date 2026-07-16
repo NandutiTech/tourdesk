@@ -8,6 +8,7 @@ import { Trip } from '@/lib/types'
 function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => void, editing?: Trip | null }) {
   const { artists, addTrip, updateTrip } = useStore()
   const [aId, setAId] = useState(editing?.aId || '')
+  const [saving, setSaving] = useState(false)
   const [outFrom, setOutFrom] = useState(editing?.outFrom || '')
   const [outTo, setOutTo] = useState(editing?.outTo || '')
   const [outDate, setOutDate] = useState(editing?.outDate || '')
@@ -21,11 +22,14 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
   const [notes, setNotes] = useState(editing?.notes || '')
 
   const save = async () => {
+    if (saving) return
+    setSaving(true)
     if (!outDate) { showToast('Departure date required', false); return }
     const trip: Trip = { id: editing?.id || newId(), aId: aId || null, outFrom, outTo, outDate, outTime, outRef, retFrom, retTo, retDate, retTime, retRef, notes }
     if (editing) updateTrip(trip)
     else addTrip(trip)
     await syncToCloud()
+    setSaving(false)
     showToast('Trip saved')
     onClose()
   }
@@ -59,7 +63,7 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
       <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '60px' }} />
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+        <Button onClick={save} style={{ flex: 2 }} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
       </div>
     </Modal>
   )

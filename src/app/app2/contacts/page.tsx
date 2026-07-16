@@ -25,6 +25,7 @@ function ContactModal({ open, onClose, editing }: { open: boolean, onClose: () =
   const { artists, addContact, updateContact } = useStore()
   const parsed = editing?.phone ? parsePhone(editing.phone) : { prefix: '+33', number: '' }
   const [name, setName] = useState(editing?.name || '')
+  const [saving, setSaving] = useState(false)
   const [role, setRole] = useState(editing?.role || '')
   const [company, setCompany] = useState(editing?.company || '')
   const [prefix, setPrefix] = useState(parsed.prefix)
@@ -36,6 +37,8 @@ function ContactModal({ open, onClose, editing }: { open: boolean, onClose: () =
   const [notes, setNotes] = useState(editing?.notes || '')
 
   const save = async () => {
+    if (saving) return
+    setSaving(true)
     if (!name.trim()) { showToast('Name required', false); return }
     const phone = phoneNum ? prefix + phoneNum.replace(/^0/, '') : ''
     const c: Contact = {
@@ -47,6 +50,7 @@ function ContactModal({ open, onClose, editing }: { open: boolean, onClose: () =
     if (editing) updateContact(c)
     else addContact(c)
     await syncToCloud()
+    setSaving(false)
     showToast(name + (editing ? ' updated' : ' added'))
     onClose()
   }
@@ -83,7 +87,7 @@ function ContactModal({ open, onClose, editing }: { open: boolean, onClose: () =
       <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '60px' }} />
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+        <Button onClick={save} style={{ flex: 2 }} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
       </div>
     </Modal>
   )

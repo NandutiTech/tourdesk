@@ -26,6 +26,7 @@ function SubModal({ open, onClose, editing }: { open: boolean, onClose: () => vo
   const { addReplacement, updateReplacement } = useStore()
   const parsed = editing?.phone ? parsePhone(editing.phone) : { prefix: '+33', number: '' }
   const [name, setName] = useState(editing?.name || '')
+  const [saving, setSaving] = useState(false)
   const [inst, setInst] = useState(editing?.inst || '')
   const [prefix, setPrefix] = useState(parsed.prefix)
   const [phoneNum, setPhoneNum] = useState(parsed.number)
@@ -34,12 +35,15 @@ function SubModal({ open, onClose, editing }: { open: boolean, onClose: () => vo
   const [notes, setNotes] = useState(editing?.notes || '')
 
   const save = async () => {
+    if (saving) return
+    setSaving(true)
     if (!name.trim()) { showToast('Name required', false); return }
     const phone = phoneNum ? prefix + phoneNum.replace(/^0/, '') : ''
     const sub: Replacement = { id: editing?.id || newId(), name: name.trim(), inst, phone, email, genre, notes }
     if (editing) updateReplacement(sub)
     else addReplacement(sub)
     await syncToCloud()
+    setSaving(false)
     showToast(name + (editing ? ' updated' : ' added'))
     onClose()
   }
@@ -74,7 +78,7 @@ function SubModal({ open, onClose, editing }: { open: boolean, onClose: () => vo
       <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '60px' }} />
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+        <Button onClick={save} style={{ flex: 2 }} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
       </div>
     </Modal>
   )
