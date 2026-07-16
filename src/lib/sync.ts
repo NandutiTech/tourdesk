@@ -53,6 +53,8 @@ export async function loadFromCloud(): Promise<Partial<AppState> | null> {
         'Authorization': `Bearer ${token}`
       }
     })
+    // Token expired or invalid
+    if (res.status === 401) return null
     const data = await res.json()
     if (data.error) return null
     return data

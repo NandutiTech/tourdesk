@@ -81,9 +81,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // Clear old HTML app data from localStorage (migration to React)
     try { localStorage.removeItem('tourdesk_data_v1') } catch {}
 
-    // Load from cloud
+    // Load from cloud - if token invalid, clear and redirect to login
     setSyncing(true)
     loadFromCloud().then((data) => {
+      if (data === null) {
+        // Token invalid or expired - clear and go to login
+        try {
+          localStorage.removeItem('td_token')
+          localStorage.removeItem('td_email')
+          // Clear all supabase keys
+          const keys: string[] = []
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i)
+            if (k?.startsWith('sb-')) keys.push(k)
+          }
+          keys.forEach(k => localStorage.removeItem(k))
+        } catch {}
+        router.push('/auth/login')
+        return
+      }
       if (data) applyCloudData(data as any)
       setLoaded(true)
       setSyncing(false)
@@ -100,15 +116,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const handleSignOut = () => {
     if (!confirm('Sign out?')) return
     try {
+      // Clear all auth keys
       const keys: string[] = []
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i)
-        if (k && (k.includes('auth') || k.includes('supabase') || k === 'td_token' || k === 'td_email')) keys.push(k)
+        if (k) keys.push(k)
       }
-      keys.forEach(k => localStorage.removeItem(k))
+      keys.forEach(k => {
+        if (k.includes('auth') || k.includes('supabase') || k.startsWith('sb-') || k === 'td_token' || k === 'td_email') {
+          localStorage.removeItem(k)
+        }
+      })
       sessionStorage.clear()
     } catch {}
-    window.location.href = '/auth/login'
+    window.location.replace('/auth/login')
   }
 
   return (
