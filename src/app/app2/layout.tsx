@@ -78,6 +78,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     setToken(token, email)
 
+    // Clear old HTML app data from localStorage (migration to React)
+    try { localStorage.removeItem('tourdesk_data_v1') } catch {}
+
     // Load from cloud
     setSyncing(true)
     loadFromCloud().then((data) => {
