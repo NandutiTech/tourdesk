@@ -72,9 +72,10 @@ function RangePicker({ startDate, endDate, onSelect }: {
             <div key={day} onClick={() => selectDay(ds)} style={{
               textAlign: 'center', padding: '5px 2px', borderRadius: '6px', cursor: 'pointer',
               fontSize: '12px', fontWeight: isStart || isEnd ? 900 : 400,
-              background: isStart || isEnd ? '#C9A84C' : inRange ? 'rgba(201,168,76,.2)' : 'transparent',
+              background: isStart || isEnd ? '#C9A84C' : inRange ? 'rgba(201,168,76,.2)' : '#12121A',
               color: isStart || isEnd ? '#0A0A0F' : isToday ? '#C9A84C' : '#E8E0F0',
-              border: isToday && !isStart && !isEnd ? '1px solid rgba(201,168,76,.4)' : '1px solid transparent'
+              border: isToday && !isStart && !isEnd ? '1px solid rgba(201,168,76,.4)' : '1px solid #1F1F2E',
+              minHeight: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}>{day}</div>
           )
         })}
@@ -163,14 +164,18 @@ export default function MyPagePage() {
 
         {/* Date range picker */}
         <Card style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '12px', color: '#5A5570', marginBottom: '12px' }}>
-            Selected: <strong style={{ color: '#E8E0F0' }}>{startDate}</strong> → <strong style={{ color: '#E8E0F0' }}>{endDate}</strong>
+          <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '12px' }}>
+            Select date range
           </div>
           <RangePicker
             startDate={startDate}
             endDate={endDate}
             onSelect={(s, e) => { setStartDate(s); setEndDate(e) }}
           />
+          <div style={{ marginTop: '12px', padding: '10px', background: '#12121A', borderRadius: '8px', fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: '#5A5570' }}>From: <strong style={{ color: '#C9A84C' }}>{startDate}</strong></span>
+            <span style={{ color: '#5A5570' }}>To: <strong style={{ color: '#C9A84C' }}>{endDate}</strong></span>
+          </div>
         </Card>
 
         {/* Options */}
