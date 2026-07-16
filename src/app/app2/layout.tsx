@@ -7,7 +7,8 @@ import Link from 'next/link'
 
 const NAV = [
   { section: '📅 Schedule', items: [
-    { href: '/app2/tours', label: 'Tours & Events', sub: 'Add your bookings & import planning', icon: '🎤' },
+    { href: '/app2/artists', label: 'My Artists', sub: 'Manage employers & artists', icon: '🎤' },
+    { href: '/app2/tours', label: 'Tours & Events', sub: 'Add your bookings & import planning', icon: '📋' },
     { href: '/app2/calendar', label: 'Calendar', sub: 'Your schedule at a glance', icon: '📅' },
     { href: '/app2/meetings', label: 'Meetings', sub: 'Production calls & syncs', icon: '📞' },
     { href: '/app2/alerts', label: 'Alerts', sub: 'Conflicts & upcoming events', icon: '🔔' },
