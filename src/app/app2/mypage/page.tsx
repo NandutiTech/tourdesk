@@ -162,29 +162,24 @@ export default function MyPagePage() {
       <Toolbar title="My Availability" />
       <div style={{ padding: '0 16px' }}>
 
-        {/* Date range picker */}
+        {/* Date range - compact */}
         <Card style={{ marginBottom: '16px' }}>
-          <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '12px' }}>
-            Select date range
+          <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '12px' }}>Select date range</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+            <div>
+              <div style={{ fontSize: '11px', color: '#5A5570', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>From</div>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ width: '100%', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '14px', outline: 'none', boxSizing: 'border-box' as const }} />
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', color: '#5A5570', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>To</div>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '14px', outline: 'none', boxSizing: 'border-box' as const }} />
+            </div>
           </div>
-          <RangePicker
-            startDate={startDate}
-            endDate={endDate}
-            onSelect={(s, e) => { setStartDate(s); setEndDate(e) }}
-          />
-          <div style={{ marginTop: '12px', padding: '10px', background: '#12121A', borderRadius: '8px', fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#5A5570' }}>From: <strong style={{ color: '#C9A84C' }}>{startDate}</strong></span>
-            <span style={{ color: '#5A5570' }}>To: <strong style={{ color: '#C9A84C' }}>{endDate}</strong></span>
-          </div>
-        </Card>
-
-        {/* Options */}
-        <Card style={{ marginBottom: '16px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px' }}>
             <input type="checkbox" checked={maskArtists} onChange={e => setMaskArtists(e.target.checked)} style={{ accentColor: '#C9A84C', width: '16px', height: '16px' }} />
             <div>
               <div style={{ fontWeight: 700 }}>Mask artist names</div>
-              <div style={{ fontSize: '11px', color: '#5A5570' }}>Show "Occupied" instead of artist name when sharing</div>
+              <div style={{ fontSize: '11px', color: '#5A5570' }}>Show "Occupied" instead of artist name</div>
             </div>
           </label>
         </Card>
