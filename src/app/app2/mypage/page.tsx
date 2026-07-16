@@ -87,12 +87,58 @@ function RangePicker({ startDate, endDate, onSelect }: {
   )
 }
 
+
+function MiniCalendar({ value, onChange, onClose }: { value: string, onChange: (d: string) => void, onClose: () => void }) {
+  const today = new Date()
+  const init = value ? new Date(value + 'T12:00:00') : today
+  const [viewY, setViewY] = useState(init.getFullYear())
+  const [viewM, setViewM] = useState(init.getMonth())
+  const totalDays = new Date(viewY, viewM + 1, 0).getDate()
+  const firstDay = new Date(viewY, viewM, 1).getDay()
+  const todayStr = today.toISOString().slice(0, 10)
+
+  const prev = () => { if (viewM === 0) { setViewM(11); setViewY(y => y-1) } else setViewM(m => m-1) }
+  const next = () => { if (viewM === 11) { setViewM(0); setViewY(y => y+1) } else setViewM(m => m+1) }
+
+  return (
+    <div onClick={e => e.stopPropagation()} style={{ background: '#17171F', border: '1px solid #1F1F2E', borderRadius: '14px', padding: '14px', width: '260px', boxShadow: '0 8px 32px rgba(0,0,0,.6)', zIndex: 300 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+        <button onClick={prev} style={{ background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontSize: '13px' }}>‹</button>
+        <div style={{ flex: 1, textAlign: 'center', fontWeight: 800, fontSize: '13px' }}>{MONTHS[viewM]} {viewY}</div>
+        <button onClick={next} style={{ background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontSize: '13px' }}>›</button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '4px' }}>
+        {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} style={{ textAlign: 'center', fontSize: '9px', color: '#5A5570', fontWeight: 700 }}>{d}</div>)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+        {Array.from({ length: firstDay }).map((_, i) => <div key={`e${i}`} />)}
+        {Array.from({ length: totalDays }, (_, i) => i + 1).map(day => {
+          const ds = `${viewY}-${pad(viewM+1)}-${pad(day)}`
+          const isSelected = ds === value
+          const isToday = ds === todayStr
+          return (
+            <div key={day} onClick={() => { onChange(ds); onClose() }} style={{
+              textAlign: 'center', padding: '5px 2px', borderRadius: '5px', cursor: 'pointer', fontSize: '12px',
+              background: isSelected ? '#C9A84C' : 'transparent',
+              color: isSelected ? '#0A0A0F' : isToday ? '#C9A84C' : '#E8E0F0',
+              fontWeight: isSelected || isToday ? 800 : 400,
+              border: isToday && !isSelected ? '1px solid rgba(201,168,76,.4)' : '1px solid transparent'
+            }}>{day}</div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function MyPagePage() {
   const { tours, artists } = useStore()
   const today = new Date()
   const [startDate, setStartDate] = useState(today.toISOString().slice(0, 10))
   const [endDate, setEndDate] = useState(new Date(Date.now() + 56 * 86400000).toISOString().slice(0, 10))
   const [maskArtists, setMaskArtists] = useState(false)
+  const [showFromPicker, setShowFromPicker] = useState(false)
+  const [showToPicker, setShowToPicker] = useState(false)
 
   // Build busy date map
   const busyMap: Record<string, { tour: any, artist: any }[]> = {}
@@ -166,13 +212,33 @@ export default function MyPagePage() {
         <Card style={{ marginBottom: '16px' }}>
           <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '12px' }}>Select date range</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-            <div>
+            <div style={{ position: 'relative' }}>
               <div style={{ fontSize: '11px', color: '#5A5570', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>From</div>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ width: '100%', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '14px', outline: 'none', boxSizing: 'border-box' as const }} />
+              <button onClick={() => { setShowFromPicker(!showFromPicker); setShowToPicker(false) }} style={{ width: '100%', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}>
+                📅 {startDate}
+              </button>
+              {showFromPicker && (
+                <>
+                  <div onClick={() => setShowFromPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 299 }} />
+                  <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '4px', zIndex: 300 }}>
+                    <MiniCalendar value={startDate} onChange={setStartDate} onClose={() => setShowFromPicker(false)} />
+                  </div>
+                </>
+              )}
             </div>
-            <div>
+            <div style={{ position: 'relative' }}>
               <div style={{ fontSize: '11px', color: '#5A5570', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>To</div>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '14px', outline: 'none', boxSizing: 'border-box' as const }} />
+              <button onClick={() => { setShowToPicker(!showToPicker); setShowFromPicker(false) }} style={{ width: '100%', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}>
+                📅 {endDate}
+              </button>
+              {showToPicker && (
+                <>
+                  <div onClick={() => setShowToPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 299 }} />
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '4px', zIndex: 300 }}>
+                    <MiniCalendar value={endDate} onChange={setEndDate} onClose={() => setShowToPicker(false)} />
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px' }}>
