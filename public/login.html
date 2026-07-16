@@ -113,9 +113,18 @@ document.getElementById('switch-link').addEventListener('click', function() {
 });
 
 document.getElementById('btn-google').addEventListener('click', function() {
+  // Force redirect mode for Safari iOS
   supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin + '/auth/callback-client' }
+    options: { 
+      redirectTo: window.location.origin + '/auth/callback-client',
+      skipBrowserRedirect: false
+    }
+  }).then(function(result) {
+    if (result.data && result.data.url) {
+      // Manually redirect to avoid popup blocking
+      window.location.href = result.data.url;
+    }
   });
 });
 
