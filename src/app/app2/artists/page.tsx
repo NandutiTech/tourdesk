@@ -134,8 +134,9 @@ export default function ArtistsPage() {
           />
         ) : (
           artists.map(artist => {
+            const today = new Date().toISOString().slice(0, 10)
             const eventCount = tours.filter(t => t.aId === artist.id).length
-            const upcoming = tours.filter(t => t.aId === artist.id && t.start >= new Date().toISOString().slice(0, 10)).length
+            const upcoming = tours.filter(t => t.aId === artist.id && t.start >= today).length
             return (
               <Card key={artist.id} style={{ marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
