@@ -114,6 +114,7 @@ export default function PricingPage() {
           Annual <span style={{ background: 'rgba(93,201,160,.2)', color: '#5DC9A0', borderRadius: '6px', padding: '1px 6px', fontSize: '11px', fontWeight: 800 }}>Save ~15%</span>
         </span>
       </div>
+      {message && (
         <div style={{ margin: '0 16px 16px', background: 'rgba(93,201,160,.1)', border: '1px solid rgba(93,201,160,.3)', borderRadius: '12px', padding: '14px 16px', fontSize: '13px', color: '#5DC9A0', lineHeight: 1.6 }}>
           {message}
         </div>
