@@ -86,6 +86,14 @@ export default function ArtistsPage() {
   const { artists, tours, deleteArtist } = useStore()
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Artist | null>(null)
+  const [plan, setPlan] = useState('solo')
+
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('td_token') || '') : ''
+    if (!token) return
+    fetch('/api/plan', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => setPlan(d.plan || 'solo')).catch(() => {})
+  }, [])
 
   const handleDelete = async (artist: Artist) => {
     const count = tours.filter(t => t.aId === artist.id).length
@@ -127,10 +135,8 @@ export default function ArtistsPage() {
           )}
         </div>
       )}
+        {artists.length === 0 ? (
           <EmptyState
-            icon="🎤"
-            title="No artists yet"
-            sub="Add your employers and the artists you work with. Each artist can have their own color, cachet, SIRET and contract info."
           />
         ) : (
           artists.map(artist => {
