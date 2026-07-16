@@ -118,8 +118,12 @@ export default function SettingsPage() {
             </div>
           </div>
           {plan === 'solo' && (
-            <div style={{ background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', borderRadius: '10px', padding: '12px', marginBottom: '12px', fontSize: '13px' }}>
-              <strong style={{ color: '#C9A84C' }}>Upgrade to Pro</strong> to unlock Travel, Expenses, Guest list and Contacts.
+            <div style={{ background: 'rgba(201,168,76,.08)', border: '1px solid rgba(201,168,76,.2)', borderRadius: '10px', padding: '14px', marginBottom: '12px' }}>
+              <div style={{ fontWeight: 800, color: '#C9A84C', marginBottom: '4px' }}>⭐ Upgrade to Pro</div>
+              <div style={{ fontSize: '12px', color: '#5A5570', marginBottom: '12px', lineHeight: 1.6 }}>Unlock Travel, Expenses, Guest list, Contacts and more.</div>
+              <button onClick={() => window.open('mailto:sannie.patron@gmail.com?subject=TourDesk Pro upgrade', '_blank')} style={{ width: '100%', background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '10px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 900, fontSize: '13px' }}>
+                Contact us to upgrade →
+              </button>
             </div>
           )}
           <Button onClick={handleSignOut} variant="secondary" style={{ width: '100%' }}>Sign out</Button>
