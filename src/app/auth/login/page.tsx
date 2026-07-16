@@ -43,7 +43,11 @@ export default function LoginPage() {
   }
 
   const handleGoogle = async () => {
-    const supabase = createClient()
+    const { createBrowserClient } = await import('@supabase/ssr')
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin + '/auth/callback-client' }
