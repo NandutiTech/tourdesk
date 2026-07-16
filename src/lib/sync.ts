@@ -61,6 +61,22 @@ export async function loadFromCloud(): Promise<Partial<AppState> | null> {
   }
 }
 
+export async function deleteFromCloud(table: string, id: string): Promise<boolean> {
+  const token = getToken()
+  if (!token) return false
+  try {
+    const res = await fetch('/api/sync', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ table, id })
+    })
+    const data = await res.json()
+    return data.success === true
+  } catch {
+    return false
+  }
+}
+
 export async function callClaude(messages: any[], maxTokens = 1000): Promise<any> {
   const token = getToken()
   const res = await fetch('/api/claude', {

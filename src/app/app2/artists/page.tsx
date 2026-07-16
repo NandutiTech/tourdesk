@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useStore, newId } from '@/lib/store'
-import { syncToCloud } from '@/lib/sync'
+import { syncToCloud, deleteFromCloud } from '@/lib/sync'
 import { Button, Card, Input, Select, Textarea, Modal, EmptyState, Toolbar, showToast, ColorDot } from '@/components/ui'
 import { Artist } from '@/lib/types'
 
@@ -77,8 +77,15 @@ export default function ArtistsPage() {
   const handleDelete = async (artist: Artist) => {
     const count = tours.filter(t => t.aId === artist.id).length
     if (!confirm(`Delete "${artist.name}"${count > 0 ? ` and all ${count} events` : ''}?\nThis cannot be undone.`)) return
+    // Delete from Supabase first
+    await deleteFromCloud('artists', artist.id)
+    // Also delete associated tours
+    const artistTours = tours.filter(t => t.aId === artist.id)
+    for (const t of artistTours) {
+      await deleteFromCloud('tours', t.id)
+    }
+    // Update local state
     deleteArtist(artist.id)
-    await syncToCloud()
     showToast(artist.name + ' deleted')
   }
 

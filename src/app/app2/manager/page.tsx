@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useStore, newId } from '@/lib/store'
-import { syncToCloud } from '@/lib/sync'
+import { syncToCloud, deleteFromCloud } from '@/lib/sync'
 import { Button, Card, Input, Select, Textarea, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
 import { ManagerTour, ManagerMember } from '@/lib/types'
 

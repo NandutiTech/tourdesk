@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef } from 'react'
 import { useStore, newId } from '@/lib/store'
-import { syncToCloud, callClaude } from '@/lib/sync'
+import { syncToCloud, deleteFromCloud, callClaude } from '@/lib/sync'
 import { Button, Card, Input, Select, Textarea, Modal, EmptyState, Toolbar, showToast, ColorDot, SectionLabel } from '@/components/ui'
 import { Artist, Tour, EventType, EVENT_LABELS, EVENT_COLORS } from '@/lib/types'
 
@@ -327,15 +327,17 @@ export default function ToursPage() {
   const handleDeleteArtist = async (artist: Artist) => {
     const count = tours.filter(t => t.aId === artist.id).length
     if (!confirm(`Delete "${artist.name}"${count > 0 ? ` and all ${count} events` : ''}? This cannot be undone.`)) return
+    await deleteFromCloud('artists', artist.id)
+    const artistTours = tours.filter(t => t.aId === artist.id)
+    for (const t of artistTours) await deleteFromCloud('tours', t.id)
     deleteArtist(artist.id)
-    await syncToCloud()
     showToast(artist.name + ' deleted')
   }
 
   const handleDeleteTour = async (tour: Tour) => {
     if (!confirm(`Delete "${tour.title}"?`)) return
+    await deleteFromCloud('tours', tour.id)
     deleteTour(tour.id)
-    await syncToCloud()
     showToast('Event deleted')
   }
 

@@ -222,3 +222,19 @@ async function saveAll(uid: string, data: any): Promise<{ ok: number, errors: st
 
   return { ok, errors }
 }
+
+// DELETE endpoint - remove a single record
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getUser(request)
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const uid = user.id
+    const { table, id } = await request.json()
+    if (!table || !id) return NextResponse.json({ error: 'table and id required' }, { status: 400 })
+    const { error } = await admin.from(table).delete().eq('id', id).eq('user_id', uid)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
