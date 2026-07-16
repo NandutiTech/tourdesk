@@ -43,17 +43,14 @@ export default function LoginPage() {
   }
 
   const handleGoogle = async () => {
-    const { createBrowserClient } = await import('@supabase/ssr')
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin + '/auth/callback-client' }
-    })
-    if (error) showMsg(error.message, true)
-    else if (data.url) window.location.href = data.url
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      const redirectTo = encodeURIComponent(window.location.origin + '/auth/callback-client')
+      window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}&access_type=offline&prompt=consent`
+    } catch(e) {
+      showMsg('Google login failed. Try email instead.', true)
+    }
   }
 
   const handleMagicLink = async () => {
