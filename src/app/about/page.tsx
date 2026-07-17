@@ -2,7 +2,7 @@
 import Link from 'next/link'
 
 const LOLA_ARTISTS = [
-  'P.R2B', 'Vincent Dedienne', 'Lucie Antunes', 'Julia Jean-Baptiste',
+  'Pierre de Maere', 'Vincent Dedienne', 'Lucie Antunes', 'Julia Jean-Baptiste',
   'Moodoid', 'Feu! Chatterton', 'Sarah Maison', 'Ko Shin Moon',
   'HUNJIYA', 'Chino Corvalan and Victor Alvarez', 'Polycool', 'Nili Hadida'
 ]
