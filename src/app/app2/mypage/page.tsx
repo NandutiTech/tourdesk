@@ -205,7 +205,7 @@ export default function MyPagePage() {
 
   return (
     <div style={{ padding: '0 0 100px' }}>
-      <Toolbar title="My Availability" />
+      <Toolbar title="Share My Calendar" />
       <div style={{ padding: '0 16px' }}>
 
         {/* Date range - compact */}

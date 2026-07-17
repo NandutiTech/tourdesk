@@ -13,7 +13,7 @@ const NAV = [
     { href: '/app2/meetings', label: 'Meetings', sub: 'Production calls & syncs', icon: '📞' },
     { href: '/app2/alerts', label: 'Alerts', sub: 'Conflicts & upcoming events', icon: '🔔' },
     { href: '/app2/availability', label: 'Check Availability', sub: 'Upload dates and check conflicts', icon: '⚡' },
-    { href: '/app2/mypage', label: 'My Availability', sub: 'Share your calendar with others', icon: '📤' },
+    { href: '/app2/mypage', label: 'Share My Calendar', sub: 'Share your availability with others', icon: '📤' },
   ]},
   { section: '💶 Money & Hours', items: [
     { href: '/app2/earnings', label: 'Earnings & Hours', sub: 'Cachets & hour counter', icon: '💶' },
