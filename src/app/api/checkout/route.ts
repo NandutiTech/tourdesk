@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       success_url: `${origin}/app2/settings?upgraded=1`,
       cancel_url: `${origin}/app2/pricing`,
       customer_email: user.email || undefined,
+      allow_promotion_codes: true,
       metadata: {
         user_id: user.id,
         plan: PLAN_MAP[priceKey],
