@@ -229,7 +229,8 @@ export default function EarningsPage() {
               const totalCachet = cachetAmount * count
               const totalHours = cachetHours * count
               return (
-                <Card key={t.id} style={{ marginBottom: '8px', padding: '12px', cursor: 'pointer' }} onClick={() => openEventEdit(t)}>
+                <div key={t.id} onClick={() => openEventEdit(t)} style={{ cursor: 'pointer' }}>
+                <Card style={{ marginBottom: '8px', padding: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '13px', fontWeight: 700 }}>{t.start} — {t.title}</div>
@@ -260,7 +261,7 @@ export default function EarningsPage() {
                     </button>
                   </div>
                 </Card>
-              )
+                </div>
             })}
           </>
         )}
