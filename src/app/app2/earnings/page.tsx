@@ -168,7 +168,46 @@ export default function EarningsPage() {
           </div>
         </Card>
 
+        {/* Cachet settings per artist */}
+        {artists.length > 0 && (
+          <>
+            <div style={{ marginTop: '8px' }}><SectionLabel>Default cachet per artist (€)</SectionLabel></div>
+            {artists.map(artist => (
+              <Card key={artist.id} style={{ marginBottom: '8px', padding: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: artist.color, flexShrink: 0 }} />
+                  <div style={{ flex: 1, fontWeight: 700, fontSize: '13px' }}>{artist.name}</div>
+                  <input
+                    type="number"
+                    defaultValue={cachets[artist.id] || 0}
+                    onChange={e => updateCachet(artist.id, e.target.value)}
+                    style={{ width: '80px', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '6px 8px', fontFamily: 'inherit', fontSize: '13px', textAlign: 'right' }}
+                  />
+                </div>
+              </Card>
+            ))}
+          </>
+        )}
+
+        {/* Hours per event type */}
+        <div style={{ marginTop: '16px' }}><SectionLabel>Default hours per event type</SectionLabel></div>
+        {Object.keys(EVENT_LABELS).map(type => (
+          <Card key={type} style={{ marginBottom: '8px', padding: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>{EVENT_LABELS[type as keyof typeof EVENT_LABELS]}</div>
+              <input
+                type="number"
+                defaultValue={(hoursPerEventType as any)[type] || 1}
+                onChange={e => updateHoursType(type, e.target.value)}
+                style={{ width: '60px', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '6px 8px', fontFamily: 'inherit', fontSize: '13px', textAlign: 'right' }}
+              />
+              <span style={{ fontSize: '12px', color: '#5A5570' }}>h</span>
+            </div>
+          </Card>
+        ))}
+
         {/* Monthly events breakdown */}
+        <div style={{ marginTop: '16px' }}>
         {monthTours.length === 0 ? (
           <EmptyState icon="💶" title={`No events in ${MONTHS[earnM]}`} sub="Add events in Tours & Events to see your earnings here." />
         ) : (
@@ -201,44 +240,7 @@ export default function EarningsPage() {
             })}
           </>
         )}
-
-        {/* Cachet settings per artist */}
-        {artists.length > 0 && (
-          <>
-            <div style={{ marginTop: '20px' }}><SectionLabel>Default cachet per artist (€)</SectionLabel></div>
-            {artists.map(artist => (
-              <Card key={artist.id} style={{ marginBottom: '8px', padding: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: artist.color, flexShrink: 0 }} />
-                  <div style={{ flex: 1, fontWeight: 700, fontSize: '13px' }}>{artist.name}</div>
-                  <input
-                    type="number"
-                    defaultValue={cachets[artist.id] || 0}
-                    onChange={e => updateCachet(artist.id, e.target.value)}
-                    style={{ width: '80px', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '6px 8px', fontFamily: 'inherit', fontSize: '13px', textAlign: 'right' }}
-                  />
-                </div>
-              </Card>
-            ))}
-          </>
-        )}
-
-        {/* Hours per event type */}
-        <div style={{ marginTop: '20px' }}><SectionLabel>Default hours per event type</SectionLabel></div>
-        {Object.keys(EVENT_LABELS).map(type => (
-          <Card key={type} style={{ marginBottom: '8px', padding: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>{EVENT_LABELS[type as keyof typeof EVENT_LABELS]}</div>
-              <input
-                type="number"
-                defaultValue={(hoursPerEventType as any)[type] || 1}
-                onChange={e => updateHoursType(type, e.target.value)}
-                style={{ width: '60px', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '6px 8px', fontFamily: 'inherit', fontSize: '13px', textAlign: 'right' }}
-              />
-              <span style={{ fontSize: '12px', color: '#5A5570' }}>h</span>
-            </div>
-          </Card>
-        ))}
+        </div>
       </div>
 
       {showPicker && (
