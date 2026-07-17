@@ -28,7 +28,15 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin + '/auth/callback-client' } })
       setLoading(false)
       if (error) showMsg(error.message, true)
-      else showMsg('Check your email to confirm your account!')
+      else {
+        // Send welcome email
+        fetch('/api/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        }).catch(() => {})
+        showMsg('Check your email to confirm your account!')
+      }
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       setLoading(false)
