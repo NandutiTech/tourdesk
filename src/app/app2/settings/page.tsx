@@ -27,7 +27,7 @@ export default function SettingsPage() {
       }).catch(() => {})
 
     // Check if admin
-    if (userEmail === 'hello@tourdesktop.com') {
+    if (userEmail === 'sannie.patron@gmail.com') {
       setIsAdmin(true)
       fetch('/api/admin', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setAdminUsers(d.users || [])).catch(() => {})
