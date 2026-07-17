@@ -63,11 +63,15 @@ export interface Trip {
   outDate?: string
   outTime?: string
   outRef?: string
+  outTicket?: string   // base64 image or PDF URL
+  outTicketName?: string
   retFrom?: string
   retTo?: string
   retDate?: string
   retTime?: string
   retRef?: string
+  retTicket?: string   // base64 image or PDF URL
+  retTicketName?: string
   notes?: string
 }
 
