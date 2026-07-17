@@ -103,7 +103,7 @@ export default function AvailabilityPage() {
         <Card style={{ marginBottom: '16px' }}>
           <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '6px' }}>Upload a planning or list of dates</div>
           <div style={{ fontSize: '12px', color: '#5A5570', marginBottom: '16px', lineHeight: 1.6 }}>
-            Upload a PDF or photo with dates an artist sent you. Claude reads the dates automatically and checks for conflicts with your calendar.
+            Upload a PDF or photo with dates an artist sent you. The app reads the dates automatically and checks for conflicts with your calendar.
           </div>
           <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) { processFile(e.target.files[0]); e.target.value = '' } }} />
           <Button onClick={() => fileRef.current?.click()} disabled={loading} style={{ width: '100%' }}>
