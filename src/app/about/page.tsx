@@ -37,7 +37,7 @@ export default function AboutPage() {
             <img src="/images/lola.jpeg" alt="Lola Warin" style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top', flexShrink: 0, border: '3px solid #C9A84C' }} />
             <div>
               <div style={{ fontWeight: 900, fontSize: '20px', marginBottom: '2px' }}>Lola Warin</div>
-              <div style={{ fontSize: '13px', color: '#C9A84C', fontWeight: 700, marginBottom: '4px' }}>Co-creator · Drummer & Percussionist</div>
+              <div style={{ fontSize: '13px', color: '#C9A84C', fontWeight: 700, marginBottom: '4px' }}>Artist Advisor · Drummer & Percussionist</div>
               <div style={{ fontSize: '12px', color: '#5A5570' }}>Paris, France</div>
             </div>
           </div>
@@ -68,7 +68,7 @@ export default function AboutPage() {
             <img src="/images/sannie.jpg" alt="Sannie Patron" style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top', flexShrink: 0, border: '3px solid #5DC9A0' }} />
             <div>
               <div style={{ fontWeight: 900, fontSize: '20px', marginBottom: '2px' }}>Sannie Patron</div>
-              <div style={{ fontSize: '13px', color: '#5DC9A0', fontWeight: 700, marginBottom: '4px' }}>Creator · Data Engineer & Software Developer</div>
+              <div style={{ fontSize: '13px', color: '#5DC9A0', fontWeight: 700, marginBottom: '4px' }}>Founder & Developer</div>
               <div style={{ fontSize: '12px', color: '#5A5570' }}>Paris, France · Founder of Ñandutí Tech</div>
             </div>
           </div>

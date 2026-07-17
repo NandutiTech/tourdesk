@@ -176,8 +176,8 @@ export default function LandingPage() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', maxWidth: '480px', margin: '0 auto 20px' }}>
           {[
-            { name: 'Lola Warin', role: 'Co-creator · Drummer', img: '/images/lola.jpeg', color: '#C9A84C' },
-            { name: 'Sannie Patron', role: 'Creator · Data Engineer', img: '/images/sannie.jpg', color: '#5DC9A0' },
+            { name: 'Lola Warin', role: 'Artist Advisor · Drummer', img: '/images/lola.jpeg', color: '#C9A84C' },
+            { name: 'Sannie Patron', role: 'Founder & Developer', img: '/images/sannie.jpg', color: '#5DC9A0' },
           ].map((c, i) => (
             <div key={i} style={{ background: '#12121A', border: '1px solid #1F1F2E', borderRadius: '16px', padding: '20px', textAlign: 'center' }}>
               <img src={c.img} alt={c.name} style={{ width: '72px', height: '72px', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top', border: `3px solid ${c.color}`, marginBottom: '12px' }} />
