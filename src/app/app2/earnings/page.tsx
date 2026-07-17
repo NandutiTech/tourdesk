@@ -106,7 +106,29 @@ export default function EarningsPage() {
     else setEarnings(earnY, earnM + 1)
   }
 
-  const saveGoal = async () => {
+  const [editingEvent, setEditingEvent] = useState<typeof monthTours[0] | null>(null)
+  const [editCachetCount, setEditCachetCount] = useState('1')
+  const [editCachetAmount, setEditCachetAmount] = useState('')
+  const [editCachetHours, setEditCachetHours] = useState('')
+
+  const openEventEdit = (t: typeof monthTours[0]) => {
+    const artist = artists.find(a => a.id === t.aId)
+    setEditingEvent(t)
+    setEditCachetCount(String(t.cachetCount || 1))
+    setEditCachetAmount(String(t.customCachet ?? artist?.defaultCachet ?? ''))
+    setEditCachetHours(String(t.customHours ?? artist?.defaultHours ?? 12))
+  }
+
+  const saveEventEdit = async () => {
+    if (!editingEvent) return
+    const count = parseInt(editCachetCount) || 1
+    const amount = parseFloat(editCachetAmount) || null
+    const hours = parseFloat(editCachetHours) || null
+    updateTour({ ...editingEvent, cachetCount: count, customCachet: amount, customHours: hours })
+    await syncToCloud()
+    showToast('Event updated ✓')
+    setEditingEvent(null)
+  }
     const g = parseInt(goalInput)
     if (!isNaN(g) && g > 0) {
       setHoursGoal(g)
@@ -199,27 +221,28 @@ export default function EarningsPage() {
             <SectionLabel>Events this month</SectionLabel>
             {monthTours.map(t => {
               const artist = artists.find(a => a.id === t.aId)
-              const cachet = t.customCachet ?? (artist?.defaultCachet ?? (artist?.id ? (cachets[artist.id] || 0) : 0))
-              const hoursDefault = artist?.defaultHours ?? (hoursPerEventType as any)[t.type] ?? 12
-              const hours = t.customHours ?? (
-                ['residence', 'tournage', 'figuration', 'workday'].includes(t.type)
-                  ? getDatesInRange(t.start, t.end || t.start).length * hoursDefault
-                  : hoursDefault
-              )
+              const count = t.cachetCount || 1
+              const cachetAmount = t.customCachet ?? artist?.defaultCachet ?? (cachets[artist?.id || ''] || 0)
+              const cachetHours = t.customHours ?? artist?.defaultHours ?? 12
+              const totalCachet = cachetAmount * count
+              const totalHours = cachetHours * count
               return (
-                <Card key={t.id} style={{ marginBottom: '8px', padding: '12px' }}>
+                <Card key={t.id} style={{ marginBottom: '8px', padding: '12px', cursor: 'pointer' }} onClick={() => openEventEdit(t)}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '13px', fontWeight: 700 }}>{t.start} — {t.title}</div>
                       {artist && <div style={{ fontSize: '11px', color: artist.color }}>{artist.name}</div>}
-                      <div style={{ fontSize: '11px', color: '#5A5570' }}>{EVENT_LABELS[t.type]}</div>
+                      <div style={{ fontSize: '11px', color: '#5A5570' }}>
+                        {EVENT_LABELS[t.type]}{count > 1 ? ` · ${count} cachets` : ''}
+                      </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 700, color: '#C9A84C' }}>€{cachet}</div>
-                      <div style={{ fontSize: '11px', color: '#5A5570' }}>{hours}h</div>
+                      <div style={{ fontWeight: 700, color: '#C9A84C' }}>€{totalCachet}</div>
+                      <div style={{ fontSize: '11px', color: '#5A5570' }}>{totalHours}h</div>
                     </div>
                     <button
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation()
                         updateTour({ ...t, received: !t.received })
                         await syncToCloud()
                       }}
@@ -255,6 +278,37 @@ export default function EarningsPage() {
           <Button variant="secondary" onClick={() => setShowGoalModal(false)} style={{ flex: 1 }}>Cancel</Button>
           <Button onClick={saveGoal} style={{ flex: 2 }}>Save</Button>
         </div>
+      </Modal>
+
+      {/* Event edit modal */}
+      <Modal open={!!editingEvent} onClose={() => setEditingEvent(null)} title="Edit cachet">
+        {editingEvent && (
+          <>
+            <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>{editingEvent.title}</div>
+            <div style={{ fontSize: '12px', color: '#5A5570', marginBottom: '16px' }}>{editingEvent.start}</div>
+            <Input label="Number of cachets" type="number" value={editCachetCount} onChange={e => setEditCachetCount(e.target.value)} placeholder="1" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <Input label="€ per cachet" type="number" value={editCachetAmount} onChange={e => setEditCachetAmount(e.target.value)} placeholder="200" />
+              <Input label="Hours per cachet" type="number" value={editCachetHours} onChange={e => setEditCachetHours(e.target.value)} placeholder="12" />
+            </div>
+            {editCachetAmount && editCachetHours && (
+              <div style={{ background: '#12121A', borderRadius: '10px', padding: '12px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontWeight: 900, color: '#C9A84C', fontSize: '18px' }}>€{(parseFloat(editCachetAmount) * (parseInt(editCachetCount) || 1)).toFixed(0)}</div>
+                  <div style={{ fontSize: '11px', color: '#5A5570' }}>Total</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontWeight: 900, color: '#5DC9A0', fontSize: '18px' }}>{(parseFloat(editCachetHours) * (parseInt(editCachetCount) || 1)).toFixed(0)}h</div>
+                  <div style={{ fontSize: '11px', color: '#5A5570' }}>Total hours</div>
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button variant="secondary" onClick={() => setEditingEvent(null)} style={{ flex: 1 }}>Cancel</Button>
+              <Button onClick={saveEventEdit} style={{ flex: 2 }}>Save</Button>
+            </div>
+          </>
+        )}
       </Modal>
     </div>
   )

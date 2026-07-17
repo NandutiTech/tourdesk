@@ -22,8 +22,9 @@ export interface Tour {
   type: EventType
   paid: boolean
   received: boolean
-  customCachet?: number | null
-  customHours?: number | null
+  customCachet?: number | null   // € per cachet override
+  customHours?: number | null    // hours per cachet override
+  cachetCount?: number           // number of cachets (default 1)
   notes?: string
   address?: string
   hotel?: string
