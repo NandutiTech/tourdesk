@@ -2,6 +2,15 @@
 import { useState, useRef } from 'react'
 import { useStore, newId } from '@/lib/store'
 import { syncToCloud, deleteFromCloud, callClaude } from '@/lib/sync'
+import Link from 'next/link'
+
+function getDatesInRange(start: string, end: string): string[] {
+  const dates: string[] = []
+  const d = new Date(start + 'T12:00:00')
+  const e = new Date(end + 'T12:00:00')
+  while (d <= e) { dates.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 1) }
+  return dates
+}
 import { Button, Card, Input, Select, Textarea, Modal, EmptyState, Toolbar, showToast, ColorDot, SectionLabel } from '@/components/ui'
 import { Artist, Tour, EventType, EVENT_LABELS, EVENT_COLORS } from '@/lib/types'
 
@@ -344,6 +353,19 @@ export default function ToursPage() {
     showToast('Event deleted')
   }
 
+  // Detect conflicts
+  const conflictDates = (() => {
+    const dateMap: Record<string, string[]> = {}
+    for (const t of tours) {
+      const dates = getDatesInRange(t.start, t.end || t.start)
+      for (const d of dates) {
+        if (!dateMap[d]) dateMap[d] = []
+        dateMap[d].push(t.id)
+      }
+    }
+    return Object.entries(dateMap).filter(([, ids]) => ids.length > 1)
+  })()
+
   return (
     <div style={{ padding: '0 0 100px' }}>
       <Toolbar
@@ -355,6 +377,21 @@ export default function ToursPage() {
           </>
         }
       />
+
+      {/* Conflict banner */}
+      {conflictDates.length > 0 && (
+        <Link href="/app2/alerts" style={{ textDecoration: 'none', display: 'block', margin: '0 16px 12px' }}>
+          <div style={{ background: 'rgba(232,69,60,.1)', border: '1px solid rgba(232,69,60,.3)', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '13px', color: '#E8453C', marginBottom: '2px' }}>
+                ⚠️ {conflictDates.length} conflict{conflictDates.length !== 1 ? 's' : ''} detected
+              </div>
+              <div style={{ fontSize: '12px', color: '#E8453C', opacity: 0.8 }}>Tap to see details in Alerts →</div>
+            </div>
+            <div style={{ fontSize: '20px', flexShrink: 0 }}>🔔</div>
+          </div>
+        </Link>
+      )}
 
       {/* Import banner */}
       <div style={{ margin: '0 16px 16px', background: '#17171F', border: '1px solid #1F1F2E', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
