@@ -19,7 +19,7 @@ const NAV = [
     { href: '/app2/earnings', label: 'Earnings & Hours', sub: 'Cachets & hour counter', icon: '💶' },
     { href: '/app2/declaration', label: 'Déclaration mensuelle', sub: 'Ready for France Travail', icon: '🇫🇷' },
     { href: '/app2/simulator', label: 'Indemnisation simulator', sub: 'Estimate your payment', icon: '🧮' },
-    { href: '/app2/employers', label: 'Employer history', sub: 'Stats per employer', icon: '📊' },
+    { href: '/app2/employers', label: 'Dashboard', sub: 'Your year at a glance', icon: '📊' },
   ]},
   { section: '✈ On Tour', items: [
     { href: '/app2/travel', label: 'Travel', sub: 'Tickets & trips', icon: '✈' },

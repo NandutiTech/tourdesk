@@ -1,7 +1,8 @@
 'use client'
+import { useState } from 'react'
 import { useStore } from '@/lib/store'
 import { Card, EmptyState, Toolbar } from '@/components/ui'
-import { EVENT_LABELS } from '@/lib/types'
+import { EVENT_LABELS, MONTHS } from '@/lib/types'
 
 function getDatesInRange(start: string, end: string): string[] {
   const dates: string[] = []
@@ -11,97 +12,154 @@ function getDatesInRange(start: string, end: string): string[] {
   return dates
 }
 
-export default function EmployersPage() {
-  const { tours, artists, cachets, hoursPerEventType } = useStore()
+export default function DashboardPage() {
+  const { tours, artists, cachets, hoursPerEventType, hoursGoal } = useStore()
+  const now = new Date()
+  const yearStr = String(now.getFullYear())
+  const today = now.toISOString().slice(0, 10)
 
-  if (artists.length === 0) {
-    return (
-      <div style={{ padding: '0 0 100px' }}>
-        <Toolbar title="Employer History" />
-        <div style={{ padding: '0 16px' }}>
-          <EmptyState icon="📊" title="No artists yet" sub="Add employers / artists to see stats per employer." />
-        </div>
-      </div>
+  // Annual stats
+  let annualHours = 0
+  let annualEarnings = 0
+  const monthlyHours: number[] = Array(12).fill(0)
+  const monthlyEarnings: number[] = Array(12).fill(0)
+
+  for (const t of tours.filter(t => t.start.startsWith(yearStr))) {
+    const artist = artists.find(a => a.id === t.aId)
+    const cachet = t.customCachet ?? (artist?.id ? (cachets[artist.id] || 0) : 0)
+    const hoursDefault = (hoursPerEventType as any)[t.type] || 1
+    const hours = t.customHours ?? (
+      ['residence', 'tournage', 'figuration', 'workday'].includes(t.type)
+        ? getDatesInRange(t.start, t.end || t.start).length * hoursDefault
+        : hoursDefault
     )
+    const month = parseInt(t.start.slice(5, 7)) - 1
+    annualHours += hours
+    annualEarnings += cachet
+    monthlyHours[month] += hours
+    monthlyEarnings[month] += cachet
   }
 
-  const stats = artists.map(artist => {
-    const artistTours = tours.filter(t => t.aId === artist.id)
-    let totalCachet = 0
-    let totalHours = 0
+  const progressPct = Math.min((annualHours / hoursGoal) * 100, 100)
+  const remaining = Math.max(hoursGoal - annualHours, 0)
+  const upcomingTours = tours.filter(t => t.start >= today).length
+  const maxMonthHours = Math.max(...monthlyHours, 1)
+
+  // Per artist stats
+  const artistStats = artists.map(artist => {
+    const artistTours = tours.filter(t => t.aId === artist.id && t.start.startsWith(yearStr))
+    let hours = 0, earnings = 0
     for (const t of artistTours) {
       const cachet = t.customCachet ?? (cachets[artist.id] || 0)
-      const hoursDefault = (hoursPerEventType as any)[t.type] || 1
-      const hours = t.customHours ?? (
-        ['residence', 'tournage', 'figuration', 'workday'].includes(t.type)
-          ? getDatesInRange(t.start, t.end || t.start).length * hoursDefault
-          : hoursDefault
-      )
-      totalCachet += cachet
-      totalHours += hours
+      const hd = (hoursPerEventType as any)[t.type] || 1
+      const h = t.customHours ?? (['residence','tournage','figuration','workday'].includes(t.type) ? getDatesInRange(t.start, t.end||t.start).length * hd : hd)
+      hours += h; earnings += cachet
     }
-
-    // Event type breakdown
-    const breakdown: Record<string, number> = {}
-    for (const t of artistTours) {
-      breakdown[t.type] = (breakdown[t.type] || 0) + 1
-    }
-
-    const lastDate = artistTours.map(t => t.start).sort().reverse()[0]
-
-    return { artist, totalCachet, totalHours, count: artistTours.length, breakdown, lastDate }
-  }).sort((a, b) => b.totalHours - a.totalHours)
-
-  const totalAllCachet = stats.reduce((s, r) => s + r.totalCachet, 0)
-  const totalAllHours = stats.reduce((s, r) => s + r.totalHours, 0)
+    return { artist, hours, earnings, count: artistTours.length }
+  }).filter(s => s.count > 0).sort((a, b) => b.hours - a.hours)
 
   return (
     <div style={{ padding: '0 0 100px' }}>
-      <Toolbar title="Employer History" />
+      <Toolbar title="Dashboard" />
       <div style={{ padding: '0 16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-          <Card style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: '#C9A84C' }}>€{totalAllCachet.toFixed(0)}</div>
-            <div style={{ fontSize: '11px', color: '#5A5570' }}>Total earnings</div>
-          </Card>
-          <Card style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: '#5DC9A0' }}>{totalAllHours}h</div>
-            <div style={{ fontSize: '11px', color: '#5A5570' }}>Total hours</div>
-          </Card>
-        </div>
 
-        {stats.map(({ artist, totalCachet, totalHours, count, breakdown, lastDate }) => (
-          <Card key={artist.id} style={{ marginBottom: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px' }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: artist.color, flexShrink: 0, marginTop: '4px' }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 900, fontSize: '15px' }}>{artist.name}</div>
-                {lastDate && <div style={{ fontSize: '11px', color: '#5A5570' }}>Last: {lastDate}</div>}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontWeight: 800, color: '#C9A84C' }}>€{totalCachet.toFixed(0)}</div>
-                <div style={{ fontSize: '12px', color: '#5DC9A0' }}>{totalHours}h</div>
-              </div>
+        {tours.length === 0 ? (
+          <EmptyState icon="📊" title="No data yet" sub="Add events in Tours & Events to see your stats here." />
+        ) : (
+          <>
+            {/* Year header */}
+            <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase', color: '#5A5570', marginBottom: '12px' }}>{yearStr} Overview</div>
+
+            {/* Top stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              <Card style={{ textAlign: 'center', padding: '16px 12px' }}>
+                <div style={{ fontSize: '28px', fontWeight: 900, color: '#C9A84C', letterSpacing: '-0.03em' }}>€{annualEarnings.toLocaleString()}</div>
+                <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '4px' }}>Total earnings</div>
+              </Card>
+              <Card style={{ textAlign: 'center', padding: '16px 12px' }}>
+                <div style={{ fontSize: '28px', fontWeight: 900, color: '#5DC9A0', letterSpacing: '-0.03em' }}>{annualHours}h</div>
+                <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '4px' }}>Hours worked</div>
+              </Card>
             </div>
 
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {Object.entries(breakdown).map(([type, n]) => (
-                <div key={type} style={{ background: '#12121A', borderRadius: '6px', padding: '3px 8px', fontSize: '11px', color: '#5A5570' }}>
-                  {n}× {EVENT_LABELS[type as keyof typeof EVENT_LABELS] || type}
-                </div>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+              <Card style={{ textAlign: 'center', padding: '14px 12px' }}>
+                <div style={{ fontSize: '22px', fontWeight: 900, color: '#7B8CDE' }}>{tours.filter(t => t.start.startsWith(yearStr)).length}</div>
+                <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>Events this year</div>
+              </Card>
+              <Card style={{ textAlign: 'center', padding: '14px 12px' }}>
+                <div style={{ fontSize: '22px', fontWeight: 900, color: '#F39C12' }}>{upcomingTours}</div>
+                <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>Upcoming</div>
+              </Card>
             </div>
 
-            {totalCachet > 0 && (
-              <div style={{ marginTop: '10px' }}>
-                <div style={{ background: '#12121A', borderRadius: '4px', height: '4px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: artist.color, width: `${Math.min((totalCachet / totalAllCachet) * 100, 100)}%` }} />
-                </div>
-                <div style={{ fontSize: '10px', color: '#5A5570', marginTop: '4px' }}>{((totalCachet / totalAllCachet) * 100).toFixed(0)}% of total earnings</div>
+            {/* Hours progress */}
+            <Card style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ fontWeight: 800, fontSize: '13px' }}>Hours goal {yearStr}</div>
+                <div style={{ fontSize: '12px', color: '#5A5570' }}>{annualHours}h / {hoursGoal}h</div>
               </div>
+              <div style={{ background: '#12121A', borderRadius: '8px', height: '10px', overflow: 'hidden', marginBottom: '8px' }}>
+                <div style={{ height: '100%', borderRadius: '8px', background: progressPct >= 100 ? '#5DC9A0' : 'linear-gradient(90deg, #C9A84C, #F39C12)', width: `${progressPct}%`, transition: 'width .5s' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                <span style={{ color: progressPct >= 100 ? '#5DC9A0' : '#C9A84C', fontWeight: 700 }}>{progressPct.toFixed(0)}%</span>
+                <span style={{ color: '#5A5570' }}>{progressPct >= 100 ? '🎉 Goal reached!' : `${remaining}h to go`}</span>
+              </div>
+            </Card>
+
+            {/* Monthly activity bar chart */}
+            <Card style={{ marginBottom: '16px' }}>
+              <div style={{ fontWeight: 800, fontSize: '13px', marginBottom: '14px' }}>Monthly activity</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '80px' }}>
+                {MONTHS.map((m, i) => {
+                  const h = monthlyHours[i]
+                  const pct = (h / maxMonthHours) * 100
+                  const isCurrentMonth = i === now.getMonth()
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ width: '100%', display: 'flex', alignItems: 'flex-end', height: '60px' }}>
+                        <div style={{
+                          width: '100%', borderRadius: '4px 4px 0 0',
+                          height: h > 0 ? `${Math.max(pct, 8)}%` : '3px',
+                          background: isCurrentMonth ? '#C9A84C' : h > 0 ? '#7B8CDE' : '#1F1F2E',
+                          transition: 'height .3s'
+                        }} />
+                      </div>
+                      <div style={{ fontSize: '8px', color: isCurrentMonth ? '#C9A84C' : '#5A5570', fontWeight: isCurrentMonth ? 800 : 400 }}>
+                        {m.slice(0, 1)}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
+
+            {/* Per artist breakdown */}
+            {artistStats.length > 0 && (
+              <>
+                <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase', color: '#5A5570', marginBottom: '10px' }}>By artist</div>
+                {artistStats.map(({ artist, hours, earnings, count }) => (
+                  <Card key={artist.id} style={{ marginBottom: '8px', padding: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: artist.color, flexShrink: 0 }} />
+                      <div style={{ flex: 1, fontWeight: 700, fontSize: '14px' }}>{artist.name}</div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 800, color: '#C9A84C', fontSize: '14px' }}>€{earnings.toLocaleString()}</div>
+                        <div style={{ fontSize: '11px', color: '#5DC9A0' }}>{hours}h · {count} event{count !== 1 ? 's' : ''}</div>
+                      </div>
+                    </div>
+                    {annualHours > 0 && (
+                      <div style={{ background: '#12121A', borderRadius: '4px', height: '4px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', background: artist.color, width: `${Math.min((hours / annualHours) * 100, 100)}%` }} />
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </>
             )}
-          </Card>
-        ))}
+          </>
+        )}
       </div>
     </div>
   )
