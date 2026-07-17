@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
       },
       body: JSON.stringify({
-        from: 'TourDesk <onboarding@resend.dev>',
+        from: 'TourDesk <hello@tourdesktop.com>',
         to: [email],
         subject: `You're invited to TourDesk — ${planLabel} plan 🎉`,
         html
