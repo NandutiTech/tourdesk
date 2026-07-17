@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
 import { syncToCloud } from '@/lib/sync'
-import { Button, Card, Input, Modal, EmptyState, Toolbar, showToast, SectionLabel } from '@/components/ui'
 import { MONTHS, EVENT_LABELS } from '@/lib/types'
 
 function MonthPicker({ year, month, onChange, onClose }: {
@@ -48,7 +47,7 @@ export default function EarningsPage() {
   const {
     tours, artists, cachets, artistHours,
     hoursGoal, hoursPerEventType,
-    earnY, earnM, setEarnings, setHoursGoal, setCachet, setHoursPerEventType,
+    earnY, earnM, setEarnings, setHoursGoal, setCachet, setHoursPerEventType, updateTour,
   } = useStore()
 
   const [showPicker, setShowPicker] = useState(false)
@@ -67,8 +66,8 @@ export default function EarningsPage() {
 
   for (const t of monthTours) {
     const artist = artists.find(a => a.id === t.aId)
-    const cachet = t.customCachet ?? (artist?.id ? (cachets[artist.id] || 0) : 0)
-    const hoursDefault = (hoursPerEventType as any)[t.type] || 1
+    const cachet = t.customCachet ?? (artist?.defaultCachet ?? (artist?.id ? (cachets[artist.id] || 0) : 0))
+    const hoursDefault = artist?.defaultHours ?? (hoursPerEventType as any)[t.type] ?? 12
     const hours = t.customHours ?? (
       ['residence', 'tournage', 'figuration', 'workday'].includes(t.type)
         ? getDatesInRange(t.start, t.end || t.start).length * hoursDefault
@@ -83,7 +82,7 @@ export default function EarningsPage() {
   const yearTours = tours.filter(t => t.start.startsWith(yearStr))
   let annualHours = 0
   for (const t of yearTours) {
-    const hoursDefault = (hoursPerEventType as any)[t.type] || 1
+    const hoursDefault = artist?.defaultHours ?? (hoursPerEventType as any)[t.type] ?? 12
     const hours = t.customHours ?? (
       ['residence', 'tournage', 'figuration', 'workday'].includes(t.type)
         ? getDatesInRange(t.start, t.end || t.start).length * hoursDefault
@@ -215,8 +214,8 @@ export default function EarningsPage() {
             <SectionLabel>Events this month</SectionLabel>
             {monthTours.map(t => {
               const artist = artists.find(a => a.id === t.aId)
-              const cachet = t.customCachet ?? (artist?.id ? (cachets[artist.id] || 0) : 0)
-              const hoursDefault = (hoursPerEventType as any)[t.type] || 1
+              const cachet = t.customCachet ?? (artist?.defaultCachet ?? (artist?.id ? (cachets[artist.id] || 0) : 0))
+              const hoursDefault = artist?.defaultHours ?? (hoursPerEventType as any)[t.type] ?? 12
               const hours = t.customHours ?? (
                 ['residence', 'tournage', 'figuration', 'workday'].includes(t.type)
                   ? getDatesInRange(t.start, t.end || t.start).length * hoursDefault
@@ -234,6 +233,21 @@ export default function EarningsPage() {
                       <div style={{ fontWeight: 700, color: '#C9A84C' }}>€{cachet}</div>
                       <div style={{ fontSize: '11px', color: '#5A5570' }}>{hours}h</div>
                     </div>
+                    <button
+                      onClick={async () => {
+                        updateTour({ ...t, received: !t.received })
+                        await syncToCloud()
+                      }}
+                      style={{
+                        background: t.received ? 'rgba(93,201,160,.15)' : 'rgba(201,168,76,.1)',
+                        border: `1px solid ${t.received ? 'rgba(93,201,160,.3)' : 'rgba(201,168,76,.2)'}`,
+                        color: t.received ? '#5DC9A0' : '#C9A84C',
+                        borderRadius: '6px', padding: '3px 8px', cursor: 'pointer',
+                        fontFamily: 'inherit', fontSize: '11px', fontWeight: 700, flexShrink: 0
+                      }}
+                    >
+                      {t.received ? '✓ Paid' : '⏳ Pending'}
+                    </button>
                   </div>
                 </Card>
               )

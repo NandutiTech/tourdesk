@@ -8,6 +8,8 @@ export interface Artist {
   siret?: string
   address?: string
   nature?: string
+  defaultCachet?: number   // € per cachet
+  defaultHours?: number    // hours per cachet
 }
 
 export interface Tour {

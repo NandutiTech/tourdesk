@@ -17,6 +17,8 @@ function ArtistModal({ open, onClose, editing, plan, artistCount }: {
   const [siret, setSiret] = useState(editing?.siret || '')
   const [address, setAddress] = useState(editing?.address || '')
   const [nature, setNature] = useState(editing?.nature || '')
+  const [defaultCachet, setDefaultCachet] = useState(editing?.defaultCachet?.toString() || '')
+  const [defaultHours, setDefaultHours] = useState(editing?.defaultHours?.toString() || '12')
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
@@ -27,7 +29,12 @@ function ArtistModal({ open, onClose, editing, plan, artistCount }: {
       return
     }
     setSaving(true)
-    const artist: Artist = { id: editing?.id || newId(), name: name.trim(), genre, color, siret, address, nature }
+    const artist: Artist = {
+      id: editing?.id || newId(),
+      name: name.trim(), genre, color, siret, address, nature,
+      defaultCachet: defaultCachet ? parseFloat(defaultCachet) : undefined,
+      defaultHours: defaultHours ? parseFloat(defaultHours) : 12,
+    }
     if (editing) updateArtist(artist)
     else addArtist(artist)
     await syncToCloud()
@@ -57,6 +64,15 @@ function ArtistModal({ open, onClose, editing, plan, artistCount }: {
       </Select>
       <Input label="SIRET" value={siret} onChange={e => setSiret(e.target.value)} placeholder="e.g. 123 456 789 00012" />
       <Textarea label="Address" value={address} onChange={e => setAddress(e.target.value)} style={{ minHeight: '60px' }} />
+
+      <div style={{ fontSize: '11px', fontWeight: 800, color: '#C9A84C', textTransform: 'uppercase', letterSpacing: '.1em', margin: '12px 0 8px' }}>💶 Cachet defaults</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <Input label="€ per cachet" type="number" value={defaultCachet} onChange={e => setDefaultCachet(e.target.value)} placeholder="e.g. 200" />
+        <Input label="Hours per cachet" type="number" value={defaultHours} onChange={e => setDefaultHours(e.target.value)} placeholder="12" />
+      </div>
+      <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '-4px', marginBottom: '8px' }}>
+        France Travail standard: 1 cachet = 12h. Adjust if needed.
+      </div>
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
         <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
@@ -133,6 +149,16 @@ export default function ArtistsPage() {
                     {artist.nature && (
                       <div style={{ fontSize: '11px', background: '#12121A', border: '1px solid #1F1F2E', borderRadius: '6px', padding: '2px 8px', color: '#5A5570' }}>
                         {artist.nature === 'cachet' ? 'Intermittent' : artist.nature}
+                      </div>
+                    )}
+                    {artist.defaultCachet && (
+                      <div style={{ fontSize: '11px', background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', borderRadius: '6px', padding: '2px 8px', color: '#C9A84C', fontWeight: 700 }}>
+                        €{artist.defaultCachet}/cachet
+                      </div>
+                    )}
+                    {artist.defaultHours && (
+                      <div style={{ fontSize: '11px', background: 'rgba(93,201,160,.1)', border: '1px solid rgba(93,201,160,.2)', borderRadius: '6px', padding: '2px 8px', color: '#5DC9A0', fontWeight: 700 }}>
+                        {artist.defaultHours}h/cachet
                       </div>
                     )}
                     {artist.siret && (
