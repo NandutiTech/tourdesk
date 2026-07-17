@@ -119,7 +119,7 @@ function DayModal({ date, onClose }: { date: string, onClose: () => void }) {
 }
 
 export default function CalendarPage() {
-  const { tours, meetings, calY, calM, setCalendar } = useStore()
+  const { tours, meetings, artists, calY, calM, setCalendar } = useStore()
   const [showPicker, setShowPicker] = useState(false)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
@@ -134,6 +134,8 @@ export default function CalendarPage() {
   }
 
   const [colorMode, setColorMode] = useState<'event' | 'artist'>('artist')
+
+  const prevMonth = () => {
     if (calM === 0) setCalendar(calY - 1, 11)
     else setCalendar(calY, calM - 1)
   }
