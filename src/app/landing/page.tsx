@@ -30,7 +30,7 @@ const FEATURES = [
   { icon: '📅', title: 'Smart Calendar', desc: 'Add employers with colors. Conflicts detected automatically and shown instantly.' },
   { icon: '⚡', title: 'Check Availability', desc: 'Upload a PDF or photo with proposed dates — see which are free and which conflict.' },
   { icon: '📤', title: 'Share My Calendar', desc: 'Send your availability by WhatsApp or Gmail. Mask artist names if you want.' },
-  { icon: '💶', title: '507h tracker — your intermittent status', desc: 'Every cachet = 12 hours automatically counted. Track your progress toward the 507h threshold in real time. Get alerted before you lose your status.' },
+  { icon: '💶', title: 'Earnings & Hours tracker', desc: 'Every cachet counted automatically. Set your own hours goal — 507h for intermittent status or any target you choose. Track earnings per employer in real time.' },
   { icon: '🇫🇷', title: 'Déclaration mensuelle', desc: 'Your contracts formatted exactly as France Travail requires — copy and paste.' },
   { icon: '✈', title: 'Travel & Expenses', desc: 'Save tickets alongside your gigs. Track expenses and share reports with productions.' },
   { icon: '🎫', title: 'Guest List', desc: 'Manage invitations per show. Send to contacts by WhatsApp, SMS or Gmail.' },
@@ -95,22 +95,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 507h Feature highlight */}
+      {/* Hours tracking feature highlight */}
       <section style={{ padding: '0 20px 48px' }}>
         <div style={{ background: 'linear-gradient(135deg, rgba(201,168,76,.1) 0%, rgba(93,201,160,.05) 100%)', border: '1px solid rgba(201,168,76,.2)', borderRadius: '20px', padding: '28px 24px', maxWidth: '600px', margin: '0 auto' }}>
           <div style={{ display: 'inline-block', background: 'rgba(201,168,76,.15)', borderRadius: '20px', padding: '4px 14px', fontSize: '11px', fontWeight: 800, color: '#C9A84C', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: '16px' }}>
             🏆 Our champion feature
           </div>
           <h2 style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '-0.03em', margin: '0 0 12px', lineHeight: 1.3 }}>
-            Never lose your<br /><span style={{ color: '#C9A84C' }}>intermittent status</span> again
+            Track your hours &<br /><span style={{ color: '#C9A84C' }}>earnings automatically</span>
           </h2>
           <p style={{ fontSize: '14px', color: '#5A5570', lineHeight: 1.7, margin: '0 0 20px' }}>
-            In France, you need <strong style={{ color: '#E8E0F0' }}>507 hours in 12 months</strong> to maintain your intermittent du spectacle status. TourDesk tracks this automatically.
+            Set your own hours goal — whether it's <strong style={{ color: '#E8E0F0' }}>507h for intermittent du spectacle status</strong>, or any target you choose. TourDesk counts every cachet and every hour across all your employers.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
             {[
-              { n: '1', label: 'cachet = 12h', desc: 'France Travail standard, automatically applied' },
-              { n: '507', label: 'hours goal', desc: 'Track your progress in real time' },
+              { n: '1', label: 'cachet = 12h', desc: 'France Travail standard, adjustable anytime' },
+              { n: 'Your', label: 'hours goal', desc: 'Set 507h, 300h, or any target you want' },
               { n: '∞', label: 'employers', desc: 'All your cachets from all employers in one place' },
               { n: '0', label: 'math needed', desc: 'Everything calculated automatically' },
             ].map((item, i) => (
@@ -129,7 +129,7 @@ export default function LandingPage() {
             <div style={{ background: '#0A0A0F', borderRadius: '6px', height: '8px', overflow: 'hidden' }}>
               <div style={{ height: '100%', borderRadius: '6px', background: 'linear-gradient(90deg, #C9A84C, #5DC9A0)', width: '63%' }} />
             </div>
-            <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '6px' }}>183h remaining — 15 more cachets needed</div>
+            <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '6px' }}>183h remaining — keep going! 🎯</div>
           </div>
         </div>
       </section>
