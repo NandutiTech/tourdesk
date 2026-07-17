@@ -217,6 +217,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     padding: '8px 10px', borderRadius: '8px', cursor: 'pointer',
                     fontFamily: 'inherit', fontSize: '13px', fontWeight: 600, textAlign: 'left'
                   }}>❓ How it works</button>
+                  <Link href="/about" onClick={() => setAvatarMenu(false)} style={{
+                    display: 'block', padding: '8px 10px', borderRadius: '8px', fontSize: '13px',
+                    fontWeight: 600, color: '#E8E0F0', textDecoration: 'none'
+                  }}>🎭 About us</Link>
                   <button onClick={handleSignOut} style={{
                     width: '100%', background: 'none', border: 'none', color: '#E8453C',
                     padding: '8px 10px', borderRadius: '8px', cursor: 'pointer',
