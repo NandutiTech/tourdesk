@@ -74,7 +74,7 @@ export default function AboutPage() {
           </div>
 
           <p style={{ fontSize: '14px', color: '#5A5570', lineHeight: 1.8, marginBottom: '16px' }}>
-            Computer engineer and data engineer with 11 years of experience, I've always been driven by one thing: building tools that actually solve real problems.
+            Computer engineer and data engineer with +10 years of experience, I've always been driven by one thing: building tools that actually solve real problems.
           </p>
 
           <p style={{ fontSize: '14px', color: '#5A5570', lineHeight: 1.8, marginBottom: '16px' }}>
