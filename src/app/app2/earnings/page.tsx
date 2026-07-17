@@ -262,6 +262,7 @@ export default function EarningsPage() {
                   </div>
                 </Card>
                 </div>
+              )
             })}
           </>
         )}
