@@ -163,10 +163,8 @@ export default function CalendarPage() {
       </div>
 
       {/* Color mode toggle */}
-      <div style={{ display: 'flex', background: '#12121A', borderRadius: '10px', margin: '0 16px 12px', padding: '3px' }}>
-        <button onClick={() => setColorMode('artist')} style={{ flex: 1, padding: '7px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, background: colorMode === 'artist' ? '#C9A84C' : 'transparent', color: colorMode === 'artist' ? '#0A0A0F' : '#5A5570' }}>🎤 By artist</button>
-        <button onClick={() => setColorMode('event')} style={{ flex: 1, padding: '7px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, background: colorMode === 'event' ? '#C9A84C' : 'transparent', color: colorMode === 'event' ? '#0A0A0F' : '#5A5570' }}>🎭 By event type</button>
-      </div>
+
+
 
       {/* Day labels */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 16px', marginBottom: '4px' }}>
@@ -205,8 +203,14 @@ export default function CalendarPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                 {dayTours.slice(0, 3).map(t => {
                   const a = artists.find((ar: any) => ar.id === t.aId)
-                  const color = colorMode === 'artist' && a ? a.color : EVENT_COLORS[t.type]
-                  return <div key={t.id} style={{ height: '4px', borderRadius: '2px', background: color }} />
+                  const artistColor = a ? a.color : '#5A5570'
+                  const eventColor = EVENT_COLORS[t.type]
+                  return (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: artistColor }} />
+                      <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: eventColor, flexShrink: 0 }} />
+                    </div>
+                  )
                 })}
                 {dayMeetings.slice(0, 1).map(m => (
                   <div key={m.id} style={{ height: '4px', borderRadius: '2px', background: '#4C9AC9' }} />
@@ -221,22 +225,29 @@ export default function CalendarPage() {
       </div>
 
       {/* Legend */}
-      <div style={{ padding: '0 16px 16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        {colorMode === 'artist' ? (
-          artists.map((a: any) => (
-            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#5A5570' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: a.color }} />
-              {a.name}
+      <div style={{ padding: '0 16px 16px' }}>
+        {artists.length > 0 && (
+          <>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px' }}>Artists</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+              {artists.map((a: any) => (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#5A5570' }}>
+                  <div style={{ width: '12px', height: '4px', borderRadius: '2px', background: a.color }} />
+                  {a.name}
+                </div>
+              ))}
             </div>
-          ))
-        ) : (
-          Object.entries(EVENT_COLORS).map(([type, color]) => (
+          </>
+        )}
+        <div style={{ fontSize: '10px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px' }}>Event type</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {Object.entries(EVENT_COLORS).map(([type, color]) => (
             <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#5A5570' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: color }} />
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color }} />
               {EVENT_LABELS[type as keyof typeof EVENT_LABELS]}
             </div>
-          ))
-        )}
+          ))}
+        </div>
       </div>
 
       {showPicker && (
