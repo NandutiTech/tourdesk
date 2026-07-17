@@ -4,6 +4,7 @@ import { useStore } from '@/lib/store'
 import { loadFromCloud } from '@/lib/sync'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { InstallPrompt } from '@/components/InstallPrompt'
 
 const NAV = [
   { section: '📅 Schedule', items: [
@@ -150,6 +151,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <>
+      <InstallPrompt />
     <div style={{ minHeight: '100vh', background: '#0A0A0F', color: '#E8E0F0', fontFamily: '-apple-system, Inter, system-ui, sans-serif' }}>
       {/* Sync loading bar */}
       {syncing && (
@@ -289,5 +292,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         a { color: inherit; }
       `}</style>
     </div>
+    </>
   )
 }
