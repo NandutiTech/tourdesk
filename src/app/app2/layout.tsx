@@ -27,9 +27,6 @@ const NAV = [
     { href: '/app2/guests', label: 'Guest List', sub: 'Manage invitations per show', icon: '🎫' },
     { href: '/app2/rider', label: 'Technical Rider', sub: 'Create & send to productions', icon: '🎛' },
   ]},
-  { section: '📄 Documents', items: [
-    { href: '/app2/feuille', label: 'Feuille de Cachet', sub: 'Generate payment document', icon: '📄' },
-  ]},
   { section: '🤝 Network', items: [
     { href: '/app2/contacts', label: 'Industry Contacts', sub: 'Casting directors & managers', icon: '🤝' },
     { href: '/app2/replacements', label: 'Replacements', sub: 'Your go-to performers & crew', icon: '🔄' },
