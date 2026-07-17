@@ -25,16 +25,17 @@ const NAV = [
     { href: '/app2/travel', label: 'Travel', sub: 'Tickets & trips', icon: '✈' },
     { href: '/app2/expenses', label: 'Expenses', sub: 'Track your tour expenses', icon: '🧾' },
     { href: '/app2/guests', label: 'Guest List', sub: 'Manage invitations per show', icon: '🎫' },
-    { href: '/app2/replacements', label: 'Replacements', sub: 'Your go-to performers & crew', icon: '🔄' },
+    { href: '/app2/rider', label: 'Technical Rider', sub: 'Create & send to productions', icon: '🎛' },
   ]},
   { section: '📄 Documents', items: [
-    { href: '/app2/rider', label: 'Technical Rider', sub: 'Create & send to productions', icon: '🎛' },
     { href: '/app2/feuille', label: 'Feuille de Cachet', sub: 'Generate payment document', icon: '📄' },
-    { href: '/app2/mypage', label: 'My Availability Page', sub: 'Share your free dates', icon: '🗓' },
   ]},
   { section: '🤝 Network', items: [
     { href: '/app2/contacts', label: 'Industry Contacts', sub: 'Casting directors & managers', icon: '🤝' },
-    { href: '/app2/manager', label: 'Manager — Tour Sheet', sub: 'Share tour info with your team', icon: '🎭' },
+    { href: '/app2/replacements', label: 'Replacements', sub: 'Your go-to performers & crew', icon: '🔄' },
+  ]},
+  { section: '🎭 Manager', items: [
+    { href: '/app2/manager', label: 'Manager Tour Sheet', sub: 'Share tour info with your team', icon: '🎭' },
   ]},
 ]
 
