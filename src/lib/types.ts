@@ -157,13 +157,13 @@ export interface AppState {
 }
 
 export const DEFAULT_HOURS: HoursPerEventType = {
-  show: 1,
-  rehearsal: 1,
-  residence: 8,
-  tournage: 8,
-  dj: 1,
-  figuration: 8,
-  workday: 7
+  show: 12,       // 1 cachet = 12h (France Travail standard)
+  rehearsal: 12,  // 1 cachet répétition = 12h
+  residence: 8,   // per day
+  tournage: 12,   // 1 cachet tournage = 12h
+  dj: 12,         // 1 cachet DJ = 12h
+  figuration: 8,  // per day
+  workday: 7      // journée de travail = 7h
 }
 
 export const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
