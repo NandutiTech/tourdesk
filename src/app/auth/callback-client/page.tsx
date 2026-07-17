@@ -16,6 +16,13 @@ export default function CallbackPage() {
         localStorage.setItem('td_token', accessToken)
         const refreshToken = params.get('refresh_token')
         if (refreshToken) localStorage.setItem('td_refresh_token', refreshToken)
+        // Also set httpOnly cookie
+        const emailVal = localStorage.getItem('td_email') || ''
+        fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: accessToken, email: emailVal, refreshToken: refreshToken || '' })
+        }).catch(() => {})
       } catch(e) {}
       
       // Also set session in Supabase client

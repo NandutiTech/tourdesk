@@ -2,6 +2,22 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 
+
+async function setAuthCookie(token: string, email: string, refreshToken?: string) {
+  // Set httpOnly cookie via server
+  await fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, email, refreshToken })
+  })
+  // Keep localStorage as fallback for compatibility
+  try {
+    localStorage.setItem('td_token', token)
+    localStorage.setItem('td_email', email)
+    if (refreshToken) localStorage.setItem('td_refresh_token', refreshToken)
+  } catch {}
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -42,9 +58,7 @@ export default function LoginPage() {
       setLoading(false)
       if (error) { showMsg(error.message, true); return }
       if (data.session) {
-        localStorage.setItem('td_token', data.session.access_token)
-        localStorage.setItem('td_refresh_token', data.session.refresh_token || '')
-        localStorage.setItem('td_email', email)
+        await setAuthCookie(data.session.access_token, email, data.session.refresh_token)
         window.location.replace('/app2/tours')
       }
     }

@@ -121,8 +121,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = () => {
     if (!confirm('Sign out?')) return
+    // Clear httpOnly cookie via server
+    fetch('/api/auth', { method: 'DELETE' }).catch(() => {})
     try {
-      // Clear all auth keys
       const keys: string[] = []
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i)

@@ -10,9 +10,16 @@ const admin = createClient(supabaseUrl, supabaseServiceKey, {
 })
 
 async function getUser(request: NextRequest) {
+  // Try Authorization header first, then httpOnly cookie
   const auth = request.headers.get('Authorization')
-  if (!auth?.startsWith('Bearer ')) return null
-  const token = auth.slice(7)
+  let token = auth?.startsWith('Bearer ') ? auth.slice(7) : null
+  
+  // Fallback to httpOnly cookie
+  if (!token) {
+    token = request.cookies.get('td_token')?.value || null
+  }
+  
+  if (!token) return null
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { autoRefreshToken: false, persistSession: false }
