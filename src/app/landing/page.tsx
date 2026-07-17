@@ -168,6 +168,29 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Creators */}
+      <section style={{ padding: '0 20px 48px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '-0.03em', margin: '0 0 8px' }}>Built by artists, for artists</h2>
+          <p style={{ fontSize: '14px', color: '#5A5570' }}>TourDesk was born from real experience on stage</p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', maxWidth: '480px', margin: '0 auto 20px' }}>
+          {[
+            { name: 'Lola Warin', role: 'Co-creator · Drummer', img: '/images/lola.jpeg', color: '#C9A84C' },
+            { name: 'Sannie Patron', role: 'Creator · Data Engineer', img: '/images/sannie.jpg', color: '#5DC9A0' },
+          ].map((c, i) => (
+            <div key={i} style={{ background: '#12121A', border: '1px solid #1F1F2E', borderRadius: '16px', padding: '20px', textAlign: 'center' }}>
+              <img src={c.img} alt={c.name} style={{ width: '72px', height: '72px', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top', border: `3px solid ${c.color}`, marginBottom: '12px' }} />
+              <div style={{ fontWeight: 800, fontSize: '14px', marginBottom: '4px' }}>{c.name}</div>
+              <div style={{ fontSize: '11px', color: '#5A5570', lineHeight: 1.4 }}>{c.role}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <Link href="/about" style={{ fontSize: '13px', color: '#C9A84C', textDecoration: 'none', fontWeight: 700 }}>Read our story →</Link>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer style={{ borderTop: '1px solid #1F1F2E', padding: '24px 20px', textAlign: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -177,6 +200,8 @@ export default function LandingPage() {
         <p style={{ fontSize: '12px', color: '#5A5570', marginBottom: '8px' }}>Data stored securely in Europe 🇪🇺 · Encrypted · Never sold</p>
         <p style={{ fontSize: '12px', color: '#5A5570' }}>
           <a href="mailto:hello@tourdesktop.com" style={{ color: '#C9A84C', textDecoration: 'none' }}>Contact</a>
+          {' · '}
+          <Link href="/about" style={{ color: '#5A5570', textDecoration: 'none' }}>About</Link>
           {' · '}
           <Link href="/auth/login" style={{ color: '#5A5570', textDecoration: 'none' }}>Sign in</Link>
           {' · '}
