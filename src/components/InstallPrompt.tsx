@@ -33,7 +33,7 @@ export function InstallPrompt() {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'flex-end' }}>
-      <div style={{ width: '100%', background: '#17171F', borderRadius: '20px 20px 0 0', padding: '24px 20px 40px', maxHeight: '85vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+      <div style={{ width: '100%', background: '#17171F', borderRadius: '20px 20px 0 0', padding: '24px 20px 40px', maxHeight: '85vh', overflowY: 'auto', boxSizing: 'border-box', color: '#E8E0F0', fontFamily: '-apple-system, Inter, system-ui, sans-serif' }}>
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
