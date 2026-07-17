@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
 import { syncToCloud } from '@/lib/sync'
+import { Button, Card, Input, Modal, EmptyState, Toolbar, showToast, SectionLabel } from '@/components/ui'
 import { MONTHS, EVENT_LABELS } from '@/lib/types'
 
 function MonthPicker({ year, month, onChange, onClose }: {
