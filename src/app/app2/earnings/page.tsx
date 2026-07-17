@@ -83,7 +83,8 @@ export default function EarningsPage() {
   const yearTours = tours.filter(t => t.start.startsWith(yearStr))
   let annualHours = 0
   for (const t of yearTours) {
-    const hoursDefault = artist?.defaultHours ?? (hoursPerEventType as any)[t.type] ?? 12
+    const tArtist = artists.find(a => a.id === t.aId)
+    const hoursDefault = tArtist?.defaultHours ?? (hoursPerEventType as any)[t.type] ?? 12
     const hours = t.customHours ?? (
       ['residence', 'tournage', 'figuration', 'workday'].includes(t.type)
         ? getDatesInRange(t.start, t.end || t.start).length * hoursDefault
