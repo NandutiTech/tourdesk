@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     const planLabel = plan === 'manager' ? 'Manager' : plan === 'pro' ? 'Pro' : 'Solo'
     const duration = months === 0 ? 'unlimited access' : `${months} month${months > 1 ? 's' : ''} of free access`
-    const appUrl = 'https://tourdesk-lilac.vercel.app'
+    const appUrl = 'https://tourdesktop.com'
 
     const html = `
 <!DOCTYPE html>

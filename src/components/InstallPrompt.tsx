@@ -97,7 +97,7 @@ export function InstallPrompt() {
                   ⚠️ Must use Safari — Chrome on iPhone doesn't support installing PWAs
                 </div>
                 {[
-                  { icon: '🌐', step: 'Open in Safari', note: 'Go to tourdesk-lilac.vercel.app in Safari' },
+                  { icon: '🌐', step: 'Open in Safari', note: 'Go to tourdesktop.com in Safari' },
                   { icon: '□↑', step: 'Tap the Share button', note: 'At the bottom center of the screen' },
                   { icon: '➕', step: 'Tap "Add to Home Screen"', note: 'Scroll down in the share menu if needed' },
                   { icon: '✅', step: 'Tap "Add" to confirm', note: 'TourDesk appears on your home screen!' },
@@ -116,7 +116,7 @@ export function InstallPrompt() {
             {os === 'android' && (
               <>
                 {[
-                  { icon: '🌐', step: 'Open in Chrome', note: 'Go to tourdesk-lilac.vercel.app in Chrome' },
+                  { icon: '🌐', step: 'Open in Chrome', note: 'Go to tourdesktop.com in Chrome' },
                   { icon: '⋮', step: 'Tap the 3-dot menu', note: 'Top right corner of the browser' },
                   { icon: '➕', step: 'Tap "Add to Home Screen"', note: 'Or "Install app" if the banner appears' },
                   { icon: '✅', step: 'Tap "Add" to confirm', note: 'TourDesk appears on your home screen!' },
