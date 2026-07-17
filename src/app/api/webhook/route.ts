@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     if (userId && plan) {
       // Get subscription end date
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any
       const expiresAt = new Date(subscription.current_period_end * 1000).toISOString()
 
       // Update free_access table
