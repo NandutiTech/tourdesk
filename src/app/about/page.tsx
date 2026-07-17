@@ -74,11 +74,15 @@ export default function AboutPage() {
           </div>
 
           <p style={{ fontSize: '14px', color: '#5A5570', lineHeight: 1.8, marginBottom: '16px' }}>
-            With +9 years of experience in the data world, I have a deep interest in analyzing data, databases and everything related to their exploitation for better decision-making. My training and professional experiences made me want to go further in acquiring knowledge and building tools that actually solve real problems.
+            Computer engineer and data engineer with 11 years of experience, I've always been driven by one thing: building tools that actually solve real problems.
+          </p>
+
+          <p style={{ fontSize: '14px', color: '#5A5570', lineHeight: 1.8, marginBottom: '16px' }}>
+            TourDesk was born from watching artists around me struggle with the same chaos — multiple employers, scattered cachets, hours to track, availability to share. I knew I could fix that.
           </p>
 
           <p style={{ fontSize: '14px', color: '#5A5570', lineHeight: 1.8 }}>
-            Fast learner, autonomous, and very curious — I'm always looking for constant improvement and growth, always learning new things with the main objective to connect to the world and offer it knowledge and good service through data.
+            Originally from Paraguay, based in Paris, I work at the intersection of data, engineering and real-world problems. TourDesk is what happens when you combine all of it.
           </p>
         </div>
 
