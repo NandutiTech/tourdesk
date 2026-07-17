@@ -14,54 +14,84 @@ const admin = createClient(
 )
 
 export async function POST(request: NextRequest) {
-  const body = await request.text()
-  const sig = request.headers.get('stripe-signature')!
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
-
-  let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
-  } catch (err: any) {
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
-  }
+    const body = await request.text()
+    const sig = request.headers.get('stripe-signature')
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session
-    const userId = session.metadata?.user_id
-    const plan = session.metadata?.plan
-    const subscriptionId = session.subscription as string
-
-    if (userId && plan) {
-      // Get subscription end date
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any
-      const expiresAt = new Date(subscription.current_period_end * 1000).toISOString()
-
-      // Update free_access table
-      await admin.from('free_access').upsert({
-        email: session.customer_email || '',
-        plan,
-        expires_at: expiresAt,
-        note: `Stripe subscription ${subscriptionId}`,
-      }, { onConflict: 'email' })
+    if (!sig || !webhookSecret) {
+      console.error('Missing sig or secret')
+      return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
     }
-  }
 
-  if (event.type === 'customer.subscription.deleted') {
-    const subscription = event.data.object as Stripe.Subscription
-    const userId = subscription.metadata?.user_id
-    if (userId) {
-      // Downgrade to solo
-      const { data: user } = await admin.auth.admin.getUserById(userId)
-      if (user?.user?.email) {
-        await admin.from('free_access').upsert({
-          email: user.user.email,
-          plan: 'solo',
-          expires_at: null,
-          note: 'Subscription cancelled',
+    let event: Stripe.Event
+    try {
+      event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
+    } catch (err: any) {
+      console.error('Webhook signature failed:', err.message)
+      return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
+    }
+
+    console.log('Webhook event:', event.type)
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session
+      const userId = session.metadata?.user_id
+      const plan = session.metadata?.plan
+      const email = session.customer_details?.email || session.customer_email || ''
+
+      console.log('Checkout completed:', { userId, plan, email })
+
+      if (plan && email) {
+        // Get subscription end date
+        let expiresAt: string | null = null
+        if (session.subscription) {
+          try {
+            const sub = await stripe.subscriptions.retrieve(session.subscription as string) as any
+            expiresAt = new Date(sub.current_period_end * 1000).toISOString()
+          } catch (e) {
+            console.error('Could not retrieve subscription:', e)
+          }
+        }
+
+        const { error } = await admin.from('free_access').upsert({
+          email,
+          plan,
+          expires_at: expiresAt,
+          note: `Stripe subscription`,
         }, { onConflict: 'email' })
+
+        if (error) {
+          console.error('Supabase upsert error:', error)
+          return NextResponse.json({ error: 'DB error' }, { status: 500 })
+        }
+
+        console.log('Plan updated:', email, plan)
       }
     }
-  }
 
-  return NextResponse.json({ received: true })
+    if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object as any
+      const userId = subscription.metadata?.user_id
+      console.log('Subscription deleted:', userId)
+
+      if (userId) {
+        const { data } = await admin.auth.admin.getUserById(userId)
+        const email = data?.user?.email
+        if (email) {
+          await admin.from('free_access').upsert({
+            email,
+            plan: 'solo',
+            expires_at: null,
+            note: 'Subscription cancelled',
+          }, { onConflict: 'email' })
+        }
+      }
+    }
+
+    return NextResponse.json({ received: true })
+  } catch (err: any) {
+    console.error('Webhook error:', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
 }
