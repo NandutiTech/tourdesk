@@ -129,6 +129,8 @@ export default function EarningsPage() {
     showToast('Event updated ✓')
     setEditingEvent(null)
   }
+
+  const saveGoal = async () => {
     const g = parseInt(goalInput)
     if (!isNaN(g) && g > 0) {
       setHoursGoal(g)
