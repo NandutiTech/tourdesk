@@ -78,9 +78,28 @@ export default function PricingPage() {
       .then(r => r.json()).then(d => setCurrentPlan(d.plan || 'solo')).catch(() => {})
   }, [])
 
-  const handleUpgrade = async (planId: string) => {
+  const handleUpgrade = async (planId: string, billingCycle: string) => {
     if (planId === currentPlan) return
-    setMessage(`✅ Thank you for your interest in the ${planId} plan! Stripe payments are coming very soon. We'll notify you at ${userEmail} when it's ready.`)
+    setLoading(true)
+    setMessage('')
+    try {
+      const token = localStorage.getItem('td_token') || ''
+      const priceKey = `${planId}_${billingCycle}`
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ priceKey })
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setMessage('Something went wrong. Please try again.')
+      }
+    } catch {
+      setMessage('Something went wrong. Please try again.')
+    }
+    setLoading(false)
   }
 
   return (
@@ -176,7 +195,7 @@ export default function PricingPage() {
               </div>
 
               <button
-                onClick={() => !isCurrent && handleUpgrade(plan.id)}
+                onClick={() => !isCurrent && handleUpgrade(plan.id, annual ? 'annual' : 'monthly')}
                 disabled={isCurrent || loading}
                 style={{
                   width: '100%',
