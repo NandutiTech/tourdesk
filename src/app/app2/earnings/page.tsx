@@ -190,23 +190,6 @@ export default function EarningsPage() {
           </>
         )}
 
-        {/* Hours per event type */}
-        <div style={{ marginTop: '16px' }}><SectionLabel>Default hours per event type</SectionLabel></div>
-        {Object.keys(EVENT_LABELS).map(type => (
-          <Card key={type} style={{ marginBottom: '8px', padding: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>{EVENT_LABELS[type as keyof typeof EVENT_LABELS]}</div>
-              <input
-                type="number"
-                defaultValue={(hoursPerEventType as any)[type] || 1}
-                onChange={e => updateHoursType(type, e.target.value)}
-                style={{ width: '60px', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '6px 8px', fontFamily: 'inherit', fontSize: '13px', textAlign: 'right' }}
-              />
-              <span style={{ fontSize: '12px', color: '#5A5570' }}>h</span>
-            </div>
-          </Card>
-        ))}
-
         {/* Monthly events breakdown */}
         <div style={{ marginTop: '16px' }}>
         {monthTours.length === 0 ? (
