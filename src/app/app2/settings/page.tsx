@@ -27,7 +27,7 @@ export default function SettingsPage() {
       }).catch(() => {})
 
     // Check if admin
-    if (userEmail === 'sannie.patron@gmail.com') {
+    if (userEmail === 'hello@tourdesktop.com') {
       setIsAdmin(true)
       fetch('/api/admin', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => setAdminUsers(d.users || [])).catch(() => {})
@@ -138,8 +138,8 @@ export default function SettingsPage() {
         <Card style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: '#5A5570', marginBottom: '12px' }}>💬 Help</div>
           <button onClick={() => { localStorage.removeItem('td_onboarding_done'); window.location.reload() }} style={{ width: '100%', background: 'none', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', marginBottom: '8px', textAlign: 'left' }}>✨ How it works</button>
-          <button onClick={() => window.open('mailto:hello@tourdesk.app?subject=TourDesk feedback', '_blank')} style={{ width: '100%', background: 'none', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', marginBottom: '8px', textAlign: 'left' }}>💬 Contact us</button>
-          <button onClick={() => window.open('mailto:hello@tourdesk.app?subject=TourDesk bug report', '_blank')} style={{ width: '100%', background: 'none', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', textAlign: 'left' }}>🐛 Report a bug</button>
+          <button onClick={() => window.open('mailto:hello@tourdesktop.com?subject=TourDesk feedback', '_blank')} style={{ width: '100%', background: 'none', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', marginBottom: '8px', textAlign: 'left' }}>💬 Contact us</button>
+          <button onClick={() => window.open('mailto:hello@tourdesktop.com?subject=TourDesk bug report', '_blank')} style={{ width: '100%', background: 'none', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', textAlign: 'left' }}>🐛 Report a bug</button>
         </Card>
 
         {/* Danger zone */}

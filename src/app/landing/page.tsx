@@ -176,7 +176,7 @@ export default function LandingPage() {
         </div>
         <p style={{ fontSize: '12px', color: '#5A5570', marginBottom: '8px' }}>Data stored securely in Europe 🇪🇺 · Encrypted · Never sold</p>
         <p style={{ fontSize: '12px', color: '#5A5570' }}>
-          <a href="mailto:hello@tourdesk.app" style={{ color: '#C9A84C', textDecoration: 'none' }}>Contact</a>
+          <a href="mailto:hello@tourdesktop.com" style={{ color: '#C9A84C', textDecoration: 'none' }}>Contact</a>
           {' · '}
           <Link href="/auth/login" style={{ color: '#5A5570', textDecoration: 'none' }}>Sign in</Link>
           {' · '}
