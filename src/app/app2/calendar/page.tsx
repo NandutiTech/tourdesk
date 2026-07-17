@@ -161,7 +161,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Color mode toggle */}
-      <div style={{ padding: '0 16px 12px', display: 'flex', background: '#12121A', borderRadius: '10px', margin: '0 16px 12px', padding: '3px' }}>
+      <div style={{ display: 'flex', background: '#12121A', borderRadius: '10px', margin: '0 16px 12px', padding: '3px' }}>
         <button onClick={() => setColorMode('artist')} style={{ flex: 1, padding: '7px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, background: colorMode === 'artist' ? '#C9A84C' : 'transparent', color: colorMode === 'artist' ? '#0A0A0F' : '#5A5570' }}>🎤 By artist</button>
         <button onClick={() => setColorMode('event')} style={{ flex: 1, padding: '7px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, background: colorMode === 'event' ? '#C9A84C' : 'transparent', color: colorMode === 'event' ? '#0A0A0F' : '#5A5570' }}>🎭 By event type</button>
       </div>
