@@ -133,7 +133,7 @@ export default function CalendarPage() {
     return { tours: t, meetings: m }
   }
 
-  const prevMonth = () => {
+  const [colorMode, setColorMode] = useState<'event' | 'artist'>('artist')
     if (calM === 0) setCalendar(calY - 1, 11)
     else setCalendar(calY, calM - 1)
   }
@@ -158,6 +158,12 @@ export default function CalendarPage() {
           {MONTHS[calM]} <span style={{ color: '#C9A84C' }}>{calY}</span> <span style={{ fontSize: '12px', opacity: 0.5 }}>▾</span>
         </div>
         <button onClick={nextMonth} style={{ background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontSize: '16px' }}>›</button>
+      </div>
+
+      {/* Color mode toggle */}
+      <div style={{ padding: '0 16px 12px', display: 'flex', background: '#12121A', borderRadius: '10px', margin: '0 16px 12px', padding: '3px' }}>
+        <button onClick={() => setColorMode('artist')} style={{ flex: 1, padding: '7px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, background: colorMode === 'artist' ? '#C9A84C' : 'transparent', color: colorMode === 'artist' ? '#0A0A0F' : '#5A5570' }}>🎤 By artist</button>
+        <button onClick={() => setColorMode('event')} style={{ flex: 1, padding: '7px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, background: colorMode === 'event' ? '#C9A84C' : 'transparent', color: colorMode === 'event' ? '#0A0A0F' : '#5A5570' }}>🎭 By event type</button>
       </div>
 
       {/* Day labels */}
@@ -195,12 +201,11 @@ export default function CalendarPage() {
                 marginBottom: '2px', textAlign: 'center'
               }}>{day}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                {dayTours.slice(0, 3).map(t => (
-                  <div key={t.id} style={{
-                    height: '4px', borderRadius: '2px',
-                    background: EVENT_COLORS[t.type]
-                  }} />
-                ))}
+                {dayTours.slice(0, 3).map(t => {
+                  const a = artists.find((ar: any) => ar.id === t.aId)
+                  const color = colorMode === 'artist' && a ? a.color : EVENT_COLORS[t.type]
+                  return <div key={t.id} style={{ height: '4px', borderRadius: '2px', background: color }} />
+                })}
                 {dayMeetings.slice(0, 1).map(m => (
                   <div key={m.id} style={{ height: '4px', borderRadius: '2px', background: '#4C9AC9' }} />
                 ))}
@@ -214,13 +219,22 @@ export default function CalendarPage() {
       </div>
 
       {/* Legend */}
-      <div style={{ padding: '16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        {Object.entries(EVENT_COLORS).map(([type, color]) => (
-          <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#5A5570' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: color }} />
-            {EVENT_LABELS[type as keyof typeof EVENT_LABELS]}
-          </div>
-        ))}
+      <div style={{ padding: '0 16px 16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {colorMode === 'artist' ? (
+          artists.map((a: any) => (
+            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#5A5570' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: a.color }} />
+              {a.name}
+            </div>
+          ))
+        ) : (
+          Object.entries(EVENT_COLORS).map(([type, color]) => (
+            <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#5A5570' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: color }} />
+              {EVENT_LABELS[type as keyof typeof EVENT_LABELS]}
+            </div>
+          ))
+        )}
       </div>
 
       {showPicker && (
