@@ -133,11 +133,9 @@ export function SendToContact({ open, onClose, subject, body }: SendToContactPro
                 📱 SMS
               </button>
             )}
-            {hasEmail(selected) && (
-              <button onClick={() => sendVia('gmail')} style={{ background: '#EA4335', border: 'none', color: 'white', borderRadius: '10px', padding: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '13px' }}>
-                ✉ Gmail
-              </button>
-            )}
+            <button onClick={() => sendVia('gmail')} style={{ background: '#EA4335', border: 'none', color: 'white', borderRadius: '10px', padding: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '13px', gridColumn: hasPhone(selected) ? 'auto' : '1 / -1' }}>
+              ✉ Gmail
+            </button>
             <button onClick={() => sendVia('copy')} style={{ background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '10px', padding: '12px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: '13px' }}>
               📋 Copy
             </button>

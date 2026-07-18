@@ -138,6 +138,8 @@ export default function ExpensesPage() {
   const [viewingReceipt, setViewingReceipt] = useState<{ src: string, name: string } | null>(null)
   const [lastTourId, setLastTourId] = useState('')
   const [defaultTourId, setDefaultTourId] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showSelectModal, setShowSelectModal] = useState(false)
 
   const sorted = [...expenses].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   const total = expenses.reduce((s, e) => s + (e.amount || 0), 0)
@@ -166,7 +168,7 @@ export default function ExpensesPage() {
 
   return (
     <div style={{ padding: '0 0 100px' }}>
-      <Toolbar title="Expenses" actions={<><Button variant="secondary" size="sm" onClick={() => setShowSend(true)}>📤 Send</Button><Button size="sm" onClick={() => { setEditing(null); setDefaultTourId(''); setShowModal(true) }}>+ Expense</Button></>} />
+      <Toolbar title="Expenses" actions={<><Button variant="secondary" size="sm" onClick={() => setShowSelectModal(true)}>📤 Send</Button><Button size="sm" onClick={() => { setEditing(null); setDefaultTourId(''); setShowModal(true) }}>+ Expense</Button></>} />
       {lastTourId && !showModal && (() => {
         const t = tours.find(t => t.id === lastTourId)
         return t ? (
@@ -245,11 +247,49 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
+      {/* Expense selection modal */}
+      <Modal open={showSelectModal} onClose={() => setShowSelectModal(false)} title="Select expenses to share">
+        <div style={{ fontSize: '12px', color: '#5A5570', marginBottom: '12px' }}>
+          Select which expenses to include. Leave all unselected to send everything.
+        </div>
+        <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {sorted.map(e => {
+            const checked = selectedIds.has(e.id)
+            return (
+              <div key={e.id} onClick={() => setSelectedIds(prev => {
+                const n = new Set(prev)
+                checked ? n.delete(e.id) : n.add(e.id)
+                return n
+              })} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: checked ? 'rgba(201,168,76,.1)' : '#12121A', border: `1px solid ${checked ? 'rgba(201,168,76,.3)' : '#1F1F2E'}`, borderRadius: '10px', cursor: 'pointer' }}>
+                <div style={{ width: '20px', height: '20px', borderRadius: '5px', background: checked ? '#C9A84C' : '#1F1F2E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0 }}>
+                  {checked ? '✓' : ''}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700 }}>{e.desc || (CATS as any)[e.cat]}</div>
+                  <div style={{ fontSize: '11px', color: '#5A5570' }}>{e.date}</div>
+                </div>
+                <div style={{ fontWeight: 700, color: '#C9A84C' }}>€{(e.amount||0).toFixed(2)}</div>
+              </div>
+            )
+          })}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button variant="secondary" onClick={() => setSelectedIds(new Set())} style={{ flex: 1 }}>Clear</Button>
+          <Button onClick={() => { setShowSelectModal(false); setShowSend(true) }} style={{ flex: 2 }}>
+            {selectedIds.size > 0 ? `Send ${selectedIds.size} expenses →` : 'Send all →'}
+          </Button>
+        </div>
+      </Modal>
+
       <SendToContact
         open={showSend}
         onClose={() => setShowSend(false)}
         subject="Expense report"
-        body={`Expense report\n\n${sorted.map(e => `• ${e.date} — ${e.desc || (CATS as any)[e.cat]} — €${(e.amount||0).toFixed(2)}`).join('\n')}\n\nTotal: €${total.toFixed(2)}`}
+        {(() => {
+          const sel = selectedIds.size > 0 ? sorted.filter(e => selectedIds.has(e.id)) : sorted
+          const selTotal = sel.reduce((s, e) => s + (e.amount || 0), 0)
+          return `Expense report\n\n${sel.map(e => `• ${e.date} — ${e.desc || (CATS as any)[e.cat]} — €${(e.amount||0).toFixed(2)}`).join('\n')}\n\nTotal: €${selTotal.toFixed(2)}`
+        })()}
       />
     </div>
   )
