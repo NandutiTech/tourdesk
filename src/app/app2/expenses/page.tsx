@@ -35,8 +35,8 @@ function ExpenseModal({ open, onClose, editing, defaultTourId, setLastTourId }: 
 
   const save = async () => {
     if (saving) return
+    if (!amount) { showToast('Amount required', false); return }
     setSaving(true)
-    if (!amount) { showToast('Amount required', false); setSaving(false); return }
     const effectiveDate = date || linkedTour?.start || new Date().toISOString().slice(0, 10)
     const expense: Expense = {
       id: editing?.id || newId(),
@@ -45,11 +45,11 @@ function ExpenseModal({ open, onClose, editing, defaultTourId, setLastTourId }: 
       date: effectiveDate, amount: parseFloat(amount), cat, desc, receipt, receiptName, receiptMime
     }
     if (editing) updateExpense(expense); else addExpense(expense)
-    await syncToCloud(); setSaving(false); showToast('Expense saved')
-    if (tourId) {
-      setLastTourId(tourId)
-    }
+    showToast('Expense saved')
+    if (tourId) setLastTourId(tourId)
     onClose()
+    syncToCloud() // background
+    setSaving(false)
   }
 
   return (
@@ -288,7 +288,15 @@ export default function ExpensesPage() {
       {(() => {
         const sel = selectedIds.size > 0 ? sorted.filter(e => selectedIds.has(e.id)) : sorted
         const selTotal = sel.reduce((s, e) => s + (e.amount || 0), 0)
-        const shareBody = `Expense report\n\n${sel.map(e => `• ${e.date} — ${e.desc || (CATS as any)[e.cat]} — €${(e.amount||0).toFixed(2)}`).join('\n')}\n\nTotal: €${selTotal.toFixed(2)}`
+        const shareBody = (() => {
+          const lines = sel.map(e => {
+            const t = tours.find(t => t.id === e.tourId)
+            const eventLine = t ? ' [' + t.title + ']' : ''
+            return '• ' + e.date + ' — ' + (e.desc || (CATS as any)[e.cat]) + eventLine + ' — €' + (e.amount||0).toFixed(2)
+          })
+          return 'Expense report\n\n' + lines.join('\n') + '\n\nTotal: €' + selTotal.toFixed(2)
+        })()
+
         return (
           <SendToContact
             open={showSend}
