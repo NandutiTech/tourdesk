@@ -61,7 +61,8 @@ function TicketUploader({ label, ticket, ticketName, onUpload, onRemove }: {
 }
 
 function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => void, editing?: Trip | null }) {
-  const { artists, addTrip, updateTrip } = useStore()
+  const { artists, addTrip, updateTrip, tours } = useStore()
+  const [tourId, setTourId] = useState(editing?.tourId || '')
   const [aId, setAId] = useState(editing?.aId || '')
   const [outFrom, setOutFrom] = useState(editing?.outFrom || '')
   const [outTo, setOutTo] = useState(editing?.outTo || '')
@@ -87,6 +88,7 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
     const trip: Trip = {
       id: editing?.id || newId(),
       aId: aId || null,
+      tourId: tourId || null,
       outFrom, outTo, outDate, outTime, outRef, outTicket, outTicketName,
       retFrom, retTo, retDate, retTime, retRef, retTicket, retTicketName,
       notes
@@ -104,6 +106,19 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
       <Select label="Artist / Employer" value={aId} onChange={e => setAId(e.target.value)}>
         <option value="">No artist</option>
         {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+      </Select>
+
+      <Select label="Linked event (optional)" value={tourId} onChange={e => {
+        setTourId(e.target.value)
+        // Auto-fill artist if event has one
+        const t = tours.find(t => t.id === e.target.value)
+        if (t?.aId) setAId(t.aId)
+      }}>
+        <option value="">No event linked</option>
+        {[...tours].sort((a, b) => a.start.localeCompare(b.start)).map(t => {
+          const artist = artists.find(a => a.id === t.aId)
+          return <option key={t.id} value={t.id}>{t.start} — {t.title}{artist ? ` (${artist.name})` : ''}</option>
+        })}
       </Select>
 
       <div style={{ fontSize: '11px', fontWeight: 800, color: '#C9A84C', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px', marginTop: '4px' }}>✈ Outbound</div>
@@ -152,7 +167,7 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
 }
 
 export default function TravelPage() {
-  const { trips, artists, deleteTrip } = useStore()
+  const { trips, artists, tours, deleteTrip } = useStore()
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Trip | null>(null)
   const [viewingTicket, setViewingTicket] = useState<{ src: string, name: string } | null>(null)
@@ -170,11 +185,14 @@ export default function TravelPage() {
     showToast('Trip deleted')
   }
 
-  const TripCard = ({ t }: { t: Trip }) => (
+  const TripCard = ({ t }: { t: Trip }) => {
+    const linkedTour = t.tourId ? tours.find(tour => tour.id === t.tourId) : null
+    return (
     <Card style={{ marginBottom: '10px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
         <div>
           {artistName(t.aId) && <div style={{ fontSize: '11px', color: '#C9A84C', fontWeight: 700, marginBottom: '4px' }}>🎤 {artistName(t.aId)}</div>}
+      {linkedTour && <div style={{ fontSize: '11px', color: '#5DC9A0', fontWeight: 700, marginBottom: '6px' }}>🎫 {linkedTour.start} — {linkedTour.title}</div>}
           <div style={{ fontSize: '13px', fontWeight: 700 }}>{t.outDate}{t.retDate ? ` → ${t.retDate}` : ''}</div>
         </div>
         <div style={{ display: 'flex', gap: '4px' }}>
@@ -213,7 +231,8 @@ export default function TravelPage() {
 
       {t.notes && <div style={{ fontSize: '12px', color: '#5A5570', marginTop: '8px', fontStyle: 'italic' }}>{t.notes}</div>}
     </Card>
-  )
+    )
+  }
 
   return (
     <div style={{ padding: '0 0 100px' }}>

@@ -65,6 +65,7 @@ export interface Trip {
   outRef?: string
   outTicket?: string   // base64 image or PDF URL
   outTicketName?: string
+  tourId?: string | null  // linked tour/event
   retFrom?: string
   retTo?: string
   retDate?: string
