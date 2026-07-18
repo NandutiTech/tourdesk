@@ -63,6 +63,7 @@ export interface TicketInfo {
   ref?: string
   seat?: string
   type?: string
+  _error?: string
 }
 
 export interface TripTicket {
