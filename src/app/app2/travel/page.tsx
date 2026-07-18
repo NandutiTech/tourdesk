@@ -5,13 +5,31 @@ import { syncToCloud, deleteFromCloud } from '@/lib/sync'
 import { Button, Card, Select, Textarea, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
 import { Trip, TripTicket } from '@/lib/types'
 
+async function resizeImage(base64: string, maxSize = 1024): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1)
+      canvas.width = img.width * ratio
+      canvas.height = img.height * ratio
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL('image/jpeg', 0.85))
+    }
+    img.src = base64
+  })
+}
+
 async function extractTicketInfo(base64: string, mimeType: string): Promise<any> {
   try {
     if (!mimeType.startsWith('image/')) return {}
+    // Resize to avoid large payloads
+    const resized = await resizeImage(base64)
     const res = await fetch('/api/extract-ticket', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ base64, mimeType })
+      body: JSON.stringify({ base64: resized, mimeType: 'image/jpeg' })
     })
     if (!res.ok) return {}
     return await res.json()
