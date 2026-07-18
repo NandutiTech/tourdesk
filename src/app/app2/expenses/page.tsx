@@ -62,7 +62,16 @@ function ExpenseModal({ open, onClose, editing, defaultTourId, setLastTourId }: 
           if (t?.start && !date) setDate(t.start)
         }}>
           <option value="">No event linked</option>
-          {[...tours].sort((a, b) => b.start.localeCompare(a.start)).map(t => {
+          {(() => {
+            const today = new Date().toISOString().slice(0, 10)
+            const past30 = new Date(Date.now() - 30*24*60*60*1000).toISOString().slice(0, 10)
+            const future60 = new Date(Date.now() + 60*24*60*60*1000).toISOString().slice(0, 10)
+            const relevant = tours.filter(t => t.start >= past30 && t.start <= future60)
+            const sorted = relevant.length > 0
+              ? relevant.sort((a, b) => a.start.localeCompare(b.start))
+              : [...tours].sort((a, b) => b.start.localeCompare(a.start)).slice(0, 20)
+            return sorted
+          })().map(t => {
             const artist = artists.find(a => a.id === t.aId)
             return <option key={t.id} value={t.id}>{t.start} — {t.title}{artist ? ` · ${artist.name}` : ''}</option>
           })}
