@@ -49,8 +49,6 @@ function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setVie
   const ref = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
 
-  const [pdfForm, setPdfForm] = useState<{ ticketId: string, from: string, to: string, date: string, time: string, ref: string } | null>(null)
-
   const handleFile = async (file: File) => {
     const b64 = await new Promise<string>((res) => {
       const r = new FileReader()
@@ -60,8 +58,8 @@ function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setVie
     const ticket: TripTicket = { id: newId(), data: b64, name: file.name, mime: file.type }
     onAdd(ticket)
 
-    if (file.type.startsWith('image/')) {
-      // Image: extract with AI
+    // Extract info for both images and PDFs
+    if (file.type.startsWith('image/') || file.type === 'application/pdf') {
       setLoading(true)
       onLoadingChange(true)
       try {
@@ -72,18 +70,9 @@ function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setVie
       }
       setLoading(false)
       onLoadingChange(false)
-    } else {
-      // PDF: show manual form
-      setPdfForm({ ticketId: ticket.id, from: '', to: '', date: '', time: '', ref: '' })
     }
   }
 
-  const savePdfInfo = () => {
-    if (!pdfForm) return
-    const tk = tickets.find(t => t.id === pdfForm.ticketId)
-    if (tk) {
-      onAdd({ ...tk, info: { from: pdfForm.from, to: pdfForm.to, date: pdfForm.date, time: pdfForm.time, ref: pdfForm.ref } })
-    }
     setPdfForm(null)
   }
 
