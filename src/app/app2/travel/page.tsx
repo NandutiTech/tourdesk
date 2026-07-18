@@ -36,7 +36,7 @@ async function extractTicketInfo(base64: string, mimeType: string): Promise<any>
   } catch { return {} }
 }
 
-function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setViewing }: {
+function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setViewing, onLoadingChange }: {
   label: string
   color: string
   tickets: TripTicket[]
@@ -44,6 +44,7 @@ function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setVie
   onRemove: (id: string) => void
   viewing: TripTicket | null
   setViewing: (t: TripTicket | null) => void
+  onLoadingChange: (loading: boolean) => void
 }) {
   const ref = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
@@ -58,15 +59,15 @@ function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setVie
     onAdd(ticket)
     if (file.type.startsWith('image/')) {
       setLoading(true)
+      onLoadingChange(true)
       try {
         const info = await extractTicketInfo(b64, file.type)
-        console.log('Extracted info:', info)
-        onAdd({ ...ticket, info: Object.keys(info).length > 0 ? info : { _error: 'No data extracted' } })
+        onAdd({ ...ticket, info })
       } catch (e) {
-        console.error('Extraction failed:', e)
-        onAdd({ ...ticket, info: { _error: String(e) } })
+        onAdd({ ...ticket, info: {} })
       }
       setLoading(false)
+      onLoadingChange(false)
     }
   }
 
@@ -130,6 +131,7 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
   const [notes, setNotes] = useState(editing?.notes || '')
   const [saving, setSaving] = useState(false)
   const [viewing, setViewing] = useState<TripTicket | null>(null)
+  const [processing, setProcessing] = useState(false)
 
   const linkedTour = tours.find(t => t.id === tourId)
   const linkedArtist = artists.find(a => a.id === linkedTour?.aId)
@@ -147,7 +149,9 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
     if (!tourId && outTickets.length === 0 && retTickets.length === 0) {
       showToast('Select an event or upload a ticket', false); return
     }
-    if (saving) return
+    if (saving || processing) {
+      showToast('⏳ Wait for ticket scan to finish...', false); return
+    }
     setSaving(true)
     const trip: Trip = {
       id: editing?.id || newId(),
@@ -190,6 +194,7 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
           onAdd={addOut}
           onRemove={id => setOutTickets(p => p.filter(t => t.id !== id))}
           viewing={viewing} setViewing={setViewing}
+          onLoadingChange={l => setProcessing(l)}
         />
         <TicketSection
           label="Return" color="#5DC9A0"
@@ -197,12 +202,15 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
           onAdd={addRet}
           onRemove={id => setRetTickets(p => p.filter(t => t.id !== id))}
           viewing={viewing} setViewing={setViewing}
+          onLoadingChange={l => setProcessing(l)}
         />
 
         <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '60px' }} />
         <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
           <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-          <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
+          <Button onClick={save} disabled={saving || processing} style={{ flex: 2 }}>
+            {processing ? '🤖 Reading ticket...' : saving ? 'Saving...' : 'Save'}
+          </Button>
         </div>
       </Modal>
 
