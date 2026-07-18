@@ -140,6 +140,9 @@ export default function ExpensesPage() {
   const [defaultTourId, setDefaultTourId] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showSelectModal, setShowSelectModal] = useState(false)
+  const [receiptsToShow, setReceiptsToShow] = useState<{ src: string, name: string }[]>([])
+  const [showReceiptsBeforeSend, setShowReceiptsBeforeSend] = useState(false)
+  const [receiptViewIdx, setReceiptViewIdx] = useState(0)
 
   const sorted = [...expenses].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   const total = expenses.reduce((s, e) => s + (e.amount || 0), 0)
@@ -279,8 +282,50 @@ export default function ExpensesPage() {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button variant="secondary" onClick={() => setSelectedIds(new Set())} style={{ flex: 1 }}>Clear</Button>
-          <Button onClick={() => { setShowSelectModal(false); setShowSend(true) }} style={{ flex: 2 }}>
+          <Button onClick={() => {
+            const sel = selectedIds.size > 0 ? sorted.filter(e => selectedIds.has(e.id)) : sorted
+            const withReceipts = sel.filter(e => e.receipt)
+            if (withReceipts.length > 0) {
+              setReceiptsToShow(withReceipts.map(e => ({ src: e.receipt!, name: e.receiptName || e.desc || 'Receipt' })))
+              setShowReceiptsBeforeSend(true)
+            } else {
+              setShowSelectModal(false)
+              setShowSend(true)
+            }
+          }} style={{ flex: 2 }}>
             {selectedIds.size > 0 ? `Send ${selectedIds.size} expenses →` : 'Send all →'}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Receipts preview before send */}
+      <Modal open={showReceiptsBeforeSend} onClose={() => setShowReceiptsBeforeSend(false)} title={`📎 Receipts (${receiptsToShow.length})`}>
+        <div style={{ fontSize: '13px', color: '#5A5570', marginBottom: '16px' }}>
+          Save or screenshot these receipts to attach them when sending.
+        </div>
+        {receiptsToShow.length > 1 && (
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+            {receiptsToShow.map((r, i) => (
+              <button key={i} onClick={() => setReceiptViewIdx(i)} style={{ background: i === receiptViewIdx ? '#C9A84C' : '#12121A', border: `1px solid ${i === receiptViewIdx ? '#C9A84C' : '#1F1F2E'}`, color: i === receiptViewIdx ? '#0A0A0F' : '#E8E0F0', borderRadius: '8px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
+                {i + 1}. {r.name.slice(0, 15)}
+              </button>
+            ))}
+          </div>
+        )}
+        {receiptsToShow[receiptViewIdx] && (
+          <div style={{ marginBottom: '16px' }}>
+            {receiptsToShow[receiptViewIdx].src.startsWith('data:image') && (
+              <img src={receiptsToShow[receiptViewIdx].src} alt="" style={{ width: '100%', borderRadius: '10px', maxHeight: '320px', objectFit: 'contain' }} />
+            )}
+            {receiptsToShow[receiptViewIdx].src.startsWith('data:application/pdf') && (
+              <iframe src={receiptsToShow[receiptViewIdx].src} style={{ width: '100%', height: '320px', border: 'none', borderRadius: '10px' }} />
+            )}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button variant="secondary" onClick={() => setShowReceiptsBeforeSend(false)} style={{ flex: 1 }}>Back</Button>
+          <Button onClick={() => { setShowReceiptsBeforeSend(false); setShowSelectModal(false); setShowSend(true) }} style={{ flex: 2 }}>
+            Continue → Send message
           </Button>
         </div>
       </Modal>
