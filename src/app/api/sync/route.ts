@@ -34,12 +34,13 @@ export async function GET(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const uid = user.id
 
-    const [a, t, m, r, e, c, s] = await Promise.all([
+    const [a, t, m, r, e, tr, c, s] = await Promise.all([
       admin.from('artists').select('*').eq('user_id', uid).order('name'),
       admin.from('tours').select('*').eq('user_id', uid).order('start_date'),
       admin.from('meetings').select('*').eq('user_id', uid).order('date'),
       admin.from('replacements').select('*').eq('user_id', uid).order('name'),
       admin.from('expenses').select('*').eq('user_id', uid).order('date', { ascending: true }),
+      admin.from('trips').select('*').eq('user_id', uid).order('created_at'),
       admin.from('contacts').select('*').eq('user_id', uid).order('name'),
       admin.from('user_settings').select('*').eq('user_id', uid).single(),
     ])
@@ -52,18 +53,18 @@ export async function GET(request: NextRequest) {
           admin.from('artists').select('*').eq('user_id', uid).order('name'),
           admin.from('tours').select('*').eq('user_id', uid).order('start_date'),
         ])
-        return buildResponse(a2.data||[], t2.data||[], m.data||[], r.data||[], e.data||[], c.data||[], s.data)
+        return buildResponse(a2.data||[], t2.data||[], m.data||[], r.data||[], e.data||[], [], c.data||[], s.data)
       }
     }
 
-    return buildResponse(a.data||[], t.data||[], m.data||[], r.data||[], e.data||[], c.data||[], s.data)
+    return buildResponse(a.data||[], t.data||[], m.data||[], r.data||[], e.data||[], tr.data||[], c.data||[], s.data)
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
 
-function buildResponse(artists: any[], tours: any[], meetings: any[], replacements: any[], expenses: any[], contacts: any[], settings: any) {
+function buildResponse(artists: any[], tours: any[], meetings: any[], replacements: any[], expenses: any[], trips: any[], contacts: any[], settings: any) {
   return NextResponse.json({
     artists: artists.map(a => ({ id: a.id, name: a.name, genre: a.genre||'', color: a.color||'#C9A84C', siret: a.siret||'', address: a.address||'', nature: a.nature||'' })),
     tours: tours.map(t => ({ id: t.id, aId: t.artist_id, title: t.title, start: t.start_date, end: t.end_date, city: t.city||'', type: t.type||'show', paid: t.paid!==false, received: t.received||false, customCachet: t.custom_cachet||null, customHours: t.custom_hours||null, notes: t.notes||'', address: t.address||'', hotel: t.hotel||'', room: t.room||'', hotelAddr: t.hotel_addr||'', doclink: t.doclink||'' })),
@@ -75,7 +76,7 @@ function buildResponse(artists: any[], tours: any[], meetings: any[], replacemen
     hoursPerEventType: settings?.hour_types || {},
     calY: settings?.cal_year,
     calM: settings?.cal_month,
-    trips: settings?.data_blob?.trips || [],
+    trips: trips.map((tr: any) => ({ id: tr.id, aId: tr.artist_id||null, tourId: tr.tour_id||null, outTickets: tr.out_tickets||[], retTickets: tr.ret_tickets||[], notes: tr.notes||'' })),
     guests: settings?.data_blob?.guests || [],
     mgrTours: settings?.data_blob?.mgrTours || [],
     cachets: settings?.data_blob?.cachets || {},
@@ -174,7 +175,6 @@ async function saveAll(uid: string, data: any): Promise<void> {
     cal_month: data.calM,
     updated_at: new Date().toISOString(),
     data_blob: {
-      trips: data.trips || [],
       guests: data.guests || [],
       mgrTours: data.mgrTours || [],
       cachets: data.cachets || {},
@@ -193,6 +193,16 @@ async function saveAll(uid: string, data: any): Promise<void> {
   if (meetings.length) ops.push(admin.from('meetings').upsert(meetings) as unknown as Promise<any>)
   if (replacements.length) ops.push(admin.from('replacements').upsert(replacements) as unknown as Promise<any>)
   if (expenses.length) ops.push(admin.from('expenses').upsert(expenses) as unknown as Promise<any>)
+
+  const trips_data = (data.trips || []).map((tr: any) => ({
+    id: String(tr.id), user_id: uid,
+    artist_id: tr.aId || null,
+    tour_id: tr.tourId || null,
+    out_tickets: tr.outTickets || [],
+    ret_tickets: tr.retTickets || [],
+    notes: tr.notes || ''
+  }))
+  if (trips_data.length) ops.push(admin.from('trips').upsert(trips_data) as unknown as Promise<any>)
   if (contacts.length) ops.push(admin.from('contacts').upsert(contacts) as unknown as Promise<any>)
 
   await Promise.allSettled(ops)
