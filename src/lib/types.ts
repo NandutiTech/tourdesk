@@ -93,12 +93,14 @@ export interface Trip {
 export interface Expense {
   id: string
   aId?: string | null
+  tourId?: string | null
   date: string
   amount: number
   cat: 'transport' | 'hotel' | 'food' | 'equipment' | 'other'
   desc?: string
   receipt?: string
-  ticketFileName?: string
+  receiptName?: string
+  receiptMime?: string
 }
 
 export interface Guest {
