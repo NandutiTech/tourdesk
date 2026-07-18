@@ -55,17 +55,38 @@ export interface Replacement {
   notes?: string
 }
 
+export interface TicketInfo {
+  from?: string
+  to?: string
+  date?: string
+  time?: string
+  ref?: string
+  seat?: string
+  type?: string
+}
+
+export interface TripTicket {
+  id: string
+  data: string        // base64
+  name: string
+  mime: string
+  info?: TicketInfo
+}
+
 export interface Trip {
   id: string
   aId?: string | null
-  tourId?: string | null   // linked tour/event
+  tourId?: string | null
+  outTickets?: TripTicket[]   // multiple outbound tickets
+  retTickets?: TripTicket[]   // multiple return tickets
+  notes?: string
+  // legacy fields kept for compat
   outTicket?: string
   outTicketName?: string
-  outInfo?: any            // AI-extracted ticket info
+  outInfo?: any
   retTicket?: string
   retTicketName?: string
-  retInfo?: any            // AI-extracted ticket info
-  notes?: string
+  retInfo?: any
 }
 
 export interface Expense {
