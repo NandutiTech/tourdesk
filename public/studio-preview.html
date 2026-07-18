@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TourDesk Studio</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #0A0A0F; --card: #13131C; --border: #1E1E2E;
+  --gold: #C9A84C; --green: #5DC9A0; --blue: #7B8CDE;
+  --red: #E8453C; --text: #E8E0F0; --muted: #5A5570; --studio: #8B5CF6;
+}
+body { background: var(--bg); color: var(--text); font-family: -apple-system, Inter, system-ui, sans-serif; min-height: 100vh; padding-bottom: 80px; }
+
+/* TOP BAR */
+.topbar { position: sticky; top: 0; z-index: 50; background: var(--bg); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+.logo { display: flex; align-items: center; gap: 8px; }
+.logo-icon { width: 32px; height: 32px; background: var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.logo-name { font-weight: 900; font-size: 16px; letter-spacing: -0.03em; }
+.logo-badge { background: var(--studio); color: white; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: .08em; text-transform: uppercase; }
+.company-pill { background: rgba(139,92,246,.1); border: 1px solid rgba(139,92,246,.2); border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 700; color: var(--studio); cursor: pointer; }
+
+/* BOTTOM NAV */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); display: flex; z-index: 50; }
+.nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 10px; cursor: pointer; border: none; background: none; color: var(--muted); font-family: inherit; position: relative; }
+.nav-tab.active { color: var(--studio); }
+.nav-tab-icon { font-size: 18px; }
+.nav-tab-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.nav-dot { width: 6px; height: 6px; background: var(--red); border-radius: 50%; position: absolute; top: 6px; right: calc(50% - 14px); }
+.nav-plus { width: 38px; height: 38px; background: var(--studio); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-top: -10px; box-shadow: 0 4px 12px rgba(139,92,246,.4); }
+
+/* SCREENS */
+.screen { display: none; }
+.screen.active { display: block; padding-bottom: 20px; }
+
+/* COMMON */
+.page-header { padding: 20px 16px 14px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.page-title { font-size: 22px; font-weight: 900; letter-spacing: -0.03em; }
+.page-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.btn { padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.btn-purple { background: var(--studio); color: white; }
+.btn-gold { background: var(--gold); color: #0A0A0F; }
+.btn-green { background: var(--green); color: #0A0A0F; }
+.btn-secondary { background: rgba(255,255,255,.06); border: 1px solid var(--border); color: var(--text); }
+.btn-danger { background: rgba(232,69,60,.15); border: 1px solid rgba(232,69,60,.3); color: var(--red); }
+.btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+.btn-full { width: 100%; }
+.badge { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.badge-green { background: rgba(93,201,160,.12); color: var(--green); border: 1px solid rgba(93,201,160,.2); }
+.badge-gold { background: rgba(201,168,76,.12); color: var(--gold); border: 1px solid rgba(201,168,76,.2); }
+.badge-blue { background: rgba(123,140,222,.12); color: var(--blue); border: 1px solid rgba(123,140,222,.2); }
+.badge-gray { background: rgba(90,85,112,.2); color: var(--muted); border: 1px solid var(--border); }
+.badge-red { background: rgba(232,69,60,.12); color: var(--red); border: 1px solid rgba(232,69,60,.2); }
+.badge-purple { background: rgba(139,92,246,.12); color: var(--studio); border: 1px solid rgba(139,92,246,.2); }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px 16px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.stat-value { font-size: 24px; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 2px; }
+.stat-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.stat-change { font-size: 11px; margin-top: 4px; }
+.up { color: var(--green); } .down { color: var(--red); }
+.card-list { padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.section-label { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; padding: 0 16px; margin-bottom: 8px; display: block; }
+.divider { height: 1px; background: var(--border); margin: 16px; }
+.tabs { display: flex; gap: 2px; background: rgba(255,255,255,.05); border-radius: 10px; padding: 3px; margin: 0 16px 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tab { padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--muted); white-space: nowrap; border: none; background: none; font-family: inherit; }
+.tab.active { background: var(--studio); color: white; }
+.artist-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
+
+/* CONTRACT ROWS */
+.contract-row { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; cursor: pointer; transition: border-color .15s; }
+.contract-row:active { border-color: var(--studio); }
+.contract-row-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+.artist-name { font-size: 14px; font-weight: 800; }
+.artist-role { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.contract-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.contract-cachet { font-size: 14px; font-weight: 800; color: var(--gold); }
+.contract-date { font-size: 12px; color: var(--muted); }
+
+/* FORM */
+.form-section { padding: 0 16px; }
+.form-section-label { font-size: 11px; font-weight: 800; color: var(--studio); text-transform: uppercase; letter-spacing: .1em; margin: 16px 0 10px; display: block; }
+.form-group { margin-bottom: 12px; }
+.form-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; display: block; }
+.form-input { width: 100%; background: rgba(255,255,255,.04); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px 12px; font-family: inherit; font-size: 14px; outline: none; }
+.form-input:focus { border-color: var(--studio); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* CDDU PREVIEW */
+.cddu-preview { background: white; border-radius: 12px; padding: 18px; color: #111; margin: 0 16px; }
+.cddu-title { font-size: 12px; font-weight: 900; text-align: center; margin-bottom: 2px; }
+.cddu-sub { font-size: 9px; color: #666; text-align: center; margin-bottom: 12px; }
+.cddu-row { display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; padding: 5px 0; font-size: 11px; gap: 8px; }
+.cddu-key { color: #666; flex-shrink: 0; }
+.cddu-val { font-weight: 700; text-align: right; }
+.cddu-sigs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.cddu-sig { text-align: center; border-top: 1px solid #ccc; padding-top: 6px; font-size: 9px; color: #999; }
+
+/* BULLETIN */
+.bulletin { background: white; border-radius: 12px; padding: 16px; color: #111; margin: 0 16px; font-size: 11px; }
+.bulletin-line { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f5f5f5; }
+.bulletin-sec { font-size: 9px; font-weight: 800; text-transform: uppercase; color: #999; letter-spacing: .08em; background: #f9f9f9; padding: 3px 0; margin: 4px 0; }
+.bulletin-total { display: flex; justify-content: space-between; background: #eefbf5; padding: 10px; border-radius: 6px; margin-top: 10px; font-weight: 900; font-size: 13px; }
+
+/* DOCS */
+.doc-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: border-color .15s; }
+.doc-item:active { border-color: var(--studio); }
+.doc-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.doc-info { flex: 1; min-width: 0; }
+.doc-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* ARTIST CARDS */
+.artist-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.artist-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px; color: #0A0A0F; flex-shrink: 0; }
+
+/* CALENDAR */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 0 16px; }
+.cal-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 0 16px; margin-bottom: 4px; }
+.cal-day-label { text-align: center; font-size: 10px; font-weight: 700; color: var(--muted); padding: 4px 0; }
+.cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; position: relative; }
+.cal-day.today { background: rgba(139,92,246,.15); color: var(--studio); font-weight: 900; }
+.cal-day.has-event::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--green); position: absolute; bottom: 3px; }
+.cal-day.busy::after { background: var(--red); }
+.cal-day.empty { opacity: 0; pointer-events: none; }
+
+/* MESSAGES */
+.msg-row { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; }
+.msg-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15px; flex-shrink: 0; }
+.msg-info { flex: 1; min-width: 0; }
+.msg-name { font-size: 13px; font-weight: 800; }
+.msg-preview { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msg-time { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+.msg-unread { width: 8px; height: 8px; background: var(--studio); border-radius: 50%; flex-shrink: 0; }
+
+/* ANNUAIRE */
+.annuaire-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+.annuaire-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.annuaire-avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; color: #0A0A0F; flex-shrink: 0; }
+.annuaire-skills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.skill-tag { background: rgba(139,92,246,.1); border: 1px solid rgba(139,92,246,.2); color: var(--studio); border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 200; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal { background: var(--card); border-radius: 20px 20px 0 0; width: 100%; max-height: 90vh; overflow-y: auto; padding: 20px 16px 40px; }
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+.modal-title { font-size: 17px; font-weight: 900; margin-bottom: 16px; }
+
+/* SIGNATURE */
+.sig-box { border: 2px dashed var(--studio); border-radius: 12px; padding: 20px; text-align: center; background: rgba(139,92,246,.04); }
+.sig-box.signed { border-color: var(--green); background: rgba(93,201,160,.05); }
+
+/* SEARCH */
+.search-bar { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin: 0 16px 14px; }
+.search-input { background: none; border: none; color: var(--text); font-family: inherit; font-size: 14px; outline: none; flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">♩</div>
+    <div class="logo-name">TourDesk</div>
+    <div class="logo-badge">Studio</div>
+  </div>
+  <div class="company-pill">🏢 Théâtre du Nord</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: DASHBOARD -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-dashboard">
+  <div class="page-header">
+    <div><div class="page-title">Bonjour 👋</div><div class="page-sub">Théâtre du Nord · July 2026</div></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-value" style="color:var(--studio)">12</div><div class="stat-label">Contracts</div><div class="stat-change up">↑ 3 this month</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--gold)">€18.4k</div><div class="stat-label">Total cachets</div><div class="stat-change up">↑ €2.1k</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--green)">8</div><div class="stat-label">Active artists</div><div class="stat-change" style="color:var(--muted)">—</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--red)">3</div><div class="stat-label">Awaiting sign.</div><div class="stat-change down">↓ attention</div></div>
+  </div>
+
+  <!-- Alerts -->
+  <div style="padding:0 16px 14px">
+    <div style="background:rgba(232,69,60,.08);border:1px solid rgba(232,69,60,.25);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">⚠️</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:800;color:var(--red)">3 contracts awaiting signature</div><div style="font-size:11px;color:var(--muted)">Marc Lefebvre, Sophie Durand, Jules Martin</div></div>
+      <button class="btn btn-sm btn-danger" onclick="showScreen('contracts')">View →</button>
+    </div>
+  </div>
+
+  <span class="section-label">Recent contracts</span>
+  <div class="card-list">
+    <div class="contract-row" onclick="showScreen('contracts')">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#C9A84C"></span>Lola Warin</div><div class="artist-role">Percussionniste · Répétition générale</div></div><span class="badge badge-green">✓ Signed</span></div>
+      <div class="contract-meta"><span class="contract-date">📅 12 Jul 2026</span><span class="contract-cachet">€350</span></div>
+    </div>
+    <div class="contract-row" onclick="showScreen('contracts')">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#7B8CDE"></span>Marc Lefebvre</div><div class="artist-role">Comédien · Spectacle soir</div></div><span class="badge badge-gold">⏳ Pending</span></div>
+      <div class="contract-meta"><span class="contract-date">📅 15 Jul 2026</span><span class="contract-cachet">€280</span></div>
+    </div>
+    <div class="contract-row" onclick="showScreen('contracts')">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#5DC9A0"></span>Sophie Durand</div><div class="artist-role">Danseuse · Résidence création</div></div><span class="badge badge-blue">📤 Sent</span></div>
+      <div class="contract-meta"><span class="contract-date">📅 18–22 Jul</span><span class="contract-cachet">€1,200</span></div>
+    </div>
+  </div>
+
+  <!-- URSSAF reminder -->
+  <div style="padding:14px 16px 0">
+    <div style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">🇫🇷</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:800;color:var(--gold)">URSSAF due in 13 days</div><div style="font-size:11px;color:var(--muted)">€4,820 cotisations patronales · Jul 31</div></div>
+      <button class="btn btn-sm btn-gold" onclick="showScreen('declarations')">Pay →</button>
+    </div>
+  </div>
+
+  <div style="padding:16px;margin-top:4px"><button class="btn btn-purple btn-full" onclick="showScreen('new-contract')">+ New CDDU</button></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: CONTRACTS -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-contracts">
+  <div class="page-header">
+    <div><div class="page-title">Contracts</div><div class="page-sub">July 2026 · 12 contracts</div></div>
+    <button class="btn btn-purple btn-sm" onclick="showScreen('new-contract')">+ New</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active">All (12)</button>
+    <button class="tab">⏳ Pending (3)</button>
+    <button class="tab">✓ Signed (8)</button>
+    <button class="tab">Draft (1)</button>
+  </div>
+  <div class="card-list">
+    <div class="contract-row" onclick="showContractDetail()">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#C9A84C"></span>Lola Warin</div><div class="artist-role">Percussionniste · Concert Grande Salle</div></div><span class="badge badge-green">✓ Signed</span></div>
+      <div class="contract-meta"><span class="contract-date">📅 12 Jul</span><span class="contract-cachet">€350</span><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showContractDetail()">View</button></div>
+    </div>
+    <div class="contract-row">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#7B8CDE"></span>Marc Lefebvre</div><div class="artist-role">Comédien · Spectacle soir</div></div><span class="badge badge-gold">⏳ Pending</span></div>
+      <div class="contract-meta"><span class="contract-date">📅 15 Jul</span><span class="contract-cachet">€280</span><button class="btn btn-purple btn-sm" onclick="event.stopPropagation();openSendModal()">Remind</button></div>
+    </div>
+    <div class="contract-row">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#5DC9A0"></span>Sophie Durand</div><div class="artist-role">Danseuse · Résidence création</div></div><span class="badge badge-blue">📤 Sent</span></div>
+      <div class="contract-meta"><span class="contract-date">📅 18–22 Jul</span><span class="contract-cachet">€1,200</span><button class="btn btn-secondary btn-sm">View</button></div>
+    </div>
+    <div class="contract-row">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#E8453C"></span>Jules Martin</div><div class="artist-role">Musicien · Grande salle</div></div><span class="badge badge-gray">Draft</span></div>
+      <div class="contract-meta"><span class="contract-date">📅 20 Jul</span><span class="contract-cachet">€450</span><button class="btn btn-purple btn-sm" onclick="showScreen('new-contract')">Edit</button></div>
+    </div>
+    <div class="contract-row">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#8B5CF6"></span>Claire Moreau</div><div class="artist-role">Chanteuse · Festival</div></div><span class="badge badge-green">✓ Signed</span></div>
+      <div class="contract-meta"><span class="contract-date">📅 5 Jul</span><span class="contract-cachet">€600</span><button class="btn btn-secondary btn-sm">View</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: NEW CDDU -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-new-contract">
+  <div class="page-header">
+    <div><div class="page-title">New CDDU</div><div class="page-sub">Contrat à Durée Déterminée d'Usage</div></div>
+  </div>
+  <div class="form-section">
+    <span class="form-section-label">🏢 Employer</span>
+    <div class="form-group"><label class="form-label">Company name</label><input class="form-input" value="Théâtre du Nord"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">SIRET</label><input class="form-input" value="123 456 789 00012"></div>
+      <div class="form-group"><label class="form-label">NAF code</label><input class="form-input" value="9001Z"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Address</label><input class="form-input" value="12 rue de la Paix, 75001 Paris"></div>
+
+    <span class="form-section-label">🎤 Artist</span>
+    <div class="form-group"><label class="form-label">Full name</label><input class="form-input" value="Lola Warin"></div>
+    <div class="form-group"><label class="form-label">N° Sécurité Sociale</label><input class="form-input" placeholder="2 __ __ __ __ __ __"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Role / Function</label><input class="form-input" value="Percussionniste"></div>
+      <div class="form-group"><label class="form-label">Convention collective</label><select class="form-input"><option>Spectacle vivant</option><option>Audiovisuel</option><option>Cinéma</option></select></div>
+    </div>
+
+    <span class="form-section-label">📋 Performance</span>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Date start</label><input class="form-input" type="date" value="2026-07-20"></div>
+      <div class="form-group"><label class="form-label">Date end</label><input class="form-input" type="date" value="2026-07-20"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Nature of performance</label><input class="form-input" value="Concert - Grande salle"></div>
+    <div class="form-group"><label class="form-label">Venue / Location</label><input class="form-input" value="Théâtre du Nord, Paris 18e"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Number of cachets</label><input class="form-input" type="number" value="1" id="cddu-cachets" oninput="updateCDDU()"></div>
+      <div class="form-group"><label class="form-label">Cachet brut (€)</label><input class="form-input" type="number" value="350" id="cddu-cachet" oninput="updateCDDU()"></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <span class="section-label">📄 Preview</span>
+  <div class="cddu-preview">
+    <div class="cddu-title">CONTRAT À DURÉE DÉTERMINÉE D'USAGE</div>
+    <div class="cddu-sub">Spectacle vivant — Art. L.1242-2 du Code du Travail</div>
+    <div class="cddu-row"><span class="cddu-key">Employeur</span><span class="cddu-val">Théâtre du Nord</span></div>
+    <div class="cddu-row"><span class="cddu-key">SIRET</span><span class="cddu-val">123 456 789 00012</span></div>
+    <div class="cddu-row"><span class="cddu-key">Salarié(e)</span><span class="cddu-val">Lola Warin</span></div>
+    <div class="cddu-row"><span class="cddu-key">Fonction</span><span class="cddu-val">Percussionniste</span></div>
+    <div class="cddu-row"><span class="cddu-key">Date(s)</span><span class="cddu-val">20 juillet 2026</span></div>
+    <div class="cddu-row"><span class="cddu-key">Prestation</span><span class="cddu-val">Concert - Grande salle</span></div>
+    <div class="cddu-row" id="cddu-remun-row"><span class="cddu-key">Rémunération</span><span class="cddu-val" id="cddu-remun">1 cachet × €350 = €350 brut</span></div>
+    <div class="cddu-row"><span class="cddu-key">Convention</span><span class="cddu-val">Spectacle vivant</span></div>
+    <div class="cddu-sigs"><div class="cddu-sig">Signature employeur<br><br><br></div><div class="cddu-sig">Signature artiste<br><br><br></div></div>
+  </div>
+
+  <div style="padding:16px;display:flex;flex-direction:column;gap:10px;margin-top:8px">
+    <button class="btn btn-secondary btn-full">💾 Save draft</button>
+    <button class="btn btn-purple btn-full" onclick="openSendModal()">✉ Generate & send for signature</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: PAIE -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-paie">
+  <div class="page-header">
+    <div><div class="page-title">Bulletins de paie</div><div class="page-sub">July 2026 · 12 bulletins</div></div>
+    <button class="btn btn-purple btn-sm">Generate all</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-value" style="color:var(--gold);font-size:20px">€18,400</div><div class="stat-label">Total brut</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--green);font-size:20px">€13,882</div><div class="stat-label">Total net</div></div>
+  </div>
+
+  <span class="section-label">Artists to process</span>
+  <div class="card-list">
+    <div class="contract-row" onclick="showBulletin()">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#C9A84C"></span>Lola Warin</div><div class="artist-role">1 cachet · Contrat signé ✓</div></div><span class="badge badge-green">Ready</span></div>
+      <div class="contract-meta"><span class="contract-cachet">€350 brut</span><span style="font-size:12px;color:var(--green)">→ ~€262 net</span><button class="btn btn-purple btn-sm" onclick="event.stopPropagation();showBulletin()">Generate</button></div>
+    </div>
+    <div class="contract-row">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#7B8CDE"></span>Marc Lefebvre</div><div class="artist-role">1 cachet · Awaiting signature</div></div><span class="badge badge-gold">Pending</span></div>
+      <div class="contract-meta"><span class="contract-cachet">€280 brut</span><button class="btn btn-secondary btn-sm">Generate</button></div>
+    </div>
+    <div class="contract-row">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#5DC9A0"></span>Sophie Durand</div><div class="artist-role">5 cachets · Résidence</div></div><span class="badge badge-gold">Pending</span></div>
+      <div class="contract-meta"><span class="contract-cachet">€1,200 brut</span><span style="font-size:12px;color:var(--green)">→ ~€902 net</span><button class="btn btn-secondary btn-sm">Generate</button></div>
+    </div>
+    <div class="contract-row">
+      <div class="contract-row-header"><div><div class="artist-name"><span class="artist-dot" style="background:#8B5CF6"></span>Claire Moreau</div><div class="artist-role">2 cachets · Festival</div></div><span class="badge badge-green">Ready</span></div>
+      <div class="contract-meta"><span class="contract-cachet">€600 brut</span><span style="font-size:12px;color:var(--green)">→ ~€451 net</span><button class="btn btn-purple btn-sm">Generate</button></div>
+    </div>
+  </div>
+
+  <div id="bulletin-preview" style="display:none">
+    <div class="divider"></div>
+    <span class="section-label">Preview — Lola Warin · Juillet 2026</span>
+    <div class="bulletin">
+      <div style="border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:10px;display:flex;justify-content:space-between">
+        <div><div style="font-size:13px;font-weight:900">Théâtre du Nord</div><div style="font-size:9px;color:#666">SIRET: 123 456 789 00012</div></div>
+        <div style="text-align:right"><div style="font-size:11px;font-weight:700">BULLETIN DE PAIE</div><div style="font-size:9px;color:#666">Juillet 2026</div></div>
+      </div>
+      <div style="margin-bottom:10px;font-size:11px"><strong>Lola Warin</strong> · Percussionniste<br><span style="color:#666">N° SS: 2 __ __ __ __ __ __</span></div>
+      <div class="bulletin-line"><span style="font-weight:800">SALAIRE BRUT</span><span style="font-weight:800">€350.00</span></div>
+      <div class="bulletin-sec">Cotisations salariales</div>
+      <div class="bulletin-line"><span>Sécurité Sociale maladie (0.75%)</span><span>-€2.63</span></div>
+      <div class="bulletin-line"><span>Retraite AGIRC-ARRCO (3.15%)</span><span>-€11.03</span></div>
+      <div class="bulletin-line"><span>Assurance chômage (2.40%)</span><span>-€8.40</span></div>
+      <div class="bulletin-line"><span>Congés Spectacles CAVAS (10%)</span><span>-€35.00</span></div>
+      <div class="bulletin-line"><span>CSG non déductible (2.90%)</span><span>-€10.15</span></div>
+      <div class="bulletin-line"><span>CSG/CRDS déductible (6.80%)</span><span>-€21.09</span></div>
+      <div class="bulletin-sec">Cotisations patronales</div>
+      <div class="bulletin-line"><span>Sécurité Sociale patron (13%)</span><span style="color:#666">€45.50</span></div>
+      <div class="bulletin-line"><span>URSSAF patronal</span><span style="color:#666">€52.15</span></div>
+      <div class="bulletin-line"><span>Audiens retraite (7.87%)</span><span style="color:#666">€27.55</span></div>
+      <div class="bulletin-total"><span>NET À PAYER</span><span style="color:green">€261.71</span></div>
+      <div style="font-size:9px;color:#999;text-align:center;margin-top:8px">⚠️ Chiffres indicatifs — formules exactes à confirmer avec expert-comptable</div>
+    </div>
+    <div style="padding:14px 16px;display:flex;gap:10px">
+      <button class="btn btn-secondary" style="flex:1">📄 PDF</button>
+      <button class="btn btn-purple" style="flex:2" onclick="openSendArtistModal()">📤 Send to artist</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: DECLARATIONS -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-declarations">
+  <div class="page-header">
+    <div><div class="page-title">Déclarations sociales</div><div class="page-sub">July 2026</div></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card" style="border-color:rgba(232,69,60,.3)">
+      <div style="font-size:10px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">URSSAF</div>
+      <div class="stat-value" style="font-size:20px">€4,820</div>
+      <div class="stat-label">Cotisations pat.</div>
+      <div style="margin-top:8px"><span class="badge badge-gold">⏳ Due Jul 31</span></div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(93,201,160,.3)">
+      <div style="font-size:10px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Pôle Emploi</div>
+      <div class="stat-value" style="font-size:20px">€1,240</div>
+      <div class="stat-label">Contributions</div>
+      <div style="margin-top:8px"><span class="badge badge-green">✓ Filed</span></div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(201,168,76,.3)">
+      <div style="font-size:10px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">CAVAS</div>
+      <div class="stat-value" style="font-size:20px">€1,840</div>
+      <div class="stat-label">Congés spectacles</div>
+      <div style="margin-top:8px"><span class="badge badge-green">✓ Filed</span></div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(139,92,246,.3)">
+      <div style="font-size:10px;font-weight:800;color:var(--studio);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Audiens</div>
+      <div class="stat-value" style="font-size:20px">€920</div>
+      <div class="stat-label">Retraite comp.</div>
+      <div style="margin-top:8px"><span class="badge badge-green">✓ Filed</span></div>
+    </div>
+  </div>
+
+  <span class="section-label">Monthly breakdown</span>
+  <div class="card-list">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+        <span style="font-weight:800">Total brut payé</span><span style="font-weight:800;color:var(--gold)">€18,400</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:13px;font-weight:700">URSSAF</div><div style="font-size:11px;color:var(--muted)">Cotisations patronales · Due Jul 31</div></div>
+          <div style="text-align:right"><div style="font-size:13px;color:var(--red)">-€4,820</div><button class="btn btn-purple btn-sm" style="margin-top:4px">Pay now →</button></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:13px;font-weight:700">Congés Spectacles CAVAS</div><div style="font-size:11px;color:var(--muted)">10% du brut · Déjà versé</div></div>
+          <div style="text-align:right"><div style="font-size:13px;color:var(--red)">-€1,840</div><span class="badge badge-green" style="margin-top:4px">✓ Done</span></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:13px;font-weight:700">Pôle Emploi Spectacle</div><div style="font-size:11px;color:var(--muted)">Contributions chômage</div></div>
+          <div style="text-align:right"><div style="font-size:13px;color:var(--red)">-€1,240</div><span class="badge badge-green" style="margin-top:4px">✓ Done</span></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-size:13px;font-weight:700">Audiens</div><div style="font-size:11px;color:var(--muted)">Retraite complémentaire</div></div>
+          <div style="text-align:right"><div style="font-size:13px;color:var(--red)">-€920</div><span class="badge badge-green" style="margin-top:4px">✓ Done</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AEM -->
+    <div class="card" style="border-color:rgba(139,92,246,.2)">
+      <div style="font-size:11px;font-weight:800;color:var(--studio);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📄 AEM — Attestation Employeur Mensuelle</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Required for each artist to maintain their intermittent status with France Travail.</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:13px;font-weight:700">Lola Warin</div><div style="font-size:11px;color:var(--muted)">1 cachet · 12h · €350</div></div><button class="btn btn-purple btn-sm">Generate AEM</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:13px;font-weight:700">Sophie Durand</div><div style="font-size:11px;color:var(--muted)">5 cachets · 60h · €1,200</div></div><button class="btn btn-purple btn-sm">Generate AEM</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:13px;font-weight:700">Claire Moreau</div><div style="font-size:11px;color:var(--muted)">2 cachets · 24h · €600</div></div><button class="btn btn-purple btn-sm">Generate AEM</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: ARTISTS -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-artists">
+  <div class="page-header">
+    <div><div class="page-title">My artists</div><div class="page-sub">8 active artists</div></div>
+    <button class="btn btn-purple btn-sm" onclick="showScreen('annuaire')">Find artists</button>
+  </div>
+
+  <div class="search-bar">
+    <span>🔍</span>
+    <input class="search-input" placeholder="Search by name, role...">
+  </div>
+
+  <div class="tabs">
+    <button class="tab active">All (8)</button>
+    <button class="tab">Available</button>
+    <button class="tab">On tour</button>
+  </div>
+
+  <div class="card-list">
+    <div class="artist-card" onclick="showArtistDetail()">
+      <div class="artist-avatar" style="background:#C9A84C">L</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:14px">Lola Warin</div>
+        <div style="font-size:11px;color:var(--muted)">Percussionniste · 4 contracts</div>
+        <div style="display:flex;gap:4px;margin-top:4px"><span class="badge badge-green" style="font-size:10px">✓ Available Jul 25–31</span></div>
+      </div>
+      <span style="font-size:18px">›</span>
+    </div>
+    <div class="artist-card">
+      <div class="artist-avatar" style="background:#7B8CDE">M</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:14px">Marc Lefebvre</div>
+        <div style="font-size:11px;color:var(--muted)">Comédien · 2 contracts</div>
+        <div style="display:flex;gap:4px;margin-top:4px"><span class="badge badge-gold" style="font-size:10px">🎤 On tour Jul 15–20</span></div>
+      </div>
+      <span style="font-size:18px">›</span>
+    </div>
+    <div class="artist-card">
+      <div class="artist-avatar" style="background:#5DC9A0">S</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:14px">Sophie Durand</div>
+        <div style="font-size:11px;color:var(--muted)">Danseuse · 6 contracts</div>
+        <div style="display:flex;gap:4px;margin-top:4px"><span class="badge badge-green" style="font-size:10px">✓ Available from Jul 23</span></div>
+      </div>
+      <span style="font-size:18px">›</span>
+    </div>
+    <div class="artist-card">
+      <div class="artist-avatar" style="background:#E8453C">J</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:14px">Jules Martin</div>
+        <div style="font-size:11px;color:var(--muted)">Musicien · 1 contract</div>
+        <div style="display:flex;gap:4px;margin-top:4px"><span class="badge badge-green" style="font-size:10px">✓ Available</span></div>
+      </div>
+      <span style="font-size:18px">›</span>
+    </div>
+    <div class="artist-card">
+      <div class="artist-avatar" style="background:#8B5CF6">C</div>
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:14px">Claire Moreau</div>
+        <div style="font-size:11px;color:var(--muted)">Chanteuse · 3 contracts</div>
+        <div style="display:flex;gap:4px;margin-top:4px"><span class="badge badge-green" style="font-size:10px">✓ Available</span></div>
+      </div>
+      <span style="font-size:18px">›</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: MORE (Documents, Annuaire, Messages, Calendar) -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-more">
+  <div class="page-header"><div class="page-title">More</div></div>
+  <div class="card-list">
+    <button onclick="showScreen('documents')" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:inherit;cursor:pointer;text-align:left;width:100%">
+      <div style="width:44px;height:44px;background:rgba(139,92,246,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🗂</div>
+      <div style="flex:1"><div style="font-size:15px;font-weight:800">Documents</div><div style="font-size:12px;color:var(--muted)">Coffre-fort · Contracts, bulletins, AEM</div></div>
+      <span style="color:var(--muted)">›</span>
+    </button>
+    <button onclick="showScreen('annuaire')" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:inherit;cursor:pointer;text-align:left;width:100%">
+      <div style="width:44px;height:44px;background:rgba(93,201,160,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🔍</div>
+      <div style="flex:1"><div style="font-size:15px;font-weight:800">Annuaire</div><div style="font-size:12px;color:var(--muted)">Find available artists near you</div></div>
+      <span style="color:var(--muted)">›</span>
+    </button>
+    <button onclick="showScreen('messages')" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:inherit;cursor:pointer;text-align:left;width:100%">
+      <div style="width:44px;height:44px;background:rgba(123,140,222,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">💬</div>
+      <div style="flex:1"><div style="font-size:15px;font-weight:800">Messages</div><div style="font-size:12px;color:var(--muted)">Contact your artists directly</div></div>
+      <div style="display:flex;align-items:center;gap:6px"><span class="badge badge-red" style="font-size:10px">2</span><span style="color:var(--muted)">›</span></div>
+    </button>
+    <button onclick="showScreen('calendar')" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:inherit;cursor:pointer;text-align:left;width:100%">
+      <div style="width:44px;height:44px;background:rgba(201,168,76,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📅</div>
+      <div style="flex:1"><div style="font-size:15px;font-weight:800">Availability calendar</div><div style="font-size:12px;color:var(--muted)">See who's available when</div></div>
+      <span style="color:var(--muted)">›</span>
+    </button>
+    <button onclick="showScreen('declarations')" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:inherit;cursor:pointer;text-align:left;width:100%">
+      <div style="width:44px;height:44px;background:rgba(232,69,60,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🇫🇷</div>
+      <div style="flex:1"><div style="font-size:15px;font-weight:800">Déclarations sociales</div><div style="font-size:12px;color:var(--muted)">URSSAF, Pôle Emploi, AEM</div></div>
+      <div style="display:flex;align-items:center;gap:6px"><span class="badge badge-gold" style="font-size:10px">⏳ 1</span><span style="color:var(--muted)">›</span></div>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: DOCUMENTS -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-documents">
+  <div class="page-header">
+    <div><div class="page-title">Documents</div><div class="page-sub">Coffre-fort · 24 documents</div></div>
+    <button class="btn btn-purple btn-sm">📎 Upload</button>
+  </div>
+  <div class="tabs">
+    <button class="tab active">All</button>
+    <button class="tab">Contracts</button>
+    <button class="tab">Bulletins</button>
+    <button class="tab">AEM</button>
+    <button class="tab">Other</button>
+  </div>
+  <div class="card-list">
+    <div class="doc-item"><div class="doc-icon" style="background:rgba(139,92,246,.15)">📋</div><div class="doc-info"><div class="doc-name">CDDU — Lola Warin — 12 Jul 2026</div><div class="doc-meta">Contract · Signed · 156 KB</div></div><button class="btn btn-secondary btn-sm">⬇</button></div>
+    <div class="doc-item"><div class="doc-icon" style="background:rgba(93,201,160,.15)">💶</div><div class="doc-info"><div class="doc-name">Bulletin — Lola Warin — Juil 2026</div><div class="doc-meta">Bulletin de paie · Sent · 89 KB</div></div><button class="btn btn-secondary btn-sm">⬇</button></div>
+    <div class="doc-item"><div class="doc-icon" style="background:rgba(201,168,76,.15)">📄</div><div class="doc-info"><div class="doc-name">AEM — Sophie Durand — Juil 2026</div><div class="doc-meta">Attestation Employeur · Filed</div></div><button class="btn btn-secondary btn-sm">⬇</button></div>
+    <div class="doc-item"><div class="doc-icon" style="background:rgba(139,92,246,.15)">📋</div><div class="doc-info"><div class="doc-name">CDDU — Marc Lefebvre — 15 Jul</div><div class="doc-meta">Contract · Awaiting signature</div></div><button class="btn btn-purple btn-sm">Remind</button></div>
+    <div class="doc-item"><div class="doc-icon" style="background:rgba(93,201,160,.15)">💶</div><div class="doc-info"><div class="doc-name">Bulletin — Claire Moreau — Juil 2026</div><div class="doc-meta">Bulletin de paie · Sent · 91 KB</div></div><button class="btn btn-secondary btn-sm">⬇</button></div>
+    <div class="doc-item"><div class="doc-icon" style="background:rgba(201,168,76,.15)">📄</div><div class="doc-info"><div class="doc-name">AEM — Lola Warin — Juil 2026</div><div class="doc-meta">Attestation Employeur · Filed</div></div><button class="btn btn-secondary btn-sm">⬇</button></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: ANNUAIRE -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-annuaire">
+  <div class="page-header">
+    <div><div class="page-title">Annuaire</div><div class="page-sub">Find available artists</div></div>
+  </div>
+  <div class="search-bar">
+    <span>🔍</span>
+    <input class="search-input" placeholder="Percussionniste, comédien, danseur...">
+  </div>
+  <div style="padding:0 16px;display:flex;gap:8px;margin-bottom:14px;overflow-x:auto">
+    <button class="btn btn-sm" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:var(--studio);white-space:nowrap">Tous</button>
+    <button class="btn btn-sm btn-secondary" style="white-space:nowrap">Musiciens</button>
+    <button class="btn btn-sm btn-secondary" style="white-space:nowrap">Comédiens</button>
+    <button class="btn btn-sm btn-secondary" style="white-space:nowrap">Danseurs</button>
+    <button class="btn btn-sm btn-secondary" style="white-space:nowrap">Chanteurs</button>
+    <button class="btn btn-sm btn-secondary" style="white-space:nowrap">Techniciens</button>
+  </div>
+  <div class="card-list">
+    <div class="annuaire-card">
+      <div class="annuaire-top">
+        <div class="annuaire-avatar" style="background:#C9A84C">L</div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:14px">Lola Warin</div>
+          <div style="font-size:11px;color:var(--muted)">Percussionniste · Paris</div>
+          <div style="margin-top:4px"><span class="badge badge-green" style="font-size:10px">✓ Available Jul 25+</span></div>
+        </div>
+        <button class="btn btn-purple btn-sm" onclick="openSendModal()">Contact</button>
+      </div>
+      <div class="annuaire-skills">
+        <span class="skill-tag">Batterie</span><span class="skill-tag">Percussions</span><span class="skill-tag">Marimba</span><span class="skill-tag">Spectacle vivant</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Worked with: Pierre de Maere, Feu! Chatterton, Ko Shin Moon...</div>
+    </div>
+    <div class="annuaire-card">
+      <div class="annuaire-top">
+        <div class="annuaire-avatar" style="background:#E8453C">T</div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:14px">Thomas Girard</div>
+          <div style="font-size:11px;color:var(--muted)">Guitariste · Lyon</div>
+          <div style="margin-top:4px"><span class="badge badge-green" style="font-size:10px">✓ Available now</span></div>
+        </div>
+        <button class="btn btn-purple btn-sm">Contact</button>
+      </div>
+      <div class="annuaire-skills">
+        <span class="skill-tag">Guitare électrique</span><span class="skill-tag">Basse</span><span class="skill-tag">Studio</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">15 ans d'expérience · Tournées France & Europe</div>
+    </div>
+    <div class="annuaire-card">
+      <div class="annuaire-top">
+        <div class="annuaire-avatar" style="background:#5DC9A0">A</div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:14px">Amélie Petit</div>
+          <div style="font-size:11px;color:var(--muted)">Danseuse contemporaine · Paris</div>
+          <div style="margin-top:4px"><span class="badge badge-gold" style="font-size:10px">⏳ Available Aug 1+</span></div>
+        </div>
+        <button class="btn btn-secondary btn-sm">Contact</button>
+      </div>
+      <div class="annuaire-skills">
+        <span class="skill-tag">Danse contemporaine</span><span class="skill-tag">Hip-hop</span><span class="skill-tag">Cirque</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Opéra de Paris, Cirque du Soleil, tournées internationales</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: MESSAGES -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-messages">
+  <div class="page-header">
+    <div><div class="page-title">Messages</div><div class="page-sub">3 conversations</div></div>
+  </div>
+  <div class="card-list">
+    <div class="msg-row">
+      <div class="msg-avatar" style="background:#C9A84C;color:#0A0A0F">L</div>
+      <div class="msg-info">
+        <div style="display:flex;justify-content:space-between"><div class="msg-name">Lola Warin</div><span class="msg-time">10:32</span></div>
+        <div class="msg-preview">Ok super je confirme pour le 20 juillet !</div>
+      </div>
+    </div>
+    <div class="msg-row" style="border-color:rgba(139,92,246,.3)">
+      <div class="msg-avatar" style="background:#7B8CDE;color:#0A0A0F">M</div>
+      <div class="msg-info">
+        <div style="display:flex;justify-content:space-between"><div class="msg-name">Marc Lefebvre</div><span class="msg-time">Hier</span></div>
+        <div class="msg-preview">J'ai pas reçu le contrat, tu peux renvoyer ?</div>
+      </div>
+      <div class="msg-unread"></div>
+    </div>
+    <div class="msg-row" style="border-color:rgba(139,92,246,.3)">
+      <div class="msg-avatar" style="background:#5DC9A0;color:#0A0A0F">S</div>
+      <div class="msg-info">
+        <div style="display:flex;justify-content:space-between"><div class="msg-name">Sophie Durand</div><span class="msg-time">Lun</span></div>
+        <div class="msg-preview">Est-ce que vous pouvez confirmer les dates de la résidence ?</div>
+      </div>
+      <div class="msg-unread"></div>
+    </div>
+  </div>
+
+  <div style="padding:16px;margin-top:4px">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px">
+      <div style="font-weight:800;font-size:14px;margin-bottom:4px">💬 Marc Lefebvre</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">J'ai pas reçu le contrat, tu peux renvoyer ?</div>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" placeholder="Reply..." style="flex:1">
+        <button class="btn btn-purple">Send</button>
+      </div>
+      <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="openSendModal()">📋 Resend contract</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SCREEN: CALENDAR -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="screen" id="screen-calendar">
+  <div class="page-header">
+    <div><div class="page-title">Availability</div><div class="page-sub">July 2026 · All artists</div></div>
+  </div>
+
+  <div style="padding:0 16px 14px;display:flex;gap:8px;overflow-x:auto">
+    <button class="btn btn-sm" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:var(--studio);white-space:nowrap">All artists</button>
+    <button class="btn btn-sm btn-secondary" style="white-space:nowrap"><span style="background:#C9A84C;border-radius:50%;width:8px;height:8px;display:inline-block;margin-right:4px"></span>Lola</button>
+    <button class="btn btn-sm btn-secondary" style="white-space:nowrap"><span style="background:#7B8CDE;border-radius:50%;width:8px;height:8px;display:inline-block;margin-right:4px"></span>Marc</button>
+    <button class="btn btn-sm btn-secondary" style="white-space:nowrap"><span style="background:#5DC9A0;border-radius:50%;width:8px;height:8px;display:inline-block;margin-right:4px"></span>Sophie</button>
+  </div>
+
+  <div class="cal-header">
+    <div class="cal-day-label">Mo</div><div class="cal-day-label">Tu</div><div class="cal-day-label">We</div>
+    <div class="cal-day-label">Th</div><div class="cal-day-label">Fr</div>
+    <div class="cal-day-label">Sa</div><div class="cal-day-label">Su</div>
+  </div>
+  <div class="cal-grid">
+    <div class="cal-day empty"></div><div class="cal-day">1</div><div class="cal-day has-event">2</div>
+    <div class="cal-day">3</div><div class="cal-day has-event">4</div><div class="cal-day">5</div><div class="cal-day">6</div>
+    <div class="cal-day">7</div><div class="cal-day busy">8</div><div class="cal-day busy">9</div>
+    <div class="cal-day busy">10</div><div class="cal-day busy">11</div><div class="cal-day has-event">12</div><div class="cal-day">13</div>
+    <div class="cal-day">14</div><div class="cal-day busy">15</div><div class="cal-day busy">16</div>
+    <div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day busy">19</div><div class="cal-day busy">20</div>
+    <div class="cal-day">21</div><div class="cal-day">22</div><div class="cal-day has-event">23</div>
+    <div class="cal-day">24</div><div class="cal-day has-event today">25</div><div class="cal-day">26</div><div class="cal-day">27</div>
+    <div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day">30</div><div class="cal-day">31</div>
+  </div>
+
+  <div style="padding:14px 16px 0;display:flex;gap:16px;font-size:11px;color:var(--muted)">
+    <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>Available</div>
+    <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:var(--red)"></div>Busy</div>
+    <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:var(--studio)"></div>Today</div>
+  </div>
+
+  <div class="divider"></div>
+  <span class="section-label">Artists available Jul 25–31</span>
+  <div class="card-list">
+    <div class="artist-card"><div class="artist-avatar" style="background:#C9A84C">L</div><div style="flex:1"><div style="font-weight:800">Lola Warin</div><div style="font-size:11px;color:var(--muted)">Percussionniste</div></div><button class="btn btn-purple btn-sm" onclick="showScreen('new-contract')">+ Contract</button></div>
+    <div class="artist-card"><div class="artist-avatar" style="background:#E8453C">J</div><div style="flex:1"><div style="font-weight:800">Jules Martin</div><div style="font-size:11px;color:var(--muted)">Musicien</div></div><button class="btn btn-purple btn-sm" onclick="showScreen('new-contract')">+ Contract</button></div>
+    <div class="artist-card"><div class="artist-avatar" style="background:#8B5CF6">C</div><div style="flex:1"><div style="font-weight:800">Claire Moreau</div><div style="font-size:11px;color:var(--muted)">Chanteuse</div></div><button class="btn btn-purple btn-sm" onclick="showScreen('new-contract')">+ Contract</button></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- BOTTOM NAV -->
+<!-- ═══════════════════════════════════════════════════ -->
+<nav class="bottom-nav">
+  <button class="nav-tab active" onclick="showScreen('dashboard')" id="tab-dashboard"><span class="nav-tab-icon">📊</span><span class="nav-tab-label">Home</span></button>
+  <button class="nav-tab" onclick="showScreen('contracts')" id="tab-contracts" style="position:relative"><span class="nav-tab-icon">📋</span><span class="nav-tab-label">Contracts</span><div class="nav-dot"></div></button>
+  <button class="nav-tab" onclick="showScreen('new-contract')" id="tab-new-contract"><div class="nav-plus">✚</div><span class="nav-tab-label">New CDDU</span></button>
+  <button class="nav-tab" onclick="showScreen('paie')" id="tab-paie"><span class="nav-tab-icon">💶</span><span class="nav-tab-label">Paie</span></button>
+  <button class="nav-tab" onclick="showScreen('more')" id="tab-more"><span class="nav-tab-icon">⋯</span><span class="nav-tab-label">More</span></button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- MODALS -->
+<!-- ═══════════════════════════════════════════════════ -->
+
+<!-- Send/signature modal -->
+<div class="modal-overlay" id="send-modal" onclick="closeSendModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Send for signature ✉</div>
+    <div style="background:rgba(93,201,160,.06);border:1px solid rgba(93,201,160,.2);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:2px">✅ Contract ready to send</div>
+      <div style="font-size:12px;color:var(--muted)">CDDU · Lola Warin · Concert 20 Jul · €350 brut</div>
+    </div>
+    <div class="form-group"><label class="form-label">Send to</label><input class="form-input" value="lola.warin@email.com"></div>
+    <div class="form-group"><label class="form-label">Message</label><textarea class="form-input" style="min-height:80px;resize:none">Bonjour Lola, veuillez trouver ci-joint votre contrat pour le concert du 20 juillet. Merci de le signer dès que possible.</textarea></div>
+    <div class="sig-box" style="margin-bottom:16px">
+      <div style="font-size:28px;margin-bottom:8px">✍️</div>
+      <div style="font-weight:800;font-size:14px;color:var(--studio)">Electronic signature</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">The artist signs directly from their phone or computer — no printing needed</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeSendModal()">Cancel</button>
+      <button class="btn btn-purple" style="flex:2" onclick="closeSendModal()">📤 Send now</button>
+    </div>
+  </div>
+</div>
+
+<!-- Send to artist modal -->
+<div class="modal-overlay" id="send-artist-modal" onclick="closeSendArtistModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Send bulletin to artist 💶</div>
+    <div style="background:rgba(93,201,160,.06);border:1px solid rgba(93,201,160,.2);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-weight:700">Bulletin de paie · Lola Warin · Juillet 2026</div>
+      <div style="font-size:12px;color:var(--muted)">Net à payer: €261.71</div>
+    </div>
+    <div class="form-group"><label class="form-label">Send to</label><input class="form-input" value="lola.warin@email.com"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeSendArtistModal()">Cancel</button>
+      <button class="btn btn-purple" style="flex:2" onclick="closeSendArtistModal()">📤 Send bulletin</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contract detail modal -->
+<div class="modal-overlay" id="contract-detail-modal" onclick="closeContractDetail()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title" style="margin:0">CDDU · Lola Warin</div>
+      <span class="badge badge-green">✓ Signed</span>
+    </div>
+    <div class="cddu-preview" style="margin:0 0 16px">
+      <div class="cddu-title">CONTRAT À DURÉE DÉTERMINÉE D'USAGE</div>
+      <div class="cddu-sub">Spectacle vivant — Art. L.1242-2 Code du Travail</div>
+      <div class="cddu-row"><span class="cddu-key">Employeur</span><span class="cddu-val">Théâtre du Nord</span></div>
+      <div class="cddu-row"><span class="cddu-key">Salarié(e)</span><span class="cddu-val">Lola Warin</span></div>
+      <div class="cddu-row"><span class="cddu-key">Fonction</span><span class="cddu-val">Percussionniste</span></div>
+      <div class="cddu-row"><span class="cddu-key">Date</span><span class="cddu-val">12 juillet 2026</span></div>
+      <div class="cddu-row"><span class="cddu-key">Prestation</span><span class="cddu-val">Répétition générale</span></div>
+      <div class="cddu-row"><span class="cddu-key">Rémunération</span><span class="cddu-val">1 × €350 brut</span></div>
+      <div class="cddu-sigs">
+        <div class="cddu-sig sig-box signed" style="border-radius:6px;padding:6px;font-size:10px;border-width:1px">✅ Signed<br>12 Jul 2026<br>Théâtre du Nord</div>
+        <div class="cddu-sig sig-box signed" style="border-radius:6px;padding:6px;font-size:10px;border-width:1px">✅ Signed<br>12 Jul 2026<br>Lola Warin</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" style="flex:1">📄 Download PDF</button>
+      <button class="btn btn-purple" style="flex:1" onclick="showBulletin();closeContractDetail();showScreen('paie')">💶 Generate paie</button>
+    </div>
+    <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="closeContractDetail()">Close</button>
+  </div>
+</div>
+
+<!-- Artist detail modal -->
+<div class="modal-overlay" id="artist-detail-modal" onclick="closeArtistDetail()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+      <div style="width:56px;height:56px;background:#C9A84C;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;color:#0A0A0F">L</div>
+      <div><div style="font-size:18px;font-weight:900">Lola Warin</div><div style="font-size:13px;color:var(--muted)">Percussionniste · Paris</div><div style="margin-top:4px"><span class="badge badge-green">✓ Available Jul 25+</span></div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Contract history</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Total contracts</span><span style="font-weight:700">4</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Total cachets paid</span><span style="font-weight:700;color:var(--gold)">€1,400</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span>Total hours</span><span style="font-weight:700">48h</span></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Skills</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="skill-tag">Batterie</span><span class="skill-tag">Percussions</span><span class="skill-tag">Marimba</span><span class="skill-tag">Spectacle vivant</span></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="showScreen('messages');closeArtistDetail()">💬 Message</button>
+      <button class="btn btn-purple" style="flex:1" onclick="showScreen('new-contract');closeArtistDetail()">+ New CDDU</button>
+    </div>
+    <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="closeArtistDetail()">Close</button>
+  </div>
+</div>
+
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const s = document.getElementById('screen-' + id);
+  if (s) { s.classList.add('active'); window.scrollTo(0, 0); }
+  const t = document.getElementById('tab-' + id);
+  if (t) t.classList.add('active');
+  // Highlight more tab for sub-screens
+  const moreScreens = ['documents','annuaire','messages','calendar','declarations'];
+  if (moreScreens.includes(id)) document.getElementById('tab-more').classList.add('active');
+}
+function openSendModal() { document.getElementById('send-modal').classList.add('open'); }
+function closeSendModal() { document.getElementById('send-modal').classList.remove('open'); }
+function openSendArtistModal() { document.getElementById('send-artist-modal').classList.add('open'); }
+function closeSendArtistModal() { document.getElementById('send-artist-modal').classList.remove('open'); }
+function showContractDetail() { document.getElementById('contract-detail-modal').classList.add('open'); }
+function closeContractDetail() { document.getElementById('contract-detail-modal').classList.remove('open'); }
+function showArtistDetail() { document.getElementById('artist-detail-modal').classList.add('open'); }
+function closeArtistDetail() { document.getElementById('artist-detail-modal').classList.remove('open'); }
+function showBulletin() {
+  document.getElementById('bulletin-preview').style.display = 'block';
+  setTimeout(() => document.getElementById('bulletin-preview').scrollIntoView({behavior:'smooth'}), 100);
+}
+function updateCDDU() {
+  const n = parseInt(document.getElementById('cddu-cachets').value) || 1;
+  const p = parseInt(document.getElementById('cddu-cachet').value) || 0;
+  document.getElementById('cddu-remun').textContent = n + ' cachet' + (n>1?'s':'') + ' × €' + p + ' = €' + (n*p) + ' brut';
+}
+</script>
+</body>
+</html>
