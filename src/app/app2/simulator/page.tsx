@@ -59,6 +59,25 @@ export default function SimulatorPage() {
       <Toolbar title="Simulateur ARE" />
       <div style={{ padding: '0 16px' }}>
 
+        {/* Intro */}
+        <Card style={{ marginBottom: '20px', background: 'rgba(201,168,76,.04)', border: '1px solid rgba(201,168,76,.15)' }}>
+          <div style={{ fontSize: '13px', lineHeight: 1.7, color: '#A090C0' }}>
+            En France, les artistes salariés peuvent recevoir des allocations chômage (ARE) entre les contrats — même s'ils continuent à travailler. C'est le régime des <strong style={{ color: '#C9A84C' }}>intermittents du spectacle</strong>.
+          </div>
+          <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {[
+              { icon: '1️⃣', text: '507 heures travaillées sur 12 mois pour ouvrir les droits' },
+              { icon: '2️⃣', text: 'France Travail verse une allocation journalière les jours sans contrat' },
+              { icon: '3️⃣', text: 'Tu peux cumuler travail et allocation le même mois' },
+            ].map(r => (
+              <div key={r.icon} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '14px', flexShrink: 0 }}>{r.icon}</span>
+                <span style={{ fontSize: '12px', color: '#5A5570', lineHeight: 1.5 }}>{r.text}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
         {/* Annexe selector */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
           {(['10', '8'] as const).map(a => (
