@@ -8,24 +8,13 @@ import { Trip, TripTicket } from '@/lib/types'
 async function extractTicketInfo(base64: string, mimeType: string): Promise<any> {
   try {
     if (!mimeType.startsWith('image/')) return {}
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/extract-ticket', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 500,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64.split(',')[1] } },
-            { type: 'text', text: 'Extract travel info from this ticket. Return ONLY valid JSON, no markdown: { "from": "departure city/station/airport", "to": "arrival city/station/airport", "date": "YYYY-MM-DD or original text", "time": "HH:MM departure time", "ref": "train/flight number", "seat": "seat if visible", "type": "train|plane|bus|other" }. Use null for missing fields.' }
-          ]
-        }]
-      })
+      body: JSON.stringify({ base64, mimeType })
     })
-    const data = await res.json()
-    const text = (data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim()
-    return JSON.parse(text)
+    if (!res.ok) return {}
+    return await res.json()
   } catch { return {} }
 }
 
