@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react'
 import { useStore, newId } from '@/lib/store'
 import { syncToCloud, deleteFromCloud } from '@/lib/sync'
-import { Button, Card, Select, Textarea, Modal, EmptyState, Toolbar } from '@/components/ui'
+import { Button, Card, Select, Textarea, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
 import { Trip, TripTicket } from '@/lib/types'
 
 async function extractTicketInfo(base64: string, mimeType: string): Promise<any> {
