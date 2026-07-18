@@ -49,6 +49,8 @@ function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setVie
   const ref = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
 
+  const [pdfForm, setPdfForm] = useState<{ ticketId: string, from: string, to: string, date: string, time: string, ref: string } | null>(null)
+
   const handleFile = async (file: File) => {
     const b64 = await new Promise<string>((res) => {
       const r = new FileReader()
@@ -57,18 +59,32 @@ function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setVie
     })
     const ticket: TripTicket = { id: newId(), data: b64, name: file.name, mime: file.type }
     onAdd(ticket)
+
     if (file.type.startsWith('image/')) {
+      // Image: extract with AI
       setLoading(true)
       onLoadingChange(true)
       try {
         const info = await extractTicketInfo(b64, file.type)
         onAdd({ ...ticket, info })
-      } catch (e) {
+      } catch {
         onAdd({ ...ticket, info: {} })
       }
       setLoading(false)
       onLoadingChange(false)
+    } else {
+      // PDF: show manual form
+      setPdfForm({ ticketId: ticket.id, from: '', to: '', date: '', time: '', ref: '' })
     }
+  }
+
+  const savePdfInfo = () => {
+    if (!pdfForm) return
+    const tk = tickets.find(t => t.id === pdfForm.ticketId)
+    if (tk) {
+      onAdd({ ...tk, info: { from: pdfForm.from, to: pdfForm.to, date: pdfForm.date, time: pdfForm.time, ref: pdfForm.ref } })
+    }
+    setPdfForm(null)
   }
 
   return (
@@ -119,6 +135,45 @@ function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setVie
       <button onClick={() => ref.current?.click()} style={{ width: '100%', background: '#12121A', border: `1px dashed ${color}50`, color: '#5A5570', borderRadius: '10px', padding: '12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>
         + Add {label.toLowerCase()} ticket
       </button>
+
+      {/* PDF manual form */}
+      {pdfForm && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,.8)', display: 'flex', alignItems: 'flex-end' }}>
+          <div style={{ background: '#13131C', borderRadius: '20px 20px 0 0', padding: '20px 16px 40px', width: '100%' }}>
+            <div style={{ width: '36px', height: '4px', background: '#1E1E2E', borderRadius: '2px', margin: '0 auto 16px' }} />
+            <div style={{ fontWeight: 900, fontSize: '16px', marginBottom: '4px' }}>📄 Add ticket details</div>
+            <div style={{ fontSize: '12px', color: '#5A5570', marginBottom: '16px' }}>PDF uploaded — enter the travel details</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>From</div>
+                <input value={pdfForm.from} onChange={e => setPdfForm({...pdfForm, from: e.target.value})} placeholder="Paris Gare de Lyon" style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '9px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>To</div>
+                <input value={pdfForm.to} onChange={e => setPdfForm({...pdfForm, to: e.target.value})} placeholder="Avignon TGV" style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '9px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Date</div>
+                <input type="date" value={pdfForm.date} onChange={e => setPdfForm({...pdfForm, date: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '9px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Time</div>
+                <input type="time" value={pdfForm.time} onChange={e => setPdfForm({...pdfForm, time: e.target.value})} style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '9px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Ref</div>
+                <input value={pdfForm.ref} onChange={e => setPdfForm({...pdfForm, ref: e.target.value})} placeholder="TGV 6214" style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '9px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setPdfForm(null)} style={{ flex: 1, background: 'rgba(255,255,255,.06)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '10px', padding: '12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: 700 }}>Skip</button>
+              <button onClick={savePdfInfo} style={{ flex: 2, background: color, border: 'none', color: '#0A0A0F', borderRadius: '10px', padding: '12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: 800 }}>Save details</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
