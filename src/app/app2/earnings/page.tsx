@@ -176,6 +176,75 @@ export default function EarningsPage() {
           </Card>
         </div>
 
+        {/* 507h Compteur — 12 derniers mois */}
+        {(() => {
+          const today = new Date()
+          const todayStr = today.toISOString().slice(0, 10)
+          const ref12 = new Date(today); ref12.setMonth(ref12.getMonth() - 12)
+          const ref12Str = ref12.toISOString().slice(0, 10)
+
+          let heures12 = 0, cachets12 = 0, lastContractDate = ''
+          for (const t of tours) {
+            if (t.start > todayStr) continue
+            if (t.start < ref12Str) continue
+            const artist = artists.find(a => a.id === t.aId)
+            const hoursDefault = (artist as any)?.defaultHours ?? (hoursPerEventType as any)[t.type] ?? 12
+            const h = t.customHours ?? hoursDefault
+            const count = (t as any).cachetCount || 1
+            heures12 += h * count
+            cachets12 += count
+            if (t.start > lastContractDate) lastContractDate = t.start
+          }
+
+          const pct507 = Math.min((heures12 / 507) * 100, 100)
+          const manque = Math.max(507 - heures12, 0)
+          const cachetsManquants = Math.ceil(manque / 12)
+          const has507 = heures12 >= 507
+
+          // Date anniversaire — 12 months after last contract
+          let anniversaire = ''
+          if (lastContractDate) {
+            const d = new Date(lastContractDate)
+            d.setFullYear(d.getFullYear() + 1)
+            anniversaire = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+          }
+
+          return (
+            <Card style={{ marginBottom: '16px', border: has507 ? '1px solid rgba(93,201,160,.3)' : '1px solid rgba(201,168,76,.2)', background: has507 ? 'rgba(93,201,160,.03)' : 'rgba(201,168,76,.02)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '14px' }}>Compteur 507h</div>
+                  <div style={{ fontSize: '11px', color: '#5A5570' }}>12 derniers mois · {cachets12} cachets</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '28px', fontWeight: 900, color: has507 ? '#5DC9A0' : '#C9A84C', lineHeight: 1 }}>{heures12.toFixed(0)}h</div>
+                  <div style={{ fontSize: '11px', color: '#5A5570' }}>/ 507h</div>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div style={{ background: '#12121A', borderRadius: '8px', height: '10px', overflow: 'hidden', marginBottom: '10px' }}>
+                <div style={{ height: '100%', borderRadius: '8px', background: has507 ? '#5DC9A0' : 'linear-gradient(90deg, #C9A84C, #E8B86D)', width: `${pct507}%`, transition: 'width .4s' }} />
+              </div>
+
+              {has507 ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: '13px', color: '#5DC9A0', fontWeight: 800 }}>✓ Droits ouverts</div>
+                  {anniversaire && <div style={{ fontSize: '11px', color: '#5A5570' }}>📅 Anniversaire {anniversaire}</div>}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span style={{ color: '#C9A84C', fontWeight: 700 }}>⚡ {manque.toFixed(0)}h manquantes</span>
+                    <span style={{ color: '#5A5570' }}>{cachetsManquants} cachets encore</span>
+                  </div>
+                  {anniversaire && <div style={{ fontSize: '11px', color: '#5A5570' }}>📅 Date anniversaire : {anniversaire}</div>}
+                </div>
+              )}
+            </Card>
+          )
+        })()}
+
         {/* Annual hours progress */}
         <Card style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
