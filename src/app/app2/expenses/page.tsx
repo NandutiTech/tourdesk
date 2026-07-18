@@ -13,7 +13,8 @@ function ExpenseModal({ open, onClose, editing, defaultTourId, setLastTourId }: 
   const [tourId, setTourId] = useState(editing?.tourId || defaultTourId || '')
   const [aId, setAId] = useState(editing?.aId || '')
   const [saving, setSaving] = useState(false)
-  const [date, setDate] = useState(editing?.date || '')
+  const today = new Date().toISOString().slice(0, 10)
+  const [date, setDate] = useState(editing?.date || today)
   const [amount, setAmount] = useState(editing?.amount?.toString() || '')
   const [cat, setCat] = useState<Expense['cat']>(editing?.cat || 'other')
   const [desc, setDesc] = useState(editing?.desc || '')
@@ -133,6 +134,22 @@ export default function ExpensesPage() {
   const total = expenses.reduce((s, e) => s + (e.amount || 0), 0)
   const artistName = (id: string | null | undefined) => id ? artists.find(a => a.id === id)?.name : null
 
+  // Group by show
+  const grouped: { tourId: string | null, label: string, items: Expense[], total: number }[] = []
+  const seen = new Set<string>()
+  for (const e of sorted) {
+    const key = e.tourId || '__none__'
+    if (!seen.has(key)) {
+      seen.add(key)
+      const t = e.tourId ? tours.find(t => t.id === e.tourId) : null
+      const label = t ? `${t.start} — ${t.title}` : 'No event'
+      grouped.push({ tourId: e.tourId || null, label, items: [], total: 0 })
+    }
+    const g = grouped.find(g => (g.tourId || '__none__') === key)!
+    g.items.push(e)
+    g.total += e.amount || 0
+  }
+
   const handleDelete = async (e: Expense) => {
     if (!confirm('Delete this expense?')) return
     deleteExpense(e.id); await syncToCloud(); showToast('Expense deleted')
@@ -161,33 +178,49 @@ export default function ExpensesPage() {
           </Card>
         )}
         {expenses.length === 0 ? <EmptyState icon="🧾" title="No expenses yet" sub="Track transport, hotel, meals and equipment costs." /> : (
-          sorted.map(e => {
-            const linkedTour = tours.find(t => t.id === e.tourId)
-            return (
-            <Card key={e.id} style={{ marginBottom: '8px', padding: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <div style={{ fontSize: '20px', marginTop: '2px' }}>{(CATS[e.cat] || CATS.other).split(' ')[0]}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: '13px' }}>{e.desc || CATS[e.cat]}</div>
-                  <div style={{ fontSize: '11px', color: '#5A5570' }}>{e.date}{artistName(e.aId) ? ` · ${artistName(e.aId)}` : ''}</div>
-                  {linkedTour && <div style={{ fontSize: '11px', color: '#C9A84C', marginTop: '2px' }}>🎫 {linkedTour.title}</div>}
-                  {e.receipt && (
-                    <button onClick={() => { setViewingReceipt({ src: e.receipt!, name: e.receiptName || 'Receipt' }) }} style={{ marginTop: '6px', background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: '#C9A84C', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700 }}>
-                      🧾 View receipt
-                    </button>
+          grouped.map(group => (
+            <div key={group.tourId || 'none'} style={{ marginBottom: '20px' }}>
+              {/* Group header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: group.tourId ? '#C9A84C' : '#5A5570' }}>
+                  {group.tourId ? '🎫' : '📦'} {group.label}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#C9A84C' }}>€{group.total.toFixed(2)}</span>
+                  {group.tourId && (
+                    <button onClick={() => { setEditing(null); setDefaultTourId(group.tourId!); setShowModal(true) }} style={{ background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: '#C9A84C', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700 }}>+ Add</button>
                   )}
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 800, color: '#C9A84C', fontSize: '14px' }}>€{(e.amount || 0).toFixed(2)}</div>
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                    <Button variant="secondary" size="sm" onClick={() => { setEditing(e); setShowModal(true) }}>✏</Button>
-                    <Button variant="danger" size="sm" onClick={() => handleDelete(e)}>✕</Button>
-                  </div>
-                </div>
               </div>
-            </Card>
-            )
-          })
+              {/* Expenses in group */}
+              {group.items.map(e => {
+                const linkedTour = tours.find(t => t.id === e.tourId)
+                return (
+                  <Card key={e.id} style={{ marginBottom: '8px', padding: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <div style={{ fontSize: '20px', marginTop: '2px' }}>{(CATS[e.cat] || CATS.other).split(' ')[0]}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: '13px' }}>{e.desc || CATS[e.cat]}</div>
+                        <div style={{ fontSize: '11px', color: '#5A5570' }}>{e.date}{artistName(e.aId) ? ` · ${artistName(e.aId)}` : ''}</div>
+                        {e.receipt && (
+                          <button onClick={() => setViewingReceipt({ src: e.receipt!, name: e.receiptName || 'Receipt' })} style={{ marginTop: '6px', background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: '#C9A84C', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700 }}>
+                            🧾 View receipt
+                          </button>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 800, color: '#C9A84C', fontSize: '14px' }}>€{(e.amount || 0).toFixed(2)}</div>
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                          <Button variant="secondary" size="sm" onClick={() => { setEditing(e); setShowModal(true) }}>✏</Button>
+                          <Button variant="danger" size="sm" onClick={() => handleDelete(e)}>✕</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
+          ))
         )}
       </div>
       <ExpenseModal open={showModal} onClose={() => { setShowModal(false); setDefaultTourId('') }} editing={editing} defaultTourId={defaultTourId} setLastTourId={setLastTourId} />
