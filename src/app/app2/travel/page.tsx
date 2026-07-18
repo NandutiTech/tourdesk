@@ -291,7 +291,7 @@ export default function TravelPage() {
         )}
       </div>
 
-      <TripModal open={showModal} onClose={() => { setShowModal(false); setEditing(null) }} editing={editing} />
+      <TripModal key={editing?.id || 'new'} open={showModal} onClose={() => { setShowModal(false); setEditing(null) }} editing={editing} />
 
       {viewing && (
         <div onClick={() => setViewing(null)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>

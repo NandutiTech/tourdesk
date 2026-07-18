@@ -130,7 +130,7 @@ export default function ExpensesPage() {
   const [lastTourId, setLastTourId] = useState('')
   const [defaultTourId, setDefaultTourId] = useState('')
 
-  const sorted = [...expenses].sort((a, b) => a.date.localeCompare(b.date))
+  const sorted = [...expenses].sort((a, b) => (a.date || '').localeCompare(b.date || ''))
   const total = expenses.reduce((s, e) => s + (e.amount || 0), 0)
   const artistName = (id: string | null | undefined) => id ? artists.find(a => a.id === id)?.name : null
 
@@ -223,7 +223,7 @@ export default function ExpensesPage() {
           ))
         )}
       </div>
-      <ExpenseModal open={showModal} onClose={() => { setShowModal(false); setDefaultTourId('') }} editing={editing} defaultTourId={defaultTourId} setLastTourId={setLastTourId} />
+      <ExpenseModal key={editing?.id || defaultTourId || 'new'} open={showModal} onClose={() => { setShowModal(false); setDefaultTourId('') }} editing={editing} defaultTourId={defaultTourId} setLastTourId={setLastTourId} />
       {viewingReceipt && (
         <div onClick={() => setViewingReceipt(null)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '600px', marginBottom: '12px' }}>
