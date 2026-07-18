@@ -320,6 +320,13 @@ export default function ExpensesPage() {
             {receiptsToShow[receiptViewIdx].src.startsWith('data:application/pdf') && (
               <iframe src={receiptsToShow[receiptViewIdx].src} style={{ width: '100%', height: '320px', border: 'none', borderRadius: '10px' }} />
             )}
+            <a
+              href={receiptsToShow[receiptViewIdx].src}
+              download={receiptsToShow[receiptViewIdx].name}
+              style={{ display: 'block', marginTop: '8px', background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px', textAlign: 'center', fontWeight: 700, fontSize: '13px', textDecoration: 'none' }}
+            >
+              ⬇ Download {receiptsToShow[receiptViewIdx].name}
+            </a>
           </div>
         )}
         <div style={{ display: 'flex', gap: '8px' }}>
