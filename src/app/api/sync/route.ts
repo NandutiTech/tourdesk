@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
           admin.from('artists').select('*').eq('user_id', uid).order('name'),
           admin.from('tours').select('*').eq('user_id', uid).order('start_date'),
         ])
-        return buildResponse(a2.data||[], t2.data||[], m.data||[], r.data||[], e.data||[], [], c.data||[], s.data)
+        return buildResponse(a2.data||[], t2.data||[], m.data||[], r.data||[], e.data||[], [], c.data||[], [], s.data)
       }
     }
 
