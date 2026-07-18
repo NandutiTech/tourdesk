@@ -281,16 +281,19 @@ export default function ExpensesPage() {
         </div>
       </Modal>
 
-      <SendToContact
-        open={showSend}
-        onClose={() => setShowSend(false)}
-        subject="Expense report"
-        {(() => {
-          const sel = selectedIds.size > 0 ? sorted.filter(e => selectedIds.has(e.id)) : sorted
-          const selTotal = sel.reduce((s, e) => s + (e.amount || 0), 0)
-          return `Expense report\n\n${sel.map(e => `• ${e.date} — ${e.desc || (CATS as any)[e.cat]} — €${(e.amount||0).toFixed(2)}`).join('\n')}\n\nTotal: €${selTotal.toFixed(2)}`
-        })()}
-      />
+      {(() => {
+        const sel = selectedIds.size > 0 ? sorted.filter(e => selectedIds.has(e.id)) : sorted
+        const selTotal = sel.reduce((s, e) => s + (e.amount || 0), 0)
+        const shareBody = `Expense report\n\n${sel.map(e => `• ${e.date} — ${e.desc || (CATS as any)[e.cat]} — €${(e.amount||0).toFixed(2)}`).join('\n')}\n\nTotal: €${selTotal.toFixed(2)}`
+        return (
+          <SendToContact
+            open={showSend}
+            onClose={() => setShowSend(false)}
+            subject="Expense report"
+            body={shareBody}
+          />
+        )
+      })()}
     </div>
   )
 }
