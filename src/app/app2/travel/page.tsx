@@ -73,9 +73,6 @@ function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setVie
     }
   }
 
-    setPdfForm(null)
-  }
-
   return (
     <div style={{ marginBottom: '16px' }}>
       <div style={{ fontSize: '11px', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px' }}>
