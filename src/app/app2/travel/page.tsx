@@ -2,15 +2,46 @@
 import { useState, useRef } from 'react'
 import { useStore, newId } from '@/lib/store'
 import { syncToCloud, deleteFromCloud } from '@/lib/sync'
-import { Button, Card, Input, Select, Textarea, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
+import { Button, Card, Select, Textarea, Modal, EmptyState, Toolbar, showToast, SectionLabel } from '@/components/ui'
 import { Trip } from '@/lib/types'
 
-function TicketUploader({ label, ticket, ticketName, onUpload, onRemove }: {
+// Extract ticket info using Claude
+async function extractTicketInfo(base64: string, mimeType: string): Promise<any> {
+  try {
+    const isImage = mimeType.startsWith('image/')
+    const content = isImage
+      ? [
+          { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64.split(',')[1] } },
+          { type: 'text', text: 'Extract travel information from this ticket. Return ONLY a JSON object with these fields (null if not found): { "from": "departure station/airport/city", "to": "arrival station/airport/city", "date": "YYYY-MM-DD", "time": "HH:MM", "ref": "train/flight number or reference", "seat": "seat number if visible", "type": "train|plane|bus|other" }' }
+        ]
+      : [{ type: 'text', text: 'This is a PDF ticket. Return a JSON with: { "from": null, "to": null, "date": null, "time": null, "ref": null, "seat": null, "type": null }' }]
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        messages: [{ role: 'user', content }]
+      })
+    })
+    const data = await res.json()
+    const text = data.content?.[0]?.text || '{}'
+    const clean = text.replace(/```json|```/g, '').trim()
+    return JSON.parse(clean)
+  } catch {
+    return {}
+  }
+}
+
+function TicketCard({ label, ticket, ticketName, info, onUpload, onRemove, loading }: {
   label: string
   ticket?: string
   ticketName?: string
-  onUpload: (data: string, name: string) => void
+  info?: any
+  onUpload: (data: string, name: string, mime: string) => void
   onRemove: () => void
+  loading?: boolean
 }) {
   const ref = useRef<HTMLInputElement>(null)
   const [viewing, setViewing] = useState(false)
@@ -21,38 +52,73 @@ function TicketUploader({ label, ticket, ticketName, onUpload, onRemove }: {
       reader.onload = () => res(reader.result as string)
       reader.readAsDataURL(file)
     })
-    onUpload(b64, file.name)
+    onUpload(b64, file.name, file.type)
   }
 
-  const isImage = ticket?.startsWith('data:image')
-  const isPDF = ticket?.startsWith('data:application/pdf')
-
   return (
-    <div style={{ marginBottom: '8px' }}>
-      <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px' }}>{label}</div>
+    <div style={{ marginBottom: '12px' }}>
+      <div style={{ fontSize: '11px', fontWeight: 800, color: label.includes('Outbound') ? '#C9A84C' : '#5DC9A0', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px' }}>
+        {label.includes('Outbound') ? '✈ ' : '🔄 '}{label}
+      </div>
       {!ticket ? (
         <>
           <input ref={ref} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
-          <button onClick={() => ref.current?.click()} style={{ width: '100%', background: '#12121A', border: '1px dashed #1F1F2E', color: '#5A5570', borderRadius: '8px', padding: '10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>
+          <button onClick={() => ref.current?.click()} style={{ width: '100%', background: '#12121A', border: `1px dashed ${label.includes('Outbound') ? 'rgba(201,168,76,.3)' : 'rgba(93,201,160,.3)'}`, color: '#5A5570', borderRadius: '10px', padding: '14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>
             📎 Upload ticket (photo or PDF)
           </button>
         </>
       ) : (
-        <div style={{ background: '#12121A', border: '1px solid #1F1F2E', borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ fontSize: '20px' }}>{isImage ? '🖼' : '📄'}</div>
-          <div style={{ flex: 1, fontSize: '12px', color: '#E8E0F0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ticketName}</div>
-          <button onClick={() => setViewing(true)} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700 }}>View</button>
-          <button onClick={onRemove} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}>✕</button>
+        <div>
+          {/* Auto-extracted info */}
+          {loading && (
+            <div style={{ background: '#12121A', border: '1px solid #1F1F2E', borderRadius: '10px', padding: '12px', marginBottom: '8px', fontSize: '13px', color: '#5A5570' }}>
+              🤖 Reading ticket...
+            </div>
+          )}
+          {info && !loading && (info.from || info.to || info.time) && (
+            <div style={{ background: '#12121A', border: `1px solid ${label.includes('Outbound') ? 'rgba(201,168,76,.2)' : 'rgba(93,201,160,.2)'}`, borderRadius: '10px', padding: '12px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em' }}>🤖 Auto-detected</span>
+              </div>
+              {(info.from || info.to) && (
+                <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>
+                  {info.from || '?'} → {info.to || '?'}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#5A5570' }}>
+                {info.date && <span>📅 {info.date}</span>}
+                {info.time && <span>🕐 {info.time}</span>}
+                {info.ref && <span>🎫 {info.ref}</span>}
+                {info.seat && <span>💺 {info.seat}</span>}
+              </div>
+            </div>
+          )}
+          {/* Ticket file */}
+          <div style={{ background: '#12121A', border: '1px solid #1F1F2E', borderRadius: '10px', padding: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ fontSize: '20px' }}>{ticket.startsWith('data:image') ? '🖼' : '📄'}</div>
+            <div style={{ flex: 1, fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ticketName}</div>
+            <button onClick={() => setViewing(true)} style={{ background: label.includes('Outbound') ? '#C9A84C' : '#5DC9A0', border: 'none', color: '#0A0A0F', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 800, flexShrink: 0 }}>
+              📱 Scan
+            </button>
+            <button onClick={onRemove} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px', padding: '0 2px', flexShrink: 0 }}>✕</button>
+          </div>
         </div>
       )}
 
-      {/* Viewer modal */}
+      {/* Viewer */}
       {viewing && ticket && (
-        <div onClick={() => setViewing(false)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div onClick={e => e.stopPropagation()} style={{ maxWidth: '100%', maxHeight: '90vh', position: 'relative' }}>
-            <button onClick={() => setViewing(false)} style={{ position: 'absolute', top: '-40px', right: 0, background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }}>✕</button>
-            {isImage && <img src={ticket} alt={ticketName} style={{ maxWidth: '100%', maxHeight: '85vh', borderRadius: '12px' }} />}
-            {isPDF && <iframe src={ticket} style={{ width: '90vw', height: '85vh', border: 'none', borderRadius: '12px' }} />}
+        <div onClick={() => setViewing(false)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '600px', marginBottom: '12px' }}>
+            <div style={{ fontWeight: 700, color: 'white', fontSize: '14px' }}>{ticketName}</div>
+            <button onClick={() => setViewing(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+          </div>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '600px' }}>
+            {ticket.startsWith('data:image') && (
+              <img src={ticket} alt={ticketName} style={{ width: '100%', borderRadius: '12px', objectFit: 'contain', maxHeight: '80vh' }} />
+            )}
+            {ticket.startsWith('data:application/pdf') && (
+              <iframe src={ticket} style={{ width: '100%', height: '80vh', border: 'none', borderRadius: '12px' }} />
+            )}
           </div>
         </div>
       )}
@@ -64,100 +130,111 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
   const { artists, addTrip, updateTrip, tours } = useStore()
   const [tourId, setTourId] = useState(editing?.tourId || '')
   const [aId, setAId] = useState(editing?.aId || '')
-  const [outFrom, setOutFrom] = useState(editing?.outFrom || '')
-  const [outTo, setOutTo] = useState(editing?.outTo || '')
-  const [outDate, setOutDate] = useState(editing?.outDate || '')
-  const [outTime, setOutTime] = useState(editing?.outTime || '')
-  const [outRef, setOutRef] = useState(editing?.outRef || '')
-  const [outTicket, setOutTicket] = useState(editing?.outTicket || '')
-  const [outTicketName, setOutTicketName] = useState(editing?.outTicketName || '')
-  const [retFrom, setRetFrom] = useState(editing?.retFrom || '')
-  const [retTo, setRetTo] = useState(editing?.retTo || '')
-  const [retDate, setRetDate] = useState(editing?.retDate || '')
-  const [retTime, setRetTime] = useState(editing?.retTime || '')
-  const [retRef, setRetRef] = useState(editing?.retRef || '')
-  const [retTicket, setRetTicket] = useState(editing?.retTicket || '')
-  const [retTicketName, setRetTicketName] = useState(editing?.retTicketName || '')
   const [notes, setNotes] = useState(editing?.notes || '')
   const [saving, setSaving] = useState(false)
 
+  // Outbound ticket
+  const [outTicket, setOutTicket] = useState(editing?.outTicket || '')
+  const [outTicketName, setOutTicketName] = useState(editing?.outTicketName || '')
+  const [outInfo, setOutInfo] = useState<any>(editing?.outInfo || null)
+  const [outLoading, setOutLoading] = useState(false)
+
+  // Return ticket
+  const [retTicket, setRetTicket] = useState(editing?.retTicket || '')
+  const [retTicketName, setRetTicketName] = useState(editing?.retTicketName || '')
+  const [retInfo, setRetInfo] = useState<any>(editing?.retInfo || null)
+  const [retLoading, setRetLoading] = useState(false)
+
+  const linkedTour = tours.find(t => t.id === tourId)
+  const linkedArtist = artists.find(a => a.id === (aId || linkedTour?.aId))
+
+  const handleOutUpload = async (data: string, name: string, mime: string) => {
+    setOutTicket(data)
+    setOutTicketName(name)
+    setOutLoading(true)
+    const info = await extractTicketInfo(data, mime)
+    setOutInfo(info)
+    setOutLoading(false)
+  }
+
+  const handleRetUpload = async (data: string, name: string, mime: string) => {
+    setRetTicket(data)
+    setRetTicketName(name)
+    setRetLoading(true)
+    const info = await extractTicketInfo(data, mime)
+    setRetInfo(info)
+    setRetLoading(false)
+  }
+
   const save = async () => {
-    if (!outDate && !outTicket && !retTicket) { showToast('Add at least a date or a ticket', false); return }
+    if (!tourId && !outTicket && !retTicket) { showToast('Select an event or upload a ticket', false); return }
     if (saving) return
     setSaving(true)
+    const effectiveAId = aId || linkedTour?.aId || null
     const trip: Trip = {
       id: editing?.id || newId(),
-      aId: aId || null,
+      aId: effectiveAId,
       tourId: tourId || null,
-      outFrom, outTo, outDate, outTime, outRef, outTicket, outTicketName,
-      retFrom, retTo, retDate, retTime, retRef, retTicket, retTicketName,
+      outTicket, outTicketName, outInfo,
+      retTicket, retTicketName, retInfo,
       notes
     }
     if (editing) updateTrip(trip)
     else addTrip(trip)
     await syncToCloud()
-    showToast('Trip saved')
+    showToast('Trip saved ✓')
     setSaving(false)
     onClose()
   }
 
   return (
     <Modal open={open} onClose={onClose} title={editing ? 'Edit Trip' : 'New Trip'}>
-      <Select label="Artist / Employer" value={aId} onChange={e => setAId(e.target.value)}>
-        <option value="">No artist</option>
-        {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-      </Select>
-
-      <Select label="Linked event (optional)" value={tourId} onChange={e => {
+      {/* Event selector */}
+      <Select label="Event" value={tourId} onChange={e => {
         setTourId(e.target.value)
-        // Auto-fill artist if event has one
         const t = tours.find(t => t.id === e.target.value)
         if (t?.aId) setAId(t.aId)
       }}>
-        <option value="">No event linked</option>
-        {[...tours].sort((a, b) => a.start.localeCompare(b.start)).map(t => {
+        <option value="">Select an event...</option>
+        {[...tours].sort((a, b) => b.start.localeCompare(a.start)).map(t => {
           const artist = artists.find(a => a.id === t.aId)
-          return <option key={t.id} value={t.id}>{t.start} — {t.title}{artist ? ` (${artist.name})` : ''}</option>
+          return <option key={t.id} value={t.id}>{t.start} — {t.title}{artist ? ` · ${artist.name}` : ''}</option>
         })}
       </Select>
 
-      <div style={{ fontSize: '11px', fontWeight: 800, color: '#C9A84C', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px', marginTop: '4px' }}>✈ Outbound</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        <Input label="From" value={outFrom} onChange={e => setOutFrom(e.target.value)} placeholder="Paris CDG" />
-        <Input label="To" value={outTo} onChange={e => setOutTo(e.target.value)} placeholder="Lyon" />
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        <Input label="Date *" type="date" value={outDate} onChange={e => setOutDate(e.target.value)} />
-        <Input label="Time" type="time" value={outTime} onChange={e => setOutTime(e.target.value)} />
-      </div>
-      <Input label="Reference" value={outRef} onChange={e => setOutRef(e.target.value)} placeholder="TGV 6214 / AY123" />
-      <TicketUploader
-        label="🎫 Outbound ticket"
+      {/* Event summary */}
+      {linkedTour && (
+        <div style={{ background: 'rgba(93,201,160,.06)', border: '1px solid rgba(93,201,160,.15)', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
+          <div style={{ fontWeight: 800, fontSize: '14px', marginBottom: '4px' }}>{linkedTour.title}</div>
+          <div style={{ fontSize: '12px', color: '#5A5570' }}>
+            📅 {linkedTour.start}{linkedTour.end && linkedTour.end !== linkedTour.start ? ` → ${linkedTour.end}` : ''}
+            {linkedArtist && <span style={{ color: linkedArtist.color }}> · {linkedArtist.name}</span>}
+          </div>
+        </div>
+      )}
+
+      <TicketCard
+        label="Outbound ticket"
         ticket={outTicket}
         ticketName={outTicketName}
-        onUpload={(data, name) => { setOutTicket(data); setOutTicketName(name) }}
-        onRemove={() => { setOutTicket(''); setOutTicketName('') }}
+        info={outInfo}
+        loading={outLoading}
+        onUpload={handleOutUpload}
+        onRemove={() => { setOutTicket(''); setOutTicketName(''); setOutInfo(null) }}
       />
 
-      <div style={{ fontSize: '11px', fontWeight: 800, color: '#5DC9A0', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px', marginTop: '12px' }}>🔄 Return</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        <Input label="From" value={retFrom} onChange={e => setRetFrom(e.target.value)} placeholder="Lyon" />
-        <Input label="To" value={retTo} onChange={e => setRetTo(e.target.value)} placeholder="Paris CDG" />
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        <Input label="Date" type="date" value={retDate} onChange={e => setRetDate(e.target.value)} />
-        <Input label="Time" type="time" value={retTime} onChange={e => setRetTime(e.target.value)} />
-      </div>
-      <Input label="Reference" value={retRef} onChange={e => setRetRef(e.target.value)} placeholder="TGV 6215" />
-      <TicketUploader
-        label="🎫 Return ticket"
+      <TicketCard
+        label="Return ticket"
         ticket={retTicket}
         ticketName={retTicketName}
-        onUpload={(data, name) => { setRetTicket(data); setRetTicketName(name) }}
-        onRemove={() => { setRetTicket(''); setRetTicketName('') }}
+        info={retInfo}
+        loading={retLoading}
+        onUpload={handleRetUpload}
+        onRemove={() => { setRetTicket(''); setRetTicketName(''); setRetInfo(null) }}
       />
 
       <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '60px' }} />
+
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
         <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
@@ -172,11 +249,17 @@ export default function TravelPage() {
   const [editing, setEditing] = useState<Trip | null>(null)
   const [viewingTicket, setViewingTicket] = useState<{ src: string, name: string } | null>(null)
 
-  const sorted = [...trips].sort((a, b) => (a.outDate || '').localeCompare(b.outDate || ''))
   const today = new Date().toISOString().slice(0, 10)
-  const upcoming = sorted.filter(t => (t.outDate || '') >= today)
-  const past = sorted.filter(t => (t.outDate || '') < today).reverse()
-  const artistName = (id: string | null | undefined) => id ? artists.find(a => a.id === id)?.name : null
+
+  const enriched = trips.map(t => {
+    const linkedTour = tours.find(tour => tour.id === t.tourId)
+    const artist = artists.find(a => a.id === (t.aId || linkedTour?.aId))
+    const date = linkedTour?.start || t.outInfo?.date || t.retInfo?.date || ''
+    return { ...t, linkedTour, artist, date }
+  }).sort((a, b) => a.date.localeCompare(b.date))
+
+  const upcoming = enriched.filter(t => t.date >= today || !t.date)
+  const past = enriched.filter(t => t.date && t.date < today).reverse()
 
   const handleDelete = async (t: Trip) => {
     if (!confirm('Delete this trip?')) return
@@ -185,15 +268,20 @@ export default function TravelPage() {
     showToast('Trip deleted')
   }
 
-  const TripCard = ({ t }: { t: Trip }) => {
-    const linkedTour = t.tourId ? tours.find(tour => tour.id === t.tourId) : null
-    return (
+  const TripCard = ({ t }: { t: any }) => (
     <Card style={{ marginBottom: '10px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-        <div>
-          {artistName(t.aId) && <div style={{ fontSize: '11px', color: '#C9A84C', fontWeight: 700, marginBottom: '4px' }}>🎤 {artistName(t.aId)}</div>}
-      {linkedTour && <div style={{ fontSize: '11px', color: '#5DC9A0', fontWeight: 700, marginBottom: '6px' }}>🎫 {linkedTour.start} — {linkedTour.title}</div>}
-          <div style={{ fontSize: '13px', fontWeight: 700 }}>{t.outDate}{t.retDate ? ` → ${t.retDate}` : ''}</div>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+        <div style={{ flex: 1 }}>
+          {t.linkedTour && (
+            <div style={{ fontWeight: 800, fontSize: '14px', marginBottom: '2px' }}>{t.linkedTour.title}</div>
+          )}
+          {t.artist && (
+            <div style={{ fontSize: '11px', color: t.artist.color, fontWeight: 700 }}>🎤 {t.artist.name}</div>
+          )}
+          {t.linkedTour && (
+            <div style={{ fontSize: '11px', color: '#5A5570' }}>📅 {t.linkedTour.start}{t.linkedTour.end && t.linkedTour.end !== t.linkedTour.start ? ` → ${t.linkedTour.end}` : ''}</div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '4px' }}>
           <Button variant="secondary" size="sm" onClick={() => { setEditing(t); setShowModal(true) }}>✏</Button>
@@ -202,28 +290,42 @@ export default function TravelPage() {
       </div>
 
       {/* Outbound */}
-      {(t.outFrom || t.outTo || t.outTicket) && (
-        <div style={{ background: '#12121A', borderRadius: '8px', padding: '10px', marginBottom: '8px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 800, color: '#C9A84C', letterSpacing: '.1em', marginBottom: '6px' }}>✈ OUTBOUND{t.outTime ? ` · ${t.outTime}` : ''}</div>
-          {(t.outFrom || t.outTo) && <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>{t.outFrom} → {t.outTo}</div>}
-          {t.outRef && <div style={{ fontSize: '11px', color: '#5A5570', marginBottom: '6px' }}>🎫 {t.outRef}</div>}
+      {(t.outInfo || t.outTicket) && (
+        <div style={{ background: '#12121A', borderRadius: '10px', padding: '12px', marginBottom: '8px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 800, color: '#C9A84C', letterSpacing: '.1em', marginBottom: '6px' }}>✈ OUTBOUND</div>
+          {t.outInfo?.from && t.outInfo?.to && (
+            <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>{t.outInfo.from} → {t.outInfo.to}</div>
+          )}
+          <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#5A5570', marginBottom: t.outTicket ? '8px' : 0 }}>
+            {t.outInfo?.date && <span>📅 {t.outInfo.date}</span>}
+            {t.outInfo?.time && <span>🕐 {t.outInfo.time}</span>}
+            {t.outInfo?.ref && <span>🎫 {t.outInfo.ref}</span>}
+            {t.outInfo?.seat && <span>💺 {t.outInfo.seat}</span>}
+          </div>
           {t.outTicket && (
-            <button onClick={() => setViewingTicket({ src: t.outTicket!, name: t.outTicketName || 'Ticket' })} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>
-              📱 View ticket
+            <button onClick={() => setViewingTicket({ src: t.outTicket, name: t.outTicketName || 'Outbound ticket' })} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 800, width: '100%' }}>
+              📱 Show ticket to scan
             </button>
           )}
         </div>
       )}
 
       {/* Return */}
-      {(t.retFrom || t.retTo || t.retTicket) && (
-        <div style={{ background: '#12121A', borderRadius: '8px', padding: '10px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 800, color: '#5DC9A0', letterSpacing: '.1em', marginBottom: '6px' }}>🔄 RETURN{t.retDate ? ` · ${t.retDate}` : ''}{t.retTime ? ` ${t.retTime}` : ''}</div>
-          {(t.retFrom || t.retTo) && <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>{t.retFrom} → {t.retTo}</div>}
-          {t.retRef && <div style={{ fontSize: '11px', color: '#5A5570', marginBottom: '6px' }}>🎫 {t.retRef}</div>}
+      {(t.retInfo || t.retTicket) && (
+        <div style={{ background: '#12121A', borderRadius: '10px', padding: '12px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 800, color: '#5DC9A0', letterSpacing: '.1em', marginBottom: '6px' }}>🔄 RETURN</div>
+          {t.retInfo?.from && t.retInfo?.to && (
+            <div style={{ fontSize: '15px', fontWeight: 800, marginBottom: '4px' }}>{t.retInfo.from} → {t.retInfo.to}</div>
+          )}
+          <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#5A5570', marginBottom: t.retTicket ? '8px' : 0 }}>
+            {t.retInfo?.date && <span>📅 {t.retInfo.date}</span>}
+            {t.retInfo?.time && <span>🕐 {t.retInfo.time}</span>}
+            {t.retInfo?.ref && <span>🎫 {t.retInfo.ref}</span>}
+            {t.retInfo?.seat && <span>💺 {t.retInfo.seat}</span>}
+          </div>
           {t.retTicket && (
-            <button onClick={() => setViewingTicket({ src: t.retTicket!, name: t.retTicketName || 'Return ticket' })} style={{ background: '#5DC9A0', border: 'none', color: '#0A0A0F', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>
-              📱 View ticket
+            <button onClick={() => setViewingTicket({ src: t.retTicket, name: t.retTicketName || 'Return ticket' })} style={{ background: '#5DC9A0', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 800, width: '100%' }}>
+              📱 Show ticket to scan
             </button>
           )}
         </div>
@@ -231,44 +333,49 @@ export default function TravelPage() {
 
       {t.notes && <div style={{ fontSize: '12px', color: '#5A5570', marginTop: '8px', fontStyle: 'italic' }}>{t.notes}</div>}
     </Card>
-    )
-  }
+  )
 
   return (
     <div style={{ padding: '0 0 100px' }}>
       <Toolbar title="Travel" actions={<Button size="sm" onClick={() => { setEditing(null); setShowModal(true) }}>+ Trip</Button>} />
       <div style={{ padding: '0 16px' }}>
         {trips.length === 0 ? (
-          <EmptyState icon="✈" title="No trips yet" sub="Add your tickets and travel details. Upload your tickets to view them on the go." />
+          <EmptyState icon="✈" title="No trips yet" sub="Link your events to tickets. Claude reads them automatically — no typing needed." />
         ) : (
           <>
-            {upcoming.length > 0 && <>
-              <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase', color: '#5A5570', marginBottom: '10px' }}>Upcoming</div>
-              {upcoming.map(t => <TripCard key={t.id} t={t} />)}
-            </>}
-            {past.length > 0 && <>
-              <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '.12em', textTransform: 'uppercase', color: '#5A5570', margin: '16px 0 10px', opacity: 0.5 }}>Past</div>
-              {past.map(t => <TripCard key={t.id} t={t} />)}
-            </>}
+            {upcoming.length > 0 && (
+              <>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px' }}>Upcoming</div>
+                {upcoming.map(t => <TripCard key={t.id} t={t} />)}
+              </>
+            )}
+            {past.length > 0 && (
+              <>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px', marginTop: '16px', opacity: 0.5 }}>Past</div>
+                {past.map(t => <TripCard key={t.id} t={t} />)}
+              </>
+            )}
           </>
         )}
       </div>
 
       <TripModal open={showModal} onClose={() => { setShowModal(false); setEditing(null) }} editing={editing} />
 
-      {/* Ticket viewer */}
+      {/* Full screen ticket viewer */}
       {viewingTicket && (
-        <div onClick={() => setViewingTicket(null)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <div onClick={() => setViewingTicket(null)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '600px', marginBottom: '12px' }}>
             <div style={{ fontWeight: 700, color: 'white' }}>{viewingTicket.name}</div>
-            <button onClick={() => setViewingTicket(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }}>✕</button>
+            <button onClick={() => setViewingTicket(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer', lineHeight: 1 }}>✕</button>
           </div>
-          {viewingTicket.src.startsWith('data:image') && (
-            <img src={viewingTicket.src} alt={viewingTicket.name} style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '12px', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
-          )}
-          {viewingTicket.src.startsWith('data:application/pdf') && (
-            <iframe src={viewingTicket.src} style={{ width: '100%', maxWidth: '600px', height: '80vh', border: 'none', borderRadius: '12px' }} onClick={(e: any) => e.stopPropagation()} />
-          )}
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '600px' }}>
+            {viewingTicket.src.startsWith('data:image') && (
+              <img src={viewingTicket.src} alt={viewingTicket.name} style={{ width: '100%', borderRadius: '12px', objectFit: 'contain', maxHeight: '80vh' }} />
+            )}
+            {viewingTicket.src.startsWith('data:application/pdf') && (
+              <iframe src={viewingTicket.src} style={{ width: '100%', height: '80vh', border: 'none', borderRadius: '12px' }} />
+            )}
+          </div>
         </div>
       )}
     </div>

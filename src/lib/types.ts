@@ -58,21 +58,13 @@ export interface Replacement {
 export interface Trip {
   id: string
   aId?: string | null
-  outFrom?: string
-  outTo?: string
-  outDate?: string
-  outTime?: string
-  outRef?: string
-  outTicket?: string   // base64 image or PDF URL
+  tourId?: string | null   // linked tour/event
+  outTicket?: string
   outTicketName?: string
-  tourId?: string | null  // linked tour/event
-  retFrom?: string
-  retTo?: string
-  retDate?: string
-  retTime?: string
-  retRef?: string
-  retTicket?: string   // base64 image or PDF URL
+  outInfo?: any            // AI-extracted ticket info
+  retTicket?: string
   retTicketName?: string
+  retInfo?: any            // AI-extracted ticket info
   notes?: string
 }
 
