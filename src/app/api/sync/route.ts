@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const uid = user.id
 
-    const [a, t, m, r, e, tr, c, s] = await Promise.all([
+    const [a, t, m, r, e, tr, c, g, s] = await Promise.all([
       admin.from('artists').select('*').eq('user_id', uid).order('name'),
       admin.from('tours').select('*').eq('user_id', uid).order('start_date'),
       admin.from('meetings').select('*').eq('user_id', uid).order('date'),
@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
       admin.from('expenses').select('*').eq('user_id', uid).order('date', { ascending: true }),
       admin.from('trips').select('*').eq('user_id', uid).order('created_at'),
       admin.from('contacts').select('*').eq('user_id', uid).order('name'),
+      admin.from('guests').select('*').eq('user_id', uid).order('created_at'),
       admin.from('user_settings').select('*').eq('user_id', uid).single(),
     ])
 
@@ -57,17 +58,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return buildResponse(a.data||[], t.data||[], m.data||[], r.data||[], e.data||[], tr.data||[], c.data||[], s.data)
+    return buildResponse(a.data||[], t.data||[], m.data||[], r.data||[], e.data||[], tr.data||[], c.data||[], g.data||[], s.data)
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
 
-function buildResponse(artists: any[], tours: any[], meetings: any[], replacements: any[], expenses: any[], trips: any[], contacts: any[], settings: any) {
+function buildResponse(artists: any[], tours: any[], meetings: any[], replacements: any[], expenses: any[], trips: any[], contacts: any[], guests: any[], settings: any) {
   return NextResponse.json({
-    artists: artists.map(a => ({ id: a.id, name: a.name, genre: a.genre||'', color: a.color||'#C9A84C', siret: a.siret||'', address: a.address||'', nature: a.nature||'' })),
-    tours: tours.map(t => ({ id: t.id, aId: t.artist_id, title: t.title, start: t.start_date, end: t.end_date, city: t.city||'', type: t.type||'show', paid: t.paid!==false, received: t.received||false, customCachet: t.custom_cachet||null, customHours: t.custom_hours||null, notes: t.notes||'', address: t.address||'', hotel: t.hotel||'', room: t.room||'', hotelAddr: t.hotel_addr||'', doclink: t.doclink||'' })),
+    artists: artists.map(a => ({ id: a.id, name: a.name, genre: a.genre||'', color: a.color||'#C9A84C', siret: a.siret||'', address: a.address||'', nature: a.nature||'', defaultCachet: a.cachet_default||null, defaultHours: a.hours_per_cachet||12 })),
+    tours: tours.map(t => ({ id: t.id, aId: t.artist_id, title: t.title, start: t.start_date, end: t.end_date, city: t.city||'', type: t.type||'show', paid: t.paid!==false, received: t.received||false, customCachet: t.custom_cachet||null, customHours: t.custom_hours||null, cachetCount: t.cachet_count||1, notes: t.notes||'', address: t.address||'', hotel: t.hotel||'', room: t.room||'', hotelAddr: t.hotel_addr||'', doclink: t.doclink||'' })),
     meetings: meetings.map(m => ({ id: m.id, title: m.title, type: m.type||'online', date: m.date, time: m.time||'', location: m.location||'', notes: m.notes||'' })),
     subs: replacements.map(s => ({ id: s.id, name: s.name, inst: s.instrument||'', phone: s.phone||'', email: s.email||'', genre: s.genre||'', notes: s.notes||'' })),
     expenses: expenses.map(e => ({ id: e.id, aId: e.artist_id, tourId: e.tour_id||null, date: e.date, amount: e.amount, cat: e.category||'other', desc: e.description||'', receipt: e.receipt_url||'', receiptName: e.receipt_name||'', receiptMime: e.receipt_mime||'' })),
@@ -77,7 +78,7 @@ function buildResponse(artists: any[], tours: any[], meetings: any[], replacemen
     calY: settings?.cal_year,
     calM: settings?.cal_month,
     trips: trips.map((tr: any) => ({ id: tr.id, aId: tr.artist_id||null, tourId: tr.tour_id||null, outTickets: tr.out_tickets||[], retTickets: tr.ret_tickets||[], notes: tr.notes||'' })),
-    guests: settings?.data_blob?.guests || [],
+    guests: guests.map((g: any) => ({ id: g.id, tourId: g.tour_id||null, name: g.name, contact: g.contact||'', count: g.count||1, notes: g.notes||'', status: g.status||'confirmed' })),
     mgrTours: settings?.data_blob?.mgrTours || [],
     cachets: settings?.data_blob?.cachets || {},
     artistHours: settings?.data_blob?.artistHours || {},
@@ -123,7 +124,8 @@ async function saveAll(uid: string, data: any): Promise<void> {
   // Build all records first, then batch upsert per table in parallel
   const artists = (data.artists || []).map((a: any) => ({
     id: String(a.id), user_id: uid, name: a.name, genre: a.genre||'',
-    color: a.color||'#C9A84C', siret: a.siret||'', address: a.address||'', nature: a.nature||''
+    color: a.color||'#C9A84C', siret: a.siret||'', address: a.address||'', nature: a.nature||'',
+    cachet_default: a.defaultCachet||null, hours_per_cachet: a.defaultHours||12
   }))
 
   const tours = (data.tours || []).map((t: any) => ({
@@ -135,6 +137,7 @@ async function saveAll(uid: string, data: any): Promise<void> {
     received: t.received||false,
     custom_cachet: t.customCachet||null,
     custom_hours: t.customHours||null,
+    cachet_count: t.cachetCount||1,
     notes: t.notes||'', address: t.address||'',
     hotel: t.hotel||'', room: t.room||'',
     hotel_addr: t.hotelAddr||'', doclink: t.doclink||''
@@ -148,7 +151,7 @@ async function saveAll(uid: string, data: any): Promise<void> {
 
   const replacements = (data.subs || []).map((s: any) => ({
     id: String(s.id), user_id: uid, name: s.name,
-    instrument: s.inst||'', phone: s.phone||'', genre: s.genre||'', notes: s.notes||''
+    instrument: s.inst||'', phone: s.phone||'', email: s.email||'', genre: s.genre||'', notes: s.notes||''
   }))
 
   const expenses = (data.expenses || []).map((e: any) => ({
@@ -206,6 +209,15 @@ async function saveAll(uid: string, data: any): Promise<void> {
   }))
   if (trips_data.length) ops.push(admin.from('trips').upsert(trips_data) as unknown as Promise<any>)
   if (contacts.length) ops.push(admin.from('contacts').upsert(contacts) as unknown as Promise<any>)
+
+  const guests_data = (data.guests || []).map((g: any) => ({
+    id: String(g.id), user_id: uid,
+    tour_id: g.tourId || null,
+    name: g.name, contact: g.contact||'',
+    count: g.count||1, notes: g.notes||'',
+    status: g.status||'confirmed'
+  }))
+  if (guests_data.length) ops.push(admin.from('guests').upsert(guests_data) as unknown as Promise<any>)
 
   await Promise.allSettled(ops)
 }
