@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       admin.from('tours').select('*').eq('user_id', uid).order('start_date'),
       admin.from('meetings').select('*').eq('user_id', uid).order('date'),
       admin.from('replacements').select('*').eq('user_id', uid).order('name'),
-      admin.from('expenses').select('*').eq('user_id', uid).order('date', { ascending: false }),
+      admin.from('expenses').select('*').eq('user_id', uid).order('date', { ascending: true }),
       admin.from('contacts').select('*').eq('user_id', uid).order('name'),
       admin.from('user_settings').select('*').eq('user_id', uid).single(),
     ])
@@ -69,13 +69,17 @@ function buildResponse(artists: any[], tours: any[], meetings: any[], replacemen
     tours: tours.map(t => ({ id: t.id, aId: t.artist_id, title: t.title, start: t.start_date, end: t.end_date, city: t.city||'', type: t.type||'show', paid: t.paid!==false, received: t.received||false, customCachet: t.custom_cachet||null, customHours: t.custom_hours||null, notes: t.notes||'', address: t.address||'', hotel: t.hotel||'', room: t.room||'', hotelAddr: t.hotel_addr||'', doclink: t.doclink||'' })),
     meetings: meetings.map(m => ({ id: m.id, title: m.title, type: m.type||'online', date: m.date, time: m.time||'', location: m.location||'', notes: m.notes||'' })),
     subs: replacements.map(s => ({ id: s.id, name: s.name, inst: s.instrument||'', phone: s.phone||'', email: s.email||'', genre: s.genre||'', notes: s.notes||'' })),
-    expenses: expenses.map(e => ({ id: e.id, aId: e.artist_id, date: e.date, amount: e.amount, cat: e.category||'other', desc: e.description||'', receipt: e.receipt_url||'' })),
+    expenses: expenses.map(e => ({ id: e.id, aId: e.artist_id, tourId: e.tour_id||null, date: e.date, amount: e.amount, cat: e.category||'other', desc: e.description||'', receipt: e.receipt_url||'', receiptName: e.receipt_name||'', receiptMime: e.receipt_mime||'' })),
     contacts: contacts.map(c => ({ id: c.id, name: c.name, role: c.role||'', company: c.company||'', phone: c.phone||'', email: c.email||'', aId: c.artist_id||null, contact: c.contact_info||'', last: c.last_contact_date||'', followup: c.followup_date||'', notes: c.notes||'' })),
     hoursGoal: settings?.hours_goal || 507,
     hoursPerEventType: settings?.hour_types || {},
     calY: settings?.cal_year,
     calM: settings?.cal_month,
-    trips: [], guests: [], mgrTours: [], cachets: {}, artistHours: {},
+    trips: settings?.data_blob?.trips || [],
+    guests: settings?.data_blob?.guests || [],
+    mgrTours: settings?.data_blob?.mgrTours || [],
+    cachets: settings?.data_blob?.cachets || {},
+    artistHours: settings?.data_blob?.artistHours || {},
     _cloudLoaded: true
   })
 }
@@ -149,7 +153,9 @@ async function saveAll(uid: string, data: any): Promise<void> {
   const expenses = (data.expenses || []).map((e: any) => ({
     id: String(e.id), user_id: uid, date: e.date,
     amount: e.amount, category: e.cat||'other',
-    description: e.desc||'', receipt_url: e.receipt||''
+    description: e.desc||'', receipt_url: e.receipt||'',
+    receipt_name: e.receiptName||'', receipt_mime: e.receiptMime||'',
+    tour_id: e.tourId||null, artist_id: e.aId||null
   }))
 
   const contacts = (data.contacts || []).map((ct: any) => ({
@@ -166,7 +172,14 @@ async function saveAll(uid: string, data: any): Promise<void> {
     hour_types: data.hoursPerEventType||{},
     cal_year: data.calY,
     cal_month: data.calM,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    data_blob: {
+      trips: data.trips || [],
+      guests: data.guests || [],
+      mgrTours: data.mgrTours || [],
+      cachets: data.cachets || {},
+      artistHours: data.artistHours || {}
+    }
   }
 
   // Batch upsert all tables in parallel
