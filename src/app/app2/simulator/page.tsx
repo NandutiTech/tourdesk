@@ -32,20 +32,27 @@ export default function SimulatorPage() {
   const ref12 = new Date(); ref12.setMonth(ref12.getMonth() - 12)
   const ref12Str = ref12.toISOString().slice(0, 10)
 
-  const { heures12 } = useMemo(() => {
-    let h = 0
+  const { heures12, salaire12, cachets12 } = useMemo(() => {
+    let h = 0, s = 0, c = 0
     for (const t of tours) {
       if (t.start > today || t.start < ref12Str) continue
       const artist = artists.find(a => a.id === t.aId)
       const hDefault = (artist as any)?.defaultHours ?? (hoursPerEventType as any)[t.type] ?? 12
-      h += (t.customHours ?? hDefault) * ((t as any).cachetCount || 1)
+      const count = (t as any).cachetCount || 1
+      h += (t.customHours ?? hDefault) * count
+      // Use custom cachet if set, then artist default, then 0
+      const cachetBrut = (t as any).customCachet ?? (artist as any)?.defaultCachet ?? 0
+      s += cachetBrut * count
+      c += count
     }
-    return { heures12: h }
+    return { heures12: h, salaire12: s, cachets12: c }
   }, [tours, artists, hoursPerEventType])
 
-  const salaireNum = parseFloat(salaire) || 0
+  const salaireNum = parseFloat(salaire) || salaire12
+  const salaireIsEstimated = !salaire && salaire12 > 0
+  const salaireIsEmpty = !salaire && salaire12 === 0
   const heuresNum = heures12
-  const aj = salaireNum > 0 ? calcAJ(salaireNum, heuresNum, annexe) : null
+  const aj = !salaireIsEmpty ? calcAJ(salaireNum, heuresNum, annexe) : null
 
   // Cumul
   const hCumul = parseFloat(heuresCumul) || 0
@@ -105,18 +112,29 @@ export default function SimulatorPage() {
         <Card style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px' }}>Salaire brut de référence</div>
           <div style={{ fontSize: '11px', color: '#5A5570', marginBottom: '12px' }}>
-            Total de tes salaires bruts sur 12 mois — visible sur tes AEM (attestations employeur)
+            Total de tes cachets bruts sur 12 mois
           </div>
           <div style={{ position: 'relative' }}>
             <input
               type="number"
               value={salaire}
               onChange={e => setSalaire(e.target.value)}
-              placeholder="ex: 8500"
+              placeholder={salaire12 > 0 ? salaire12.toFixed(0) : 'ex: 8500'}
               style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '10px', padding: '14px 40px 14px 14px', fontFamily: 'inherit', fontSize: '20px', fontWeight: 800, outline: 'none', boxSizing: 'border-box' }}
             />
             <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: '#5A5570', fontSize: '18px', fontWeight: 700 }}>€</span>
           </div>
+          {salaireIsEstimated && (
+            <div style={{ marginTop: '8px', background: 'rgba(201,168,76,.08)', border: '1px solid rgba(201,168,76,.15)', borderRadius: '8px', padding: '8px 12px', fontSize: '11px', color: '#C9A84C' }}>
+              ✦ Estimé depuis tes cachets TourDesk : {cachets12} cachets · €{salaire12.toFixed(0)} brut
+              <div style={{ color: '#5A5570', marginTop: '2px' }}>Tu peux corriger si tes cachets réels sont différents</div>
+            </div>
+          )}
+          {salaireIsEmpty && (
+            <div style={{ marginTop: '8px', fontSize: '11px', color: '#5A5570' }}>
+              💡 Configure le cachet par artiste dans Earnings pour un calcul automatique
+            </div>
+          )}
         </Card>
 
         {/* Result */}
@@ -135,7 +153,9 @@ export default function SimulatorPage() {
         ) : (
           <Card style={{ marginBottom: '12px', background: '#12121A', textAlign: 'center', padding: '24px' }}>
             <div style={{ fontSize: '24px', marginBottom: '8px' }}>💶</div>
-            <div style={{ fontSize: '13px', color: '#5A5570' }}>Entre ton salaire brut pour voir ton allocation estimée</div>
+            <div style={{ fontSize: '13px', color: '#5A5570', lineHeight: 1.6 }}>
+              Configure le montant de tes cachets dans <strong style={{ color: '#C9A84C' }}>Earnings → Default cachet per artist</strong> pour un calcul automatique
+            </div>
           </Card>
         )}
 
