@@ -162,7 +162,9 @@ async function saveAll(uid: string, data: any): Promise<void> {
   const contacts = (data.contacts || []).map((ct: any) => ({
     id: String(ct.id), user_id: uid, name: ct.name,
     role: ct.role||'', company: ct.company||'',
+    phone: ct.phone||'', email: ct.email||'',
     contact_info: ct.contact||'',
+    artist_id: ct.aId||null,
     last_contact_date: ct.last||null,
     followup_date: ct.followup||null, notes: ct.notes||''
   }))

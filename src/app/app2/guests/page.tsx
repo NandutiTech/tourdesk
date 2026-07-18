@@ -30,8 +30,8 @@ function GuestModal({ open, onClose, editing, defaultTourId }: {
 
   const save = async () => {
     if (saving) return
+    if (!name.trim()) { showToast('Name required', false); return }
     setSaving(true)
-    if (!name.trim()) { showToast('Name required', false); setSaving(false); return }
     const guest: Guest = {
       id: editing?.id || newId(),
       tourId: tourId || null, name: name.trim(),
@@ -39,10 +39,10 @@ function GuestModal({ open, onClose, editing, defaultTourId }: {
       status: editing?.status || 'confirmed'
     }
     if (editing) updateGuest(guest); else addGuest(guest)
-    await syncToCloud()
-    setSaving(false)
     showToast(name + (editing ? ' updated' : ' added'))
     onClose()
+    syncToCloud() // background, don't await
+    setSaving(false)
   }
 
   return (

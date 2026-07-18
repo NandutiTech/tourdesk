@@ -255,6 +255,7 @@ export default function ExpensesPage() {
         <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {sorted.map(e => {
             const checked = selectedIds.has(e.id)
+            const linkedTour = tours.find(t => t.id === e.tourId)
             return (
               <div key={e.id} onClick={() => setSelectedIds(prev => {
                 const n = new Set(prev)
@@ -266,9 +267,12 @@ export default function ExpensesPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '13px', fontWeight: 700 }}>{e.desc || (CATS as any)[e.cat]}</div>
-                  <div style={{ fontSize: '11px', color: '#5A5570' }}>{e.date}</div>
+                  <div style={{ fontSize: '11px', color: '#5A5570' }}>
+                    {e.date} · €{(e.amount||0).toFixed(2)}
+                    {linkedTour && <span style={{ color: '#C9A84C' }}> · {linkedTour.title}</span>}
+                  </div>
                 </div>
-                <div style={{ fontWeight: 700, color: '#C9A84C' }}>€{(e.amount||0).toFixed(2)}</div>
+                <div style={{ fontWeight: 700, color: '#C9A84C', flexShrink: 0 }}>€{(e.amount||0).toFixed(2)}</div>
               </div>
             )
           })}
