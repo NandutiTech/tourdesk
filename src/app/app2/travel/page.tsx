@@ -81,7 +81,7 @@ function TripModal({ open, onClose, editing }: { open: boolean, onClose: () => v
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
-    if (!outDate) { showToast('Departure date required', false); return }
+    if (!outDate && !outTicket && !retTicket) { showToast('Add at least a date or a ticket', false); return }
     if (saving) return
     setSaving(true)
     const trip: Trip = {
