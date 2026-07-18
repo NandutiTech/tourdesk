@@ -8,9 +8,9 @@ import { Expense } from '@/lib/types'
 
 const CATS = { transport: '🚆 Transport', hotel: '🏨 Hotel', food: '🍽 Food', equipment: '🎛 Equipment', other: '📦 Other' }
 
-function ExpenseModal({ open, onClose, editing }: { open: boolean, onClose: () => void, editing?: Expense | null }) {
+function ExpenseModal({ open, onClose, editing, defaultTourId, setLastTourId }: { open: boolean, onClose: () => void, editing?: Expense | null, defaultTourId?: string, setLastTourId: (id: string) => void }) {
   const { artists, tours, addExpense, updateExpense } = useStore()
-  const [tourId, setTourId] = useState(editing?.tourId || '')
+  const [tourId, setTourId] = useState(editing?.tourId || defaultTourId || '')
   const [aId, setAId] = useState(editing?.aId || '')
   const [saving, setSaving] = useState(false)
   const [date, setDate] = useState(editing?.date || '')
@@ -44,7 +44,11 @@ function ExpenseModal({ open, onClose, editing }: { open: boolean, onClose: () =
       date: effectiveDate, amount: parseFloat(amount), cat, desc, receipt, receiptName, receiptMime
     }
     if (editing) updateExpense(expense); else addExpense(expense)
-    await syncToCloud(); setSaving(false); showToast('Expense saved'); onClose()
+    await syncToCloud(); setSaving(false); showToast('Expense saved')
+    if (tourId) {
+      setLastTourId(tourId)
+    }
+    onClose()
   }
 
   return (
@@ -122,8 +126,10 @@ export default function ExpensesPage() {
   const [editing, setEditing] = useState<Expense | null>(null)
   const [showSend, setShowSend] = useState(false)
   const [viewingReceipt, setViewingReceipt] = useState<{ src: string, name: string } | null>(null)
+  const [lastTourId, setLastTourId] = useState('')
+  const [defaultTourId, setDefaultTourId] = useState('')
 
-  const sorted = [...expenses].sort((a, b) => b.date.localeCompare(a.date))
+  const sorted = [...expenses].sort((a, b) => a.date.localeCompare(b.date))
   const total = expenses.reduce((s, e) => s + (e.amount || 0), 0)
   const artistName = (id: string | null | undefined) => id ? artists.find(a => a.id === id)?.name : null
 
@@ -134,7 +140,19 @@ export default function ExpensesPage() {
 
   return (
     <div style={{ padding: '0 0 100px' }}>
-      <Toolbar title="Expenses" actions={<><Button variant="secondary" size="sm" onClick={() => setShowSend(true)}>📤 Send</Button><Button size="sm" onClick={() => { setEditing(null); setShowModal(true) }}>+ Expense</Button></>} />
+      <Toolbar title="Expenses" actions={<><Button variant="secondary" size="sm" onClick={() => setShowSend(true)}>📤 Send</Button><Button size="sm" onClick={() => { setEditing(null); setDefaultTourId(''); setShowModal(true) }}>+ Expense</Button></>} />
+      {lastTourId && !showModal && (() => {
+        const t = tours.find(t => t.id === lastTourId)
+        return t ? (
+          <div style={{ margin: '0 16px 12px', background: 'rgba(201,168,76,.08)', border: '1px solid rgba(201,168,76,.2)', borderRadius: '12px', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+            <div style={{ fontSize: '12px', color: '#C9A84C', fontWeight: 700 }}>+ Add expense for {t.title}</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => { setEditing(null); setDefaultTourId(lastTourId); setShowModal(true) }} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>Add</button>
+              <button onClick={() => setLastTourId('')} style={{ background: 'none', border: 'none', color: '#5A5570', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+            </div>
+          </div>
+        ) : null
+      })()}
       <div style={{ padding: '0 16px' }}>
         {expenses.length > 0 && (
           <Card style={{ marginBottom: '16px', textAlign: 'center' }}>
@@ -172,7 +190,7 @@ export default function ExpensesPage() {
           })
         )}
       </div>
-      <ExpenseModal open={showModal} onClose={() => setShowModal(false)} editing={editing} />
+      <ExpenseModal open={showModal} onClose={() => { setShowModal(false); setDefaultTourId('') }} editing={editing} defaultTourId={defaultTourId} setLastTourId={setLastTourId} />
       {viewingReceipt && (
         <div onClick={() => setViewingReceipt(null)} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '600px', marginBottom: '12px' }}>
