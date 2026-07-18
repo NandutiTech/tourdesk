@@ -40,8 +40,14 @@ function TicketSection({ label, color, tickets, onAdd, onRemove, viewing, setVie
     onAdd(ticket)
     if (file.type.startsWith('image/')) {
       setLoading(true)
-      const info = await extractTicketInfo(b64, file.type)
-      onAdd({ ...ticket, info })
+      try {
+        const info = await extractTicketInfo(b64, file.type)
+        console.log('Extracted info:', info)
+        onAdd({ ...ticket, info: Object.keys(info).length > 0 ? info : { _error: 'No data extracted' } })
+      } catch (e) {
+        console.error('Extraction failed:', e)
+        onAdd({ ...ticket, info: { _error: String(e) } })
+      }
       setLoading(false)
     }
   }
