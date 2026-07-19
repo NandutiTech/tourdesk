@@ -498,6 +498,9 @@ export default function ManagerPage() {
   const [editingShow, setEditingShow] = useState<any>(null)
   const [editingMember, setEditingMember] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const firstShowDate = shows.length > 0 ? new Date(shows[0].date + 'T12:00:00') : new Date()
+  const [calY, setCalY] = useState(firstShowDate.getFullYear())
+  const [calM, setCalM] = useState(firstShowDate.getMonth())
   const [importing, setImporting] = useState(false)
   const [showsView, setShowsView] = useState<'list'|'calendar'>('calendar')
   const importRef = useRef<HTMLInputElement>(null)
@@ -627,22 +630,17 @@ export default function ManagerPage() {
                 )}
 
                 {showsView === 'calendar' && (() => {
-                  const showDates = new Set(tourShows.map((s: any) => s.date))
-                  const today = new Date()
-                  const firstShowDate = tourShows[0]?.date ? new Date(tourShows[0].date + 'T12:00:00') : today
-                  const [calY, setCalY] = React.useState(firstShowDate.getFullYear())
-                  const [calM, setCalM] = React.useState(firstShowDate.getMonth())
                   const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-                  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+                  const MONTHS_CAL = ['January','February','March','April','May','June','July','August','September','October','November','December']
                   const totalDays = new Date(calY, calM + 1, 0).getDate()
                   const firstDay = new Date(calY, calM, 1).getDay()
-                  const todayStr = today.toISOString().slice(0, 10)
+                  const todayStr = new Date().toISOString().slice(0, 10)
                   const pad = (n: number) => String(n).padStart(2, '0')
                   return (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                         <button onClick={() => { if (calM === 0) { setCalY(calY-1); setCalM(11) } else setCalM(calM-1) }} style={{ background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '16px' }}>‹</button>
-                        <div style={{ flex: 1, textAlign: 'center', fontWeight: 900, fontSize: '16px' }}>{MONTHS[calM]} <span style={{ color: '#C9A84C' }}>{calY}</span></div>
+                        <div style={{ flex: 1, textAlign: 'center', fontWeight: 900, fontSize: '16px' }}>{MONTHS_CAL[calM]} <span style={{ color: '#C9A84C' }}>{calY}</span></div>
                         <button onClick={() => { if (calM === 11) { setCalY(calY+1); setCalM(0) } else setCalM(calM+1) }} style={{ background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '16px' }}>›</button>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
