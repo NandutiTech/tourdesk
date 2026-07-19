@@ -760,7 +760,7 @@ export default function ManagerPage() {
   const [expenses, setExpenses] = useState<any[]>([])
   const [memberTab, setMemberTab] = useState<'hotel'|'tickets'|'expenses'|'messages'>('hotel')
 
-  const switchMemberTab = (t: 'hotel'|'tickets'|'guests'|'expenses'|'messages') => {
+  const switchMemberTab = (t: 'hotel'|'tickets'|'expenses'|'messages') => {
     setMemberTab(t)
   }
 
