@@ -1281,10 +1281,33 @@ export default function ManagerPage() {
                         {m.role && <div style={{ fontSize: '11px', color: '#C9A84C', fontWeight: 700 }}>{m.role}</div>}
                         {m.email && <div style={{ fontSize: '11px', color: '#5A5570' }}>✉ {m.email}</div>}
                         {m.phone && <div style={{ fontSize: '11px', color: '#5A5570' }}>📱 {m.phone}</div>}
+                        {m.user_id ? (
+                          <div style={{ fontSize: '10px', color: '#5DC9A0', marginTop: '2px' }}>✓ Joined TourDesk</div>
+                        ) : m.invite_status === 'invited' ? (
+                          <div style={{ fontSize: '10px', color: '#C9A84C', marginTop: '2px' }}>⏳ Invite sent</div>
+                        ) : null}
                       </div>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button onClick={() => { setEditingMember(m); setShowMemberModal(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏</button>
-                        <button onClick={async () => { if (!confirm(`Remove ${m.name}?`)) return; await api('delete_member', { memberId: m.id }); load({ tourId: selTour.id }) }} style={{ background: 'none', border: '1px solid #E8453C', color: '#E8453C', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✕</button>
+                      <div style={{ display: 'flex', gap: '6px', flexDirection: 'column', alignItems: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button onClick={() => { setEditingMember(m); setShowMemberModal(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏</button>
+                          <button onClick={async () => { if (!confirm(`Remove ${m.name}?`)) return; await api('delete_member', { memberId: m.id }); load({ tourId: selTour.id }) }} style={{ background: 'none', border: '1px solid #E8453C', color: '#E8453C', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✕</button>
+                        </div>
+                        {m.email && !m.user_id && (
+                          <button onClick={async () => {
+                            const token = getToken()
+                            const res = await fetch('/api/invite-member', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                              body: JSON.stringify({ memberId: m.id })
+                            })
+                            const data = await res.json()
+                            if (data.ok) showToast(`Invite sent to ${m.email} ✓`)
+                            else showToast(data.error || 'Failed to send', false)
+                            load({ tourId: selTour.id })
+                          }} style={{ background: 'rgba(93,201,160,.1)', border: '1px solid rgba(93,201,160,.2)', color: '#5DC9A0', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700 }}>
+                            📧 Invite
+                          </button>
+                        )}
                       </div>
                     </div>
                   </Card>
