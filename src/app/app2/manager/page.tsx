@@ -485,6 +485,13 @@ export default function ManagerPage() {
   const [expenses, setExpenses] = useState<any[]>([])
   const [memberTab, setMemberTab] = useState<'hotel'|'tickets'|'guests'|'expenses'|'messages'>('hotel')
 
+  const switchMemberTab = async (t: 'hotel'|'tickets'|'guests'|'expenses'|'messages') => {
+    setMemberTab(t)
+    if (['guests','expenses','messages'].includes(t) && selTour && selShow && selMember) {
+      await load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
+    }
+  }
+
   const [selTour, setSelTour] = useState<any>(null)
   const [selShow, setSelShow] = useState<any>(null)
   const [selMember, setSelMember] = useState<any>(null)
@@ -810,7 +817,7 @@ export default function ManagerPage() {
             {/* Tabs - 2x3 grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
               {([['hotel','🏨','Hotel'],['tickets','✈','Tickets'],['guests','🎫','Guests'],['expenses','💰','Expenses'],['messages','💬','Messages']] as const).map(([t, icon, label]) => (
-                <button key={t} onClick={() => setMemberTab(t)} style={{ padding: '12px', borderRadius: '10px', border: `2px solid ${memberTab === t ? '#C9A84C' : '#1F1F2E'}`, background: memberTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: memberTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 800, textAlign: 'center' }}>
+                <button key={t} onClick={() => switchMemberTab(t as any)} style={{ padding: '12px', borderRadius: '10px', border: `2px solid ${memberTab === t ? '#C9A84C' : '#1F1F2E'}`, background: memberTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: memberTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 800, textAlign: 'center' }}>
                   {icon} {label}
                 </button>
               ))}
@@ -901,7 +908,7 @@ export default function ManagerPage() {
       <TourModal key={editingTour?.id || 'new-tour'} open={showTourModal} onClose={() => setShowTourModal(false)} editing={editingTour} onSaved={() => { load(); setShowTourModal(false) }} />
       <ShowModal key={editingShow?.id || 'new-show'} open={showShowModal} onClose={() => setShowShowModal(false)} tourId={selTour?.id} editing={editingShow} onSaved={() => load({ tourId: selTour?.id })} />
       <MemberModal key={editingMember?.id || 'new-member'} open={showMemberModal} onClose={() => setShowMemberModal(false)} tourId={selTour?.id} editing={editingMember} onSaved={() => { load({ tourId: selTour?.id }); if (selMember?.id === editingMember?.id) setSelMember({ ...selMember, ...editingMember }) }} />
-      <HotelModal key={`hotel-${selMember?.id}-${selShow?.id}`} open={showHotelModal} onClose={() => setShowHotelModal(false)} showId={selShow?.id} memberId={selMember?.id} tourId={selTour?.id} existing={showMemberData} onSaved={() => load({ tourId: selTour?.id, showId: selShow?.id, memberId: selMember?.id })} />
+      <HotelModal key={`hotel-${selMember?.id}-${selShow?.id}-${showHotelModal}`} open={showHotelModal} onClose={() => setShowHotelModal(false)} showId={selShow?.id} memberId={selMember?.id} tourId={selTour?.id} existing={showMemberData} onSaved={() => load({ tourId: selTour?.id, showId: selShow?.id, memberId: selMember?.id })} />
     </div>
   )
 }
