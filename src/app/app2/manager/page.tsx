@@ -1411,36 +1411,6 @@ export default function ManagerPage() {
               />
             )}
 
-            {/* Members */}
-            <div style={{ fontSize: '12px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', margin: '16px 0 10px' }}>
-              👥 Team
-            </div>
-            {tourMembers.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '20px', background: '#12121A', borderRadius: '12px' }}>
-                Add team members in the Team tab first
-              </div>
-            ) : tourMembers.map((m: any) => {
-              const memberTix = tickets.filter((t: any) => t.member_id === m.id)
-              return (
-                <Card key={m.id} style={{ marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '14px' }}>{m.name}</div>
-                      {m.role && <div style={{ fontSize: '11px', color: '#C9A84C' }}>{m.role}</div>}
-                      {m.email && <div style={{ fontSize: '11px', color: '#5A5570' }}>✉ {m.email}</div>}
-                      {m.phone && <div style={{ fontSize: '11px', color: '#5A5570' }}>📱 {m.phone}</div>}
-                      <div style={{ fontSize: '11px', color: memberTix.length === 0 ? '#E8453C' : '#5A5570', marginTop: '2px' }}>
-                        {memberTix.length === 0 ? 'No tickets yet' : `✈ ${memberTix.filter((t: any) => t.direction === 'out').length} out · 🔄 ${memberTix.filter((t: any) => t.direction === 'ret').length} ret`}
-                      </div>
-                    </div>
-                    <button onClick={() => { setEditingMember(m); setShowMemberModal(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏</button>
-                  </div>
-                </Card>
-              )
-            })}
-          </div>
-        </>
-      )}
 
 
       {/* ── SCREEN 4: Member detail — simplified ── */}
