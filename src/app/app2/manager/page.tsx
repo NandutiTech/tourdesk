@@ -66,28 +66,45 @@ const SHOW_INFO_FIELDS: Record<string, { label: string, placeholder: string }> =
 
 function ShowInfoSection({ show, field, onSave }: any) {
   const info = SHOW_INFO_FIELDS[field]
-  const fieldKey = field === 'hotel' ? 'hotel' : field
-  const notesKey = field === 'hotel' ? 'hotel_notes' : null
+  const fieldKey = field
   const [value, setValue] = useState(show[fieldKey] || '')
-  const [notes, setNotes] = useState(notesKey ? (show[notesKey] || '') : '')
+  const [hotelNotes, setHotelNotes] = useState(show['hotel_notes'] || '')
+  const [hotelAddr, setHotelAddr] = useState(show['hotel_addr'] || '')
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
     setSaving(true)
     const updates: any = { [fieldKey]: value }
-    if (notesKey) updates[notesKey] = notes
+    if (field === 'hotel') {
+      updates.hotel_notes = hotelNotes
+      updates.hotel_addr = hotelAddr
+    }
     await onSave(updates)
     setSaving(false)
   }
+
+  const mapsUrl = hotelAddr ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotelAddr)}` : null
 
   return (
     <Card style={{ marginBottom: '12px' }}>
       <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '10px' }}>{info?.label}</div>
       <textarea value={value} onChange={e => setValue(e.target.value)} placeholder={info?.placeholder}
-        style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '10px', padding: '12px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', minHeight: '100px', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }} />
-      {notesKey && (
-        <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes supplémentaires..."
-          style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#C9A84C', borderRadius: '10px', padding: '12px', fontFamily: 'inherit', fontSize: '12px', outline: 'none', minHeight: '60px', resize: 'vertical', boxSizing: 'border-box', marginTop: '6px' }} />
+        style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '10px', padding: '12px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', minHeight: '80px', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }} />
+      {field === 'hotel' && (
+        <>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', margin: '8px 0 4px' }}>📍 Address</div>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+            <input value={hotelAddr} onChange={e => setHotelAddr(e.target.value)} placeholder="12 rue de la Paix, Paris"
+              style={{ flex: 1, background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+            {mapsUrl && (
+              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ background: '#4285F4', border: 'none', color: 'white', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                🗺 Maps
+              </a>
+            )}
+          </div>
+          <textarea value={hotelNotes} onChange={e => setHotelNotes(e.target.value)} placeholder="Additional notes..."
+            style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#C9A84C', borderRadius: '10px', padding: '12px', fontFamily: 'inherit', fontSize: '12px', outline: 'none', minHeight: '50px', resize: 'vertical', boxSizing: 'border-box' }} />
+        </>
       )}
       <Button onClick={save} disabled={saving} style={{ marginTop: '10px', width: '100%' }}>
         {saving ? 'Saving...' : 'Save'}
