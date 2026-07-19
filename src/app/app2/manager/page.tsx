@@ -1294,7 +1294,28 @@ export default function ManagerPage() {
       {/* ── SCREEN 3: Show → Shared info + Members ── */}
       {screen === 'show' && selShow && (
         <>
-          <Toolbar title={selShow.venue || selShow.date} actions={<Button size="sm" onClick={() => { setEditingShow(selShow); setShowShowModal(true) }}>✏ Edit</Button>} />
+          <Toolbar title={selShow.venue || selShow.date} actions={
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={async () => {
+                let token = selShow.share_token
+                if (!token) {
+                  const res = await api('generate_share_token', { showId: selShow.id })
+                  token = res.token
+                  setSelShow({ ...selShow, share_token: token })
+                }
+                const url = `${window.location.origin}/show/${token}`
+                if (navigator.share) {
+                  navigator.share({ title: selShow.venue || selShow.date, url })
+                } else {
+                  navigator.clipboard.writeText(url)
+                  showToast('Link copied! 📋')
+                }
+              }} style={{ background: '#5DC9A0', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>
+                📤 Share
+              </button>
+              <Button size="sm" onClick={() => { setEditingShow(selShow); setShowShowModal(true) }}>✏ Edit</Button>
+            </div>
+          } />
           <Breadcrumb />
           <div style={{ padding: '0 16px' }}>
             <div style={{ background: 'rgba(201,168,76,.06)', border: '1px solid rgba(201,168,76,.15)', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px' }}>

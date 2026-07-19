@@ -208,6 +208,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, id })
   }
 
+  // ─── Share token ──────────────────────────────────────────────────────────
+  if (action === 'generate_share_token') {
+    const token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
+    await admin.from('tour_shows').update({ share_token: token }).eq('id', body.showId).eq('manager_id', user.id)
+    return NextResponse.json({ ok: true, token })
+  }
+
   // ─── Show shared info ────────────────────────────────────────────────────
   if (action === 'update_show_info') {
     const { showId, hotel, hotel_notes, transfers, meals, planning, technique } = body
