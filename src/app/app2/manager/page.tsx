@@ -554,6 +554,17 @@ export default function ManagerPage() {
     setLoading(false)
   }
 
+  const [plan, setPlan] = useState<string | null>(null)
+
+  useEffect(() => {
+    const token = getToken()
+    if (!token) return
+    fetch('/api/plan', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => setPlan(d.plan || 'solo'))
+      .catch(() => setPlan('solo'))
+  }, [])
+
   useEffect(() => { load() }, [])
 
   const goTours = () => { setScreen('tours'); setSelTour(null); setSelShow(null); setSelMember(null); load() }
@@ -600,6 +611,22 @@ export default function ManagerPage() {
   )
 
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: '#5A5570' }}>Loading...</div>
+
+  if (plan !== null && plan !== 'manager') return (
+    <div style={{ padding: '0 16px' }}>
+      <Toolbar title="Manager" />
+      <div style={{ textAlign: 'center', padding: '40px 16px' }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎪</div>
+        <div style={{ fontWeight: 800, fontSize: '18px', marginBottom: '8px' }}>Manager plan required</div>
+        <div style={{ fontSize: '13px', color: '#5A5570', marginBottom: '24px', lineHeight: 1.6 }}>
+          The Manager Tour Sheet is available on the Manager plan.<br />Upgrade to manage your team's travel, hotel and tickets.
+        </div>
+        <a href="/app2/pricing" style={{ background: '#C9A84C', color: '#0A0A0F', borderRadius: '12px', padding: '12px 24px', fontWeight: 800, fontSize: '14px', textDecoration: 'none', display: 'inline-block' }}>
+          Upgrade to Manager →
+        </a>
+      </div>
+    </div>
+  )
 
   return (
     <div style={{ padding: '0 0 100px' }}>
