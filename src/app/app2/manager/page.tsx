@@ -55,6 +55,156 @@ async function extractShows(base64: string, mimeType: string) {
   } catch { return [] }
 }
 
+// ─── Show Expenses (all members) ───────────────────────────────────────────
+function ShowExpenses({ showId, tourId, members, showDate, expenses, onRefresh }: any) {
+  const [showAdd, setShowAdd] = useState(false)
+  const [selectedMemberId, setSelectedMemberId] = useState('')
+  const [viewingReceipt, setViewingReceipt] = useState<any>(null)
+  const total = expenses.reduce((s: number, e: any) => s + (e.amount || 0), 0)
+  const getMemberName = (id: string) => members.find((m: any) => m.id === id)?.name || ''
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div style={{ fontSize: '12px', color: '#5A5570' }}>{expenses.length} expenses · €{total.toFixed(2)}</div>
+        <Button size="sm" onClick={() => { setSelectedMemberId(''); setShowAdd(true) }}>+ Expense</Button>
+      </div>
+
+      {/* Group by member */}
+      {members.map((m: any) => {
+        const memberExpenses = expenses.filter((e: any) => e.member_id === m.id)
+        const memberTotal = memberExpenses.reduce((s: number, e: any) => s + (e.amount || 0), 0)
+        if (memberExpenses.length === 0 && expenses.length > 0) return null
+        return (
+          <div key={m.id} style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#C9A84C' }}>{m.name}{m.role ? ` · ${m.role}` : ''}</div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {memberTotal > 0 && <span style={{ fontSize: '12px', fontWeight: 700, color: '#C9A84C' }}>€{memberTotal.toFixed(2)}</span>}
+                <button onClick={() => { setSelectedMemberId(m.id); setShowAdd(true) }} style={{ background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: '#C9A84C', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700 }}>+ Add</button>
+              </div>
+            </div>
+            {memberExpenses.length === 0 ? (
+              <div style={{ fontSize: '12px', color: '#5A5570', padding: '8px 12px', background: '#12121A', borderRadius: '8px' }}>No expenses</div>
+            ) : memberExpenses.map((e: any) => (
+              <Card key={e.id} style={{ marginBottom: '6px', padding: '10px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ fontSize: '16px' }}>{(CATS[e.category] || CATS.other).split(' ')[0]}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: '12px' }}>{e.description || e.category}</div>
+                    <div style={{ fontSize: '10px', color: '#5A5570' }}>{e.date}</div>
+                    {e.receipt_data && (
+                      <button onClick={() => setViewingReceipt({ src: e.receipt_data, name: e.receipt_name || 'Receipt' })} style={{ marginTop: '4px', background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: '#C9A84C', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '10px', fontWeight: 700 }}>🧾 Receipt</button>
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 800, color: '#C9A84C', fontSize: '13px' }}>€{(e.amount||0).toFixed(2)}</div>
+                    <button onClick={async () => { if (!confirm('Delete?')) return; await api('delete_expense', { expenseId: e.id }); onRefresh() }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '14px' }}>✕</button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )
+      })}
+
+      {/* Add expense modal with member selector */}
+      {showAdd && (
+        <ShowExpenseModal
+          open={showAdd} onClose={() => setShowAdd(false)}
+          members={members} defaultMemberId={selectedMemberId} showDate={showDate}
+          onSave={async (e: any) => {
+            await api('add_expense', { showId, tourId, memberId: e.memberId, ...e })
+            onRefresh()
+          }}
+        />
+      )}
+
+      {viewingReceipt && (
+        <div onClick={() => setViewingReceipt(null)} style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '600px', marginBottom: '12px' }}>
+            <div style={{ fontWeight: 700, color: 'white' }}>{viewingReceipt.name}</div>
+            <button onClick={() => setViewingReceipt(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer' }}>✕</button>
+          </div>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '600px' }}>
+            {viewingReceipt.src.startsWith('data:image') && <img src={viewingReceipt.src} alt="" style={{ width: '100%', borderRadius: '12px', maxHeight: '80vh', objectFit: 'contain' }} />}
+            {viewingReceipt.src.startsWith('data:application/pdf') && <iframe src={viewingReceipt.src} style={{ width: '100%', height: '80vh', border: 'none', borderRadius: '12px' }} />}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+function ShowExpenseModal({ open, onClose, members, defaultMemberId, showDate, onSave }: any) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const today = showDate || new Date().toISOString().slice(0, 10)
+  const [memberId, setMemberId] = useState(defaultMemberId || '')
+  const [date, setDate] = useState(today)
+  const [amount, setAmount] = useState('')
+  const [cat, setCat] = useState('other')
+  const [desc, setDesc] = useState('')
+  const [receipt, setReceipt] = useState('')
+  const [receiptName, setReceiptName] = useState('')
+  const [receiptMime, setReceiptMime] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleFile = async (file: File) => {
+    const b64 = await new Promise<string>(res => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(file) })
+    setReceipt(b64); setReceiptName(file.name); setReceiptMime(file.type)
+  }
+
+  const save = async () => {
+    if (!amount) { showToast('Amount required', false); return }
+    setSaving(true)
+    await onSave({ memberId, date, amount: parseFloat(amount), category: cat, description: desc, receiptData: receipt, receiptName, receiptMime })
+    setSaving(false)
+    onClose()
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Add Expense">
+      <div>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>For which member?</div>
+        <select value={memberId} onChange={e => setMemberId(e.target.value)} style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: memberId ? '#E8E0F0' : '#5A5570', borderRadius: '8px', padding: '10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', marginBottom: '8px' }}>
+          <option value="">No specific member</option>
+          {members.map((m: any) => <option key={m.id} value={m.id}>{m.name}{m.role ? ` · ${m.role}` : ''}</option>)}
+        </select>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <Input label="Date" type="date" value={date} onChange={e => setDate(e.target.value)} />
+        <Input label="Amount (€) *" type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+      </div>
+      <div>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Category</div>
+        <select value={cat} onChange={e => setCat(e.target.value)} style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', marginBottom: '8px' }}>
+          {Object.entries(CATS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+      </div>
+      <Textarea label="Description" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Uber, lunch..." style={{ minHeight: '50px' }} />
+      <div style={{ marginBottom: '8px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px' }}>🧾 Receipt</div>
+        {!receipt ? (
+          <>
+            <input ref={fileRef} type="file" accept="image/*,.pdf" capture="environment" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+            <button onClick={() => fileRef.current?.click()} style={{ width: '100%', background: '#12121A', border: '1px dashed rgba(201,168,76,.3)', color: '#5A5570', borderRadius: '10px', padding: '11px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px' }}>📷 Take photo / Upload</button>
+          </>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#12121A', border: '1px solid rgba(201,168,76,.2)', borderRadius: '10px', padding: '10px 12px' }}>
+            <span style={{ fontSize: '18px' }}>{receiptMime?.startsWith('image') ? '🖼' : '📄'}</span>
+            <span style={{ flex: 1, fontSize: '12px' }}>{receiptName}</span>
+            <button onClick={() => { setReceipt(''); setReceiptName(''); setReceiptMime('') }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
+        <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Add'}</Button>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Show Tickets (all members in one view) ────────────────────────────────
 function ShowTickets({ showId, tourId, members, tickets, onRefresh }: any) {
   const [viewing, setViewing] = useState<any>(null)
@@ -842,7 +992,8 @@ export default function ManagerPage() {
   const [showDocs, setShowDocs] = useState<any[]>([])
   const [showMessages, setShowMessages] = useState<any[]>([])
   const [showGuests, setShowGuests] = useState<any[]>([])
-  const [showInfoTab, setShowInfoTab] = useState<'hotel'|'transfers'|'meals'|'planning'|'technique'|'documents'|'chat'|'guests'|'tickets'>('hotel')
+  const [showExpenses, setShowExpenses] = useState<any[]>([])
+  const [showInfoTab, setShowInfoTab] = useState<'hotel'|'transfers'|'meals'|'planning'|'technique'|'documents'|'chat'|'guests'|'tickets'|'expenses'>('hotel')
   const [guests, setGuests] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [memberTab, setMemberTab] = useState<'hotel'|'expenses'|'messages'>('hotel')
@@ -882,6 +1033,7 @@ export default function ManagerPage() {
     if (data.showDocs) setShowDocs(data.showDocs)
     if (data.showMessages) setShowMessages(data.showMessages)
     if (data.showGuests) setShowGuests(data.showGuests)
+    if (data.showExpenses) setShowExpenses(data.showExpenses)
     if (data.messages) setMessages(data.messages)
     if (data.guests) setGuests(data.guests)
     if (data.expenses) setExpenses(data.expenses)
@@ -1163,6 +1315,7 @@ export default function ManagerPage() {
                 ['chat','💬','Group chat'],
                 ['guests','🎫','Guest list'],
                 ['tickets','✈','Tickets'],
+                ['expenses','💰','Expenses'],
               ] as const).map(([t, icon, label]) => (
                 <button key={t} onClick={() => setShowInfoTab(t)} style={{ padding: '10px 8px', borderRadius: '10px', border: `2px solid ${showInfoTab === t ? '#C9A84C' : '#1F1F2E'}`, background: showInfoTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: showInfoTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, textAlign: 'center' }}>
                   {icon} {label}
@@ -1198,6 +1351,7 @@ export default function ManagerPage() {
                 onRefresh={async () => {
                   const data = await loadData({ tourId: selTour.id, showId: selShow.id })
                   if (data.showGuests) setShowGuests(data.showGuests)
+    if (data.showExpenses) setShowExpenses(data.showExpenses)
                 }}
               />
             )}
@@ -1208,6 +1362,17 @@ export default function ManagerPage() {
                 onRefresh={async () => {
                   const data = await loadData({ tourId: selTour.id, showId: selShow.id })
                   if (data.tickets) setTickets(data.tickets)
+                }}
+              />
+            )}
+            {showInfoTab === 'expenses' && (
+              <ShowExpenses
+                showId={selShow.id} tourId={selTour.id}
+                members={tourMembers} showDate={selShow.date}
+                expenses={showExpenses}
+                onRefresh={async () => {
+                  const data = await loadData({ tourId: selTour.id, showId: selShow.id })
+                  if (data.showExpenses) setShowExpenses(data.showExpenses)
                 }}
               />
             )}
@@ -1244,97 +1409,33 @@ export default function ManagerPage() {
       )}
 
 
-      {/* ── SCREEN 4: Member detail ── */}
+      {/* ── SCREEN 4: Member detail — simplified ── */}
       {screen === 'member' && selMember && selShow && (
         <>
           <Toolbar title={selMember.name} />
           <Breadcrumb />
           <div style={{ padding: '0 16px' }}>
-            {/* Member info */}
             <Card style={{ marginBottom: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '15px' }}>{selMember.name}</div>
-                  {selMember.role && <div style={{ fontSize: '12px', color: '#C9A84C', fontWeight: 700 }}>{selMember.role}</div>}
-                  {selMember.email && <div style={{ fontSize: '12px', color: '#5A5570' }}>✉ {selMember.email}</div>}
+                  {selMember.role && <div style={{ fontSize: '13px', color: '#C9A84C', fontWeight: 700, marginTop: '2px' }}>{selMember.role}</div>}
+                  {selMember.email && <div style={{ fontSize: '12px', color: '#5A5570', marginTop: '4px' }}>✉ {selMember.email}</div>}
                   {selMember.phone && <div style={{ fontSize: '12px', color: '#5A5570' }}>📱 {selMember.phone}</div>}
+                  {selMember.notes && <div style={{ fontSize: '12px', color: '#5A5570', marginTop: '4px', fontStyle: 'italic' }}>{selMember.notes}</div>}
                 </div>
-                <button onClick={() => { setEditingMember(selMember); setShowMemberModal(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏</button>
+                <button onClick={() => { setEditingMember(selMember); setShowMemberModal(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏ Edit</button>
               </div>
             </Card>
-
-            {/* Tabs - 2x2 grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-              {([['hotel','🏨','Hotel'],['expenses','💰','Expenses'],['messages','💬','Messages']] as const).map(([t, icon, label]) => (
-                <button key={t} onClick={() => switchMemberTab(t as any)} style={{ padding: '12px', borderRadius: '10px', border: `2px solid ${memberTab === t ? '#C9A84C' : '#1F1F2E'}`, background: memberTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: memberTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 800, textAlign: 'center' }}>
-                  {icon} {label}
-                </button>
-              ))}
+            <div style={{ background: 'rgba(201,168,76,.06)', border: '1px solid rgba(201,168,76,.15)', borderRadius: '12px', padding: '12px 16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '13px', color: '#C9A84C', fontWeight: 700, marginBottom: '4px' }}>Tickets, expenses and guests</div>
+              <div style={{ fontSize: '12px', color: '#5A5570' }}>Managed from the show view — go back to {selShow.venue || selShow.date}</div>
+              <button onClick={() => { setScreen('show'); setSelMember(null) }} style={{ marginTop: '10px', background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>← Back to show</button>
             </div>
-
-            {/* Hotel tab */}
-            {memberTab === 'hotel' && (
-              <Card style={{ marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showMemberData?.hotel ? '10px' : 0 }}>
-                  <div style={{ fontSize: '13px', fontWeight: 800 }}>🏨 {selShow.city || selShow.date}</div>
-                  <button onClick={() => setShowHotelModal(true)} style={{ background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: '#C9A84C', borderRadius: '8px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
-                    {showMemberData?.hotel ? '✏ Edit' : '+ Add'}
-                  </button>
-                </div>
-                {showMemberData?.hotel ? (
-                  <div>
-                    <div style={{ fontWeight: 700 }}>{showMemberData.hotel}</div>
-                    {showMemberData.room && <div style={{ fontSize: '12px', color: '#5A5570' }}>Room {showMemberData.room}</div>}
-                    {showMemberData.hotel_addr && <div style={{ fontSize: '12px', color: '#5A5570' }}>{showMemberData.hotel_addr}</div>}
-                    {showMemberData.notes && <div style={{ fontSize: '12px', color: '#5A5570', fontStyle: 'italic' }}>{showMemberData.notes}</div>}
-                  </div>
-                ) : <div style={{ fontSize: '12px', color: '#5A5570' }}>No hotel added yet</div>}
-              </Card>
-            )}
-
-
-            {/* Expenses tab */}
-            {memberTab === 'expenses' && (
-              <ExpensesSection
-                showId={selShow.id} memberId={selMember.id} tourId={selTour.id}
-                showDate={selShow.date}
-                expenses={expenses}
-                onRefresh={async () => {
-                  const data = await loadData({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
-                  if (data.expenses) setExpenses(data.expenses)
-                }}
-              />
-            )}
-
-            {/* Messages tab */}
-            {memberTab === 'messages' && (
-              <Card style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '12px' }}>💬 Messages</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
-                  {messages.length === 0 ? (
-                    <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '24px' }}>No messages yet — send the first one</div>
-                  ) : messages.map((m: any) => (
-                    <div key={m.id} style={{ alignSelf: m.from_manager ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
-                      <div style={{ fontSize: '10px', color: '#5A5570', marginBottom: '3px', textAlign: m.from_manager ? 'right' : 'left' }}>
-                        {m.sender_name} · {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                      <div style={{ background: m.from_manager ? 'rgba(201,168,76,.15)' : '#1A1A28', border: `1px solid ${m.from_manager ? 'rgba(201,168,76,.3)' : '#1F1F2E'}`, borderRadius: m.from_manager ? '12px 12px 4px 12px' : '12px 12px 12px 4px', padding: '10px 14px', fontSize: '13px', lineHeight: 1.5 }}>
-                        {m.message}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <MessageInput onSend={async (msg: string) => {
-                  const id = Math.random().toString(36).slice(2)
-                  const newMsg = { id, from_manager: true, sender_name: 'Manager', message: msg, created_at: new Date().toISOString() }
-                  setMessages((prev: any[]) => [...prev, newMsg])
-                  await api('send_message', { showId: selShow.id, memberId: selMember.id, tourId: selTour.id, message: msg, fromManager: true, senderName: 'Manager' })
-                }} />
-              </Card>
-            )}
           </div>
         </>
       )}
+
 
       {/* Modals */}
       <TourModal key={editingTour?.id || 'new-tour'} open={showTourModal} onClose={() => setShowTourModal(false)} editing={editingTour} onSaved={() => { load(); setShowTourModal(false) }} />

@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!memberId) {
-    const [toursRes, showsRes, membersRes, showMembersRes, ticketsRes, docsRes, msgsRes, showGuestsRes] = await Promise.all([
+    const [toursRes, showsRes, membersRes, showMembersRes, ticketsRes, docsRes, msgsRes, showGuestsRes, showExpensesRes] = await Promise.all([
       admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at'),
       admin.from('tour_shows').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('date'),
       admin.from('tour_members').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('created_at'),
@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
       admin.from('tour_show_documents').select('id, name, mime, created_at').eq('show_id', showId),
       admin.from('tour_show_messages').select('*').eq('show_id', showId).order('created_at'),
       admin.from('tour_member_guests').select('*').eq('show_id', showId).order('created_at'),
+      admin.from('tour_member_expenses').select('*').eq('show_id', showId).order('created_at'),
     ])
     return NextResponse.json({
       tours: toursRes.data || [],
@@ -66,6 +67,7 @@ export async function GET(req: NextRequest) {
       showDocs: docsRes.data || [],
       showMessages: msgsRes.data || [],
       showGuests: showGuestsRes.data || [],
+      showExpenses: showExpensesRes.data || [],
     })
   }
 
