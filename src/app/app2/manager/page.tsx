@@ -1,27 +1,25 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useStore, getToken, newId } from '@/lib/store'
-import { Button, Card, Input, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
+import { useStore, getToken } from '@/lib/store'
+import { Button, Card, Input, Textarea, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
+import { SendToContact } from '@/components/SendToContact'
 
-const CATS: Record<string, string> = { transport: '🚆', hotel: '🏨', food: '🍽', equipment: '🎛', other: '📦' }
-
-async function managerAPI(action: string, data: any) {
-  const token = getToken()
+async function api(action: string, data: any) {
   const res = await fetch('/api/manager', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
     body: JSON.stringify({ action, ...data })
   })
   return res.json()
 }
 
-async function loadManagerData() {
-  const token = getToken()
-  const res = await fetch('/api/manager', { headers: { 'Authorization': `Bearer ${token}` } })
+async function load(tourId?: string) {
+  const url = tourId ? `/api/manager?tourId=${tourId}` : '/api/manager'
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}` } })
   return res.json()
 }
 
-async function extractTicketInfo(base64: string, mimeType: string) {
+async function extractTicket(base64: string, mimeType: string) {
   try {
     const res = await fetch('/api/extract-ticket', {
       method: 'POST',
@@ -32,36 +30,99 @@ async function extractTicketInfo(base64: string, mimeType: string) {
   } catch { return {} }
 }
 
+function MemberModal({ open, onClose, tourId, editing, onSaved }: any) {
+  const [name, setName] = useState(editing?.name || '')
+  const [role, setRole] = useState(editing?.role || '')
+  const [hotel, setHotel] = useState(editing?.hotel || '')
+  const [room, setRoom] = useState(editing?.room || '')
+  const [hotelAddr, setHotelAddr] = useState(editing?.hotel_addr || '')
+  const [notes, setNotes] = useState(editing?.notes || '')
+  const [saving, setSaving] = useState(false)
+
+  const save = async () => {
+    if (!name.trim()) { showToast('Name required', false); return }
+    setSaving(true)
+    if (editing) {
+      await api('update_member', { memberId: editing.id, name, role, hotel, room, hotelAddr, notes })
+    } else {
+      await api('add_member', { tourId, name, role, hotel, room, hotelAddr, notes })
+    }
+    onSaved()
+    onClose()
+    setSaving(false)
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={editing ? 'Edit member' : 'Add team member'}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <Input label="Name *" value={name} onChange={e => setName(e.target.value)} placeholder="Jean-Baptiste" />
+        <Input label="Role" value={role} onChange={e => setRole(e.target.value)} placeholder="Drummer, Sound..." />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
+        <Input label="Hotel" value={hotel} onChange={e => setHotel(e.target.value)} placeholder="Ibis Lyon Centre" />
+        <Input label="Room" value={room} onChange={e => setRoom(e.target.value)} placeholder="214" />
+      </div>
+      <Input label="Hotel address" value={hotelAddr} onChange={e => setHotelAddr(e.target.value)} />
+      <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '60px' }} />
+      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+        <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
+        <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
+      </div>
+    </Modal>
+  )
+}
+
 export default function ManagerPage() {
   const { tours, artists } = useStore()
   const [plan, setPlan] = useState('')
-  const [data, setData] = useState<any>({ invites: [], tickets: [], guests: [], expenses: [], messages: [] })
-  const [loading, setLoading] = useState(true)
   const [selectedTourId, setSelectedTourId] = useState('')
-  const [selectedMemberEmail, setSelectedMemberEmail] = useState('')
-  const [showInviteModal, setShowInviteModal] = useState(false)
-  const [showTicketModal, setShowTicketModal] = useState(false)
+  const [selectedMemberId, setSelectedMemberId] = useState('')
+  const [data, setData] = useState<any>({ members: [], tickets: [], expenses: [], guests: [], messages: [] })
+  const [loading, setLoading] = useState(false)
+  const [showMemberModal, setShowMemberModal] = useState(false)
+  const [editingMember, setEditingMember] = useState<any>(null)
   const [showChat, setShowChat] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState('')
   const [chatMsg, setChatMsg] = useState('')
-  const [uploading, setUploading] = useState(false)
+  const [uploadingTicket, setUploadingTicket] = useState(false)
+  const [ticketDir, setTicketDir] = useState('out')
+  const [showTicketModal, setShowTicketModal] = useState(false)
   const [viewingTicket, setViewingTicket] = useState<any>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [showInvite, setShowInvite] = useState<any>(null)
   const chatRef = useRef<HTMLDivElement>(null)
-
-
+  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const token = getToken()
-    fetch('/api/plan', { headers: { Authorization: `Bearer ${token}` } })
+    fetch('/api/plan', { headers: { Authorization: `Bearer ${getToken()}` } })
       .then(r => r.json()).then(d => setPlan(d.plan || 'solo'))
-    loadManagerData().then(d => { setData(d); setLoading(false) })
   }, [])
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
   }, [data.messages, showChat])
+
+  const refresh = async () => {
+    if (!selectedTourId) return
+    setLoading(true)
+    const d = await load(selectedTourId)
+    setData(d)
+    setLoading(false)
+  }
+
+  useEffect(() => { refresh() }, [selectedTourId])
+
+  const today = new Date().toISOString().slice(0, 10)
+  const past30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const future60 = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const relevantTours = tours.filter(t => t.start >= past30 && t.start <= future60).sort((a, b) => a.start.localeCompare(b.start))
+  const tourList = relevantTours.length > 0 ? relevantTours : [...tours].sort((a, b) => b.start.localeCompare(a.start)).slice(0, 15)
+
+  const members = data.members || []
+  const selectedMember = members.find((m: any) => m.id === selectedMemberId)
+  const memberTickets = data.tickets?.filter((t: any) => t.member_id === selectedMemberId) || []
+  const memberExpenses = data.expenses?.filter((e: any) => e.member_id === selectedMemberId) || []
+  const memberGuests = data.guests?.filter((g: any) => g.member_id === selectedMemberId) || []
+  const memberMessages = data.messages?.filter((m: any) => m.member_id === selectedMemberId) || []
+  const unreadCount = memberMessages.filter((m: any) => !m.from_manager && !m.read_at).length
 
   if (plan && plan !== 'manager') {
     return (
@@ -72,7 +133,7 @@ export default function ManagerPage() {
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎭</div>
             <div style={{ fontWeight: 800, fontSize: '16px', marginBottom: '8px' }}>Manager Plan required</div>
             <div style={{ fontSize: '13px', color: '#5A5570', lineHeight: 1.6, marginBottom: '20px' }}>
-              Invite artists and technicians to your tours, upload their tickets, track guests and expenses per member.
+              Create tour sheets, add your team, upload their tickets and track everything in one place.
             </div>
             <Button onClick={() => window.location.href = '/app2/pricing'}>Upgrade to Manager →</Button>
           </Card>
@@ -81,275 +142,266 @@ export default function ManagerPage() {
     )
   }
 
-  // Group invites by tour
-  const today = new Date().toISOString().slice(0, 10)
-  const past30 = new Date(Date.now() - 30*24*60*60*1000).toISOString().slice(0, 10)
-  const future60 = new Date(Date.now() + 60*24*60*60*1000).toISOString().slice(0, 10)
-  const relevantTours = tours
-    .filter(t => t.start >= past30 && t.start <= future60)
-    .sort((a, b) => a.start.localeCompare(b.start))
-  const allTours = relevantTours.length > 0 ? relevantTours : [...tours].sort((a,b) => b.start.localeCompare(a.start)).slice(0, 20)
-
-  const tourIds = [...new Set(data.invites.map((i: any) => i.tour_id))]
-  const managedTours = tourIds.map(tid => {
-    const tour = tours.find(t => t.id === tid)
-    const artist = tour ? artists.find(a => a.id === tour.aId) : null
-    const members = data.invites.filter((i: any) => i.tour_id === tid)
-    return { tourId: tid, tour, artist, members }
-  }).sort((a, b) => (a.tour?.start || '').localeCompare(b.tour?.start || ''))
-
-  const selectedTour = managedTours.find(t => t.tourId === selectedTourId)
-  const selectedMember = selectedTour?.members.find((m: any) => m.email === selectedMemberEmail)
-  const memberTickets = data.tickets.filter((t: any) => t.tour_id === selectedTourId && t.member_email === selectedMemberEmail)
-  const memberGuests = data.guests.filter((g: any) => g.tour_id === selectedTourId && g.user_id === selectedMember?.user_id)
-  const memberExpenses = data.expenses.filter((e: any) => e.tour_id === selectedTourId && e.user_id === selectedMember?.user_id)
-  const tourMessages = data.messages.filter((m: any) => m.tour_id === selectedTourId)
-
-  const invite = async () => {
-    if (!inviteEmail.trim()) { showToast('Email required', false); return }
-    if (!selectedTourId) { showToast('Select a tour first', false); return }
-    const result = await managerAPI('invite', { tourId: selectedTourId, email: inviteEmail.trim(), role: inviteRole })
-    if (result.error) { showToast(result.error, false); return }
-    showToast('Invitation sent ✓')
-    setInviteEmail(''); setInviteRole('')
-    setShowInviteModal(false)
-    const d = await loadManagerData(); setData(d)
-  }
-
-  const uploadTicket = async (file: File, direction: string) => {
-    if (!selectedMemberEmail || !selectedTourId) return
-    setUploading(true)
+  const uploadTicket = async (file: File) => {
+    if (!selectedMemberId) return
+    setUploadingTicket(true)
     const b64 = await new Promise<string>(res => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(file) })
-    const info = await extractTicketInfo(b64, file.type)
-    await managerAPI('upload_ticket', {
-      tourId: selectedTourId, memberEmail: selectedMemberEmail,
-      direction, ticketData: b64, ticketName: file.name, ticketMime: file.type, info
-    })
+    const info = await extractTicket(b64, file.type)
+    await api('upload_ticket', { memberId: selectedMemberId, direction: ticketDir, ticketData: b64, ticketName: file.name, ticketMime: file.type, info })
     showToast('Ticket uploaded ✓')
-    setUploading(false)
-    const d = await loadManagerData(); setData(d)
+    setUploadingTicket(false)
+    setShowTicketModal(false)
+    refresh()
   }
 
-  const deleteTicket = async (ticketId: string) => {
-    if (!confirm('Delete this ticket?')) return
-    await managerAPI('delete_ticket', { ticketId })
-    const d = await loadManagerData(); setData(d)
+  const deleteMember = async (id: string) => {
+    if (!confirm('Remove this member and all their data?')) return
+    await api('delete_member', { memberId: id })
+    setSelectedMemberId('')
+    refresh()
   }
 
-  const removeInvite = async (inviteId: string) => {
-    if (!confirm('Remove this member?')) return
-    await managerAPI('delete_invite', { inviteId })
-    const d = await loadManagerData(); setData(d)
-  }
-
-  const sendMessage = async () => {
-    if (!chatMsg.trim() || !selectedTourId) return
-    await managerAPI('send_message', { tourId: selectedTourId, message: chatMsg.trim(), userName: 'Manager' })
+  const sendMsg = async () => {
+    if (!chatMsg.trim()) return
+    await api('send_message', { memberId: selectedMemberId, tourId: selectedTourId, message: chatMsg })
     setChatMsg('')
-    const d = await loadManagerData(); setData(d)
+    refresh()
   }
 
-  const [ticketDirection, setTicketDirection] = useState('out')
-  const [uploadRef, setUploadRef] = useState<HTMLInputElement | null>(null)
+  const inviteLink = (member: any) => `https://www.tourdesktop.com/join/${member.invite_token}`
+  const inviteText = (member: any) => {
+    const tour = tours.find(t => t.id === selectedTourId)
+    return `Hi ${member.name}! You're invited to join the tour "${tour?.title || ''}" on TourDesk. Create your free account to see your tickets, add guests and expenses:\n\n${inviteLink(member)}`
+  }
 
   return (
     <div style={{ padding: '0 0 100px' }}>
-      <Toolbar title="Manager" actions={
-        selectedTourId
-          ? <div style={{ display: 'flex', gap: '6px' }}>
-              <Button size="sm" variant="secondary" onClick={() => setShowChat(true)}>💬</Button>
-              <Button size="sm" onClick={() => setShowInviteModal(true)}>+ Invite</Button>
-            </div>
-          : undefined
-      } />
-
+      <Toolbar title="Manager" />
       <div style={{ padding: '0 16px' }}>
-        {/* Tour selector */}
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '8px' }}>Select tour</div>
+
+        {/* Step 1 — Select tour */}
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '10px' }}>
+            1 · Select tour
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {allTours.map(t => {
+            {tourList.map(t => {
               const artist = artists.find(a => a.id === t.aId)
-              const managed = managedTours.find(mt => mt.tourId === t.id)
-              const memberCount = managed?.members.length || 0
+              const mCount = data.members?.filter((m: any) => m.tour_id === t.id).length || 0
+              const isSelected = selectedTourId === t.id
               return (
-                <button key={t.id} onClick={() => { setSelectedTourId(t.id); setSelectedMemberEmail('') }} style={{ background: selectedTourId === t.id ? 'rgba(201,168,76,.1)' : '#12121A', border: `2px solid ${selectedTourId === t.id ? '#C9A84C' : '#1F1F2E'}`, borderRadius: '12px', padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-                  <div style={{ fontWeight: 800, fontSize: '13px', color: selectedTourId === t.id ? '#C9A84C' : '#E8E0F0' }}>{t.title}</div>
-                  <div style={{ fontSize: '11px', color: '#5A5570' }}>
-                    📅 {t.start}{artist ? ` · ${artist.name}` : ''}
-                    {memberCount > 0 && <span style={{ color: '#5DC9A0', marginLeft: '8px' }}>· {memberCount} members</span>}
-                  </div>
+                <button key={t.id} onClick={() => { setSelectedTourId(t.id); setSelectedMemberId('') }} style={{ background: isSelected ? 'rgba(201,168,76,.1)' : '#12121A', border: `2px solid ${isSelected ? '#C9A84C' : '#1F1F2E'}`, borderRadius: '12px', padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                  <div style={{ fontWeight: 800, fontSize: '13px', color: isSelected ? '#C9A84C' : '#E8E0F0' }}>{t.title}</div>
+                  <div style={{ fontSize: '11px', color: '#5A5570' }}>📅 {t.start}{artist ? ` · ${artist.name}` : ''}{mCount > 0 ? ` · ${mCount} members` : ''}</div>
                 </button>
               )
             })}
-            {allTours.length === 0 && <div style={{ fontSize: '13px', color: '#5A5570', padding: '16px', textAlign: 'center' }}>No upcoming events. Add events in Tours & Events first.</div>}
+            {tourList.length === 0 && <div style={{ fontSize: '13px', color: '#5A5570', textAlign: 'center', padding: '16px' }}>No events found. Add events in Tours & Events first.</div>}
           </div>
         </div>
 
-        {/* Members list */}
+        {/* Step 2 — Team */}
         {selectedTourId && (
-          <>
+          <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em' }}>Team</div>
-              <Button size="sm" onClick={() => setShowInviteModal(true)}>+ Invite member</Button>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em' }}>
+                2 · Team members
+              </div>
+              <Button size="sm" onClick={() => { setEditingMember(null); setShowMemberModal(true) }}>+ Add</Button>
             </div>
 
-            {selectedTour?.members.length === 0 || !selectedTour ? (
-              <Card style={{ textAlign: 'center', padding: '24px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '13px', color: '#5A5570' }}>No members yet — invite artists and technicians</div>
+            {members.filter((m: any) => m.tour_id === selectedTourId).length === 0 ? (
+              <Card style={{ textAlign: 'center', padding: '20px', marginBottom: '12px' }}>
+                <div style={{ fontSize: '13px', color: '#5A5570' }}>No team members yet — add musicians, technicians, crew</div>
               </Card>
             ) : (
-              selectedTour.members.map((m: any) => (
-                <button key={m.id} onClick={() => setSelectedMemberEmail(m.email)} style={{ width: '100%', background: selectedMemberEmail === m.email ? 'rgba(201,168,76,.08)' : '#12121A', border: `2px solid ${selectedMemberEmail === m.email ? '#C9A84C' : '#1F1F2E'}`, borderRadius: '12px', padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '13px' }}>{m.email}</div>
-                    <div style={{ fontSize: '11px', color: '#5A5570' }}>
-                      {m.role || 'Team member'} · {m.status === 'accepted' ? <span style={{ color: '#5DC9A0' }}>✓ Joined</span> : <span style={{ color: '#C9A84C' }}>⏳ Pending</span>}
+              members.filter((m: any) => m.tour_id === selectedTourId).map((m: any) => {
+                const msgs = data.messages?.filter((msg: any) => msg.member_id === m.id && !msg.from_manager && !msg.read_at).length || 0
+                return (
+                  <button key={m.id} onClick={() => setSelectedMemberId(m.id)} style={{ width: '100%', background: selectedMemberId === m.id ? 'rgba(201,168,76,.08)' : '#12121A', border: `2px solid ${selectedMemberId === m.id ? '#C9A84C' : '#1F1F2E'}`, borderRadius: '12px', padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '13px' }}>{m.name}</div>
+                      <div style={{ fontSize: '11px', color: '#5A5570' }}>
+                        {m.role || 'Team member'} · {m.user_id ? <span style={{ color: '#5DC9A0' }}>✓ Joined</span> : <span style={{ color: '#C9A84C' }}>⏳ Not joined yet</span>}
+                      </div>
                     </div>
-                  </div>
-                  <button onClick={e => { e.stopPropagation(); removeInvite(m.id) }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>✕</button>
-                </button>
-              ))
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      {msgs > 0 && <div style={{ background: '#E8453C', color: 'white', borderRadius: '10px', padding: '2px 7px', fontSize: '11px', fontWeight: 800 }}>{msgs}</div>}
+                      {selectedMemberId !== m.id && (
+                        <button onClick={e => { e.stopPropagation(); setShowInvite(m) }} style={{ background: 'rgba(93,201,160,.1)', border: '1px solid rgba(93,201,160,.2)', color: '#5DC9A0', borderRadius: '8px', padding: '5px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700 }}>
+                          📤 Invite
+                        </button>
+                      )}
+                    </div>
+                  </button>
+                )
+              })
+            )}
+          </div>
+        )}
+
+        {/* Step 3 — Member detail */}
+        {selectedMember && (
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '12px' }}>
+              3 · {selectedMember.name}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <button onClick={() => { setEditingMember(selectedMember); setShowMemberModal(true) }} style={{ background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>✏ Edit</button>
+              <button onClick={() => setShowTicketModal(true)} style={{ background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>🎫 Upload ticket</button>
+              <button onClick={() => { setShowChat(true) }} style={{ background: unreadCount > 0 ? 'rgba(232,69,60,.1)' : '#12121A', border: `1px solid ${unreadCount > 0 ? '#E8453C' : '#1F1F2E'}`, color: unreadCount > 0 ? '#E8453C' : '#E8E0F0', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
+                💬 Message{unreadCount > 0 ? ` (${unreadCount})` : ''}
+              </button>
+              <button onClick={() => setShowInvite(selectedMember)} style={{ background: 'rgba(93,201,160,.1)', border: '1px solid rgba(93,201,160,.2)', color: '#5DC9A0', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>📤 Send invite</button>
+              <button onClick={() => deleteMember(selectedMember.id)} style={{ background: 'none', border: '1px solid #E8453C', color: '#E8453C', borderRadius: '8px', padding: '8px 14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>Remove</button>
+            </div>
+
+            {/* Hotel info */}
+            {(selectedMember.hotel || selectedMember.notes) && (
+              <Card style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '10px' }}>🏨 Hotel & Notes</div>
+                {selectedMember.hotel && <div style={{ fontWeight: 700, fontSize: '14px' }}>{selectedMember.hotel}{selectedMember.room ? ` — Room ${selectedMember.room}` : ''}</div>}
+                {selectedMember.hotel_addr && <div style={{ fontSize: '12px', color: '#5A5570' }}>{selectedMember.hotel_addr}</div>}
+                {selectedMember.notes && <div style={{ fontSize: '12px', color: '#5A5570', marginTop: '6px', fontStyle: 'italic' }}>{selectedMember.notes}</div>}
+              </Card>
             )}
 
-            {/* Member detail */}
-            {selectedMemberEmail && (
-              <div style={{ marginTop: '16px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '10px' }}>
-                  {selectedMemberEmail}
-                </div>
-
-                {/* Tickets section */}
-                <Card style={{ marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 800 }}>🎫 Tickets</div>
-                    <Button size="sm" onClick={() => setShowTicketModal(true)} disabled={uploading}>
-                      {uploading ? 'Uploading...' : '+ Upload'}
-                    </Button>
-                  </div>
-                  {memberTickets.length === 0 ? (
-                    <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '12px' }}>No tickets yet</div>
-                  ) : (
-                    ['out', 'ret'].map(dir => {
-                      const dirTickets = memberTickets.filter((t: any) => t.direction === dir)
-                      if (dirTickets.length === 0) return null
-                      return (
-                        <div key={dir} style={{ marginBottom: '10px' }}>
-                          <div style={{ fontSize: '10px', fontWeight: 800, color: dir === 'out' ? '#C9A84C' : '#5DC9A0', letterSpacing: '.1em', marginBottom: '6px' }}>
-                            {dir === 'out' ? '✈ OUTBOUND' : '🔄 RETURN'}
+            {/* Tickets */}
+            <Card style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '10px' }}>🎫 Tickets</div>
+              {memberTickets.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '12px' }}>No tickets yet — upload PDF or photo</div>
+              ) : (
+                ['out', 'ret'].map(dir => {
+                  const dirT = memberTickets.filter((t: any) => t.direction === dir)
+                  if (!dirT.length) return null
+                  const color = dir === 'out' ? '#C9A84C' : '#5DC9A0'
+                  return (
+                    <div key={dir} style={{ marginBottom: '10px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 800, color, letterSpacing: '.1em', marginBottom: '6px' }}>{dir === 'out' ? '✈ OUTBOUND' : '🔄 RETURN'}</div>
+                      {dirT.map((t: any) => (
+                        <div key={t.id} style={{ background: '#0D0D14', borderRadius: '10px', padding: '10px 12px', marginBottom: '6px' }}>
+                          {(t.info?.from || t.info?.to) && <div style={{ fontWeight: 800, fontSize: '14px' }}>{t.info.from} → {t.info.to}</div>}
+                          {t.info?.date && <div style={{ fontSize: '11px', color: '#5A5570' }}>📅 {t.info.date}{t.info.time ? ` · 🕐 ${t.info.time}` : ''}{t.info.ref ? ` · ${t.info.ref}` : ''}</div>}
+                          {!t.info?.from && <div style={{ fontSize: '12px', color: '#5A5570' }}>{t.ticket_name}</div>}
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                            <button onClick={() => setViewingTicket(t)} style={{ flex: 1, background: color, border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '7px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>📱 View</button>
+                            <button onClick={async () => { await api('delete_ticket', { ticketId: t.id }); refresh() }} style={{ background: 'none', border: '1px solid #E8453C', color: '#E8453C', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', fontSize: '12px' }}>✕</button>
                           </div>
-                          {dirTickets.map((t: any) => (
-                            <div key={t.id} style={{ background: '#0D0D14', borderRadius: '10px', padding: '10px 12px', marginBottom: '6px' }}>
-                              {t.info?.from && <div style={{ fontSize: '14px', fontWeight: 800 }}>{t.info.from} → {t.info.to}</div>}
-                              {t.info?.date && <div style={{ fontSize: '11px', color: '#5A5570' }}>📅 {t.info.date}{t.info.time ? ` · 🕐 ${t.info.time}` : ''}{t.info.ref ? ` · ${t.info.ref}` : ''}</div>}
-                              {!t.info?.from && <div style={{ fontSize: '12px', color: '#5A5570' }}>{t.ticket_name}</div>}
-                              <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                                <button onClick={() => setViewingTicket(t)} style={{ flex: 1, background: dir === 'out' ? '#C9A84C' : '#5DC9A0', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '7px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>📱 Show</button>
-                                <button onClick={() => deleteTicket(t.id)} style={{ background: 'none', border: '1px solid #E8453C', color: '#E8453C', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', fontSize: '12px' }}>✕</button>
-                              </div>
-                            </div>
-                          ))}
                         </div>
-                      )
-                    })
-                  )}
-                </Card>
-
-                {/* Guests from member */}
-                {memberGuests.length > 0 && (
-                  <Card style={{ marginBottom: '12px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '10px' }}>🎫 Guests ({memberGuests.length})</div>
-                    {memberGuests.map((g: any) => (
-                      <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1F1F2E' }}>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: 700 }}>{g.name}{g.count > 1 ? ` ×${g.count}` : ''}</div>
-                          {g.contact && <div style={{ fontSize: '11px', color: '#5A5570' }}>{g.contact}</div>}
-                        </div>
-                        <div style={{ fontSize: '11px', color: g.status === 'confirmed' ? '#5DC9A0' : '#C9A84C', fontWeight: 700 }}>
-                          {g.status === 'confirmed' ? '✓' : '⏳'}
-                        </div>
-                      </div>
-                    ))}
-                  </Card>
-                )}
-
-                {/* Expenses from member */}
-                {memberExpenses.length > 0 && (
-                  <Card style={{ marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 800 }}>💰 Expenses</div>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#C9A84C' }}>
-                        €{memberExpenses.reduce((s: number, e: any) => s + (e.amount || 0), 0).toFixed(2)}
-                      </div>
+                      ))}
                     </div>
-                    {memberExpenses.map((e: any) => (
-                      <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1F1F2E' }}>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: 700 }}>{CATS[e.category] || '📦'} {e.description || e.category}</div>
-                          <div style={{ fontSize: '11px', color: '#5A5570' }}>{e.date}</div>
-                        </div>
-                        <div style={{ fontWeight: 700, color: '#C9A84C' }}>€{(e.amount || 0).toFixed(2)}</div>
-                      </div>
-                    ))}
-                  </Card>
-                )}
-              </div>
+                  )
+                })
+              )}
+            </Card>
+
+            {/* Guests from member */}
+            {memberGuests.length > 0 && (
+              <Card style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '10px' }}>👥 Guests ({memberGuests.reduce((s: number, g: any) => s + (g.count || 1), 0)} places)</div>
+                {memberGuests.map((g: any) => (
+                  <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1F1F2E' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700 }}>{g.name}{g.count > 1 ? ` ×${g.count}` : ''}</div>
+                      {g.contact && <div style={{ fontSize: '11px', color: '#5A5570' }}>{g.contact}</div>}
+                    </div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: g.status === 'confirmed' ? '#5DC9A0' : '#C9A84C' }}>
+                      {g.status === 'confirmed' ? '✓' : '⏳'}
+                    </div>
+                  </div>
+                ))}
+              </Card>
             )}
-          </>
+
+            {/* Expenses from member */}
+            {memberExpenses.length > 0 && (
+              <Card style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em' }}>💰 Expenses</div>
+                  <div style={{ fontWeight: 800, color: '#C9A84C' }}>€{memberExpenses.reduce((s: number, e: any) => s + (e.amount || 0), 0).toFixed(2)}</div>
+                </div>
+                {memberExpenses.map((e: any) => (
+                  <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1F1F2E' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700 }}>{e.description || e.category}</div>
+                      <div style={{ fontSize: '11px', color: '#5A5570' }}>{e.date}</div>
+                    </div>
+                    <div style={{ fontWeight: 700, color: '#C9A84C' }}>€{(e.amount || 0).toFixed(2)}</div>
+                  </div>
+                ))}
+              </Card>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Invite Modal */}
-      <Modal open={showInviteModal} onClose={() => setShowInviteModal(false)} title="Invite team member">
-        <div style={{ fontSize: '12px', color: '#5A5570', marginBottom: '16px' }}>
-          They'll receive an email and can join with a free account to see their tickets, add guests and expenses.
+      {/* Member modal */}
+      {showMemberModal && (
+        <MemberModal
+          key={editingMember?.id || 'new'}
+          open={showMemberModal}
+          onClose={() => setShowMemberModal(false)}
+          tourId={selectedTourId}
+          editing={editingMember}
+          onSaved={refresh}
+        />
+      )}
+
+      {/* Ticket upload modal */}
+      <Modal open={showTicketModal} onClose={() => setShowTicketModal(false)} title={`Upload ticket — ${selectedMember?.name}`}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          {[{ v: 'out', label: '✈ Outbound', color: '#C9A84C' }, { v: 'ret', label: '🔄 Return', color: '#5DC9A0' }].map(d => (
+            <button key={d.v} onClick={() => setTicketDir(d.v)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: `2px solid ${ticketDir === d.v ? d.color : '#1F1F2E'}`, background: ticketDir === d.v ? `rgba(${d.v === 'out' ? '201,168,76' : '93,201,160'},.1)` : '#12121A', color: ticketDir === d.v ? d.color : '#5A5570', fontFamily: 'inherit', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
+              {d.label}
+            </button>
+          ))}
         </div>
-        <Input label="Email *" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="musician@gmail.com" />
-        <Input label="Role" value={inviteRole} onChange={e => setInviteRole(e.target.value)} placeholder="Drummer, Sound Engineer, Tour Manager..." />
-        <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-          <Button variant="secondary" onClick={() => setShowInviteModal(false)} style={{ flex: 1 }}>Cancel</Button>
-          <Button onClick={invite} style={{ flex: 2 }}>Send invitation →</Button>
-        </div>
+        <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && uploadTicket(e.target.files[0])} />
+        <Button onClick={() => fileRef.current?.click()} style={{ width: '100%' }} disabled={uploadingTicket}>
+          {uploadingTicket ? '🤖 Reading ticket...' : '📎 Choose PDF or photo'}
+        </Button>
       </Modal>
 
-      {/* Upload ticket modal */}
-      <Modal open={showTicketModal} onClose={() => setShowTicketModal(false)} title="Upload ticket">
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '8px' }}>Direction</div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {[{ v: 'out', label: '✈ Outbound', color: '#C9A84C' }, { v: 'ret', label: '🔄 Return', color: '#5DC9A0' }].map(d => (
-              <button key={d.v} onClick={() => setTicketDirection(d.v)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: `2px solid ${ticketDirection === d.v ? d.color : '#1F1F2E'}`, background: ticketDirection === d.v ? `rgba(${d.v === 'out' ? '201,168,76' : '93,201,160'},.1)` : '#12121A', color: ticketDirection === d.v ? d.color : '#5A5570', fontFamily: 'inherit', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}>
-                {d.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) { uploadTicket(e.target.files[0], ticketDirection); setShowTicketModal(false) } }} />
-        <Button onClick={() => fileRef.current?.click()} style={{ width: '100%' }}>📎 Choose file (PDF or photo)</Button>
-      </Modal>
+      {/* Invite via SendToContact */}
+      {showInvite && (
+        <SendToContact
+          open={!!showInvite}
+          onClose={() => setShowInvite(null)}
+          subject={`TourDesk — You're invited to join the tour`}
+          body={inviteText(showInvite)}
+        />
+      )}
 
-      {/* Chat */}
-      {showChat && selectedTourId && (
+      {/* 1-to-1 chat */}
+      {showChat && selectedMember && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: '#0A0A0F', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid #1F1F2E' }}>
-            <div style={{ fontWeight: 800 }}>💬 Tour chat</div>
+            <div>
+              <div style={{ fontWeight: 800 }}>💬 {selectedMember.name}</div>
+              <div style={{ fontSize: '11px', color: '#5A5570' }}>{selectedMember.role || 'Team member'}</div>
+            </div>
             <button onClick={() => setShowChat(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }}>✕</button>
           </div>
           <div ref={chatRef} style={{ flex: 1, overflow: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {tourMessages.length === 0 && <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '32px' }}>No messages yet</div>}
-            {tourMessages.map((m: any) => (
-              <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: m.is_manager ? 'flex-end' : 'flex-start' }}>
-                <div style={{ fontSize: '10px', color: '#5A5570', marginBottom: '3px' }}>{m.user_name}</div>
-                <div style={{ background: m.is_manager ? 'rgba(201,168,76,.2)' : '#12121A', border: `1px solid ${m.is_manager ? 'rgba(201,168,76,.3)' : '#1F1F2E'}`, borderRadius: '12px', padding: '10px 14px', maxWidth: '75%', fontSize: '14px' }}>
+            {memberMessages.length === 0 && <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '32px' }}>No messages yet</div>}
+            {memberMessages.map((m: any) => (
+              <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: m.from_manager ? 'flex-end' : 'flex-start' }}>
+                <div style={{ fontSize: '10px', color: '#5A5570', marginBottom: '3px' }}>{m.from_manager ? 'You' : selectedMember.name}</div>
+                <div style={{ background: m.from_manager ? 'rgba(201,168,76,.15)' : '#12121A', border: `1px solid ${m.from_manager ? 'rgba(201,168,76,.2)' : '#1F1F2E'}`, borderRadius: '12px', padding: '10px 14px', maxWidth: '75%', fontSize: '14px' }}>
                   {m.message}
                 </div>
-                <div style={{ fontSize: '10px', color: '#3A3550', marginTop: '3px' }}>{new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+                <div style={{ fontSize: '10px', color: '#3A3550', marginTop: '3px' }}>
+                  {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                </div>
               </div>
             ))}
           </div>
           <div style={{ padding: '12px 16px', borderTop: '1px solid #1F1F2E', display: 'flex', gap: '8px' }}>
-            <input value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()} placeholder="Message..." style={{ flex: 1, background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '10px', padding: '12px', fontFamily: 'inherit', fontSize: '14px', outline: 'none' }} />
-            <button onClick={sendMessage} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '10px', padding: '12px 16px', cursor: 'pointer', fontWeight: 800, fontSize: '16px' }}>→</button>
+            <input value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMsg()} placeholder={`Message to ${selectedMember.name}...`} style={{ flex: 1, background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '10px', padding: '12px', fontFamily: 'inherit', fontSize: '14px', outline: 'none' }} />
+            <button onClick={sendMsg} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '10px', padding: '12px 16px', cursor: 'pointer', fontWeight: 800, fontSize: '16px' }}>→</button>
           </div>
         </div>
       )}
