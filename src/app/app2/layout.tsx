@@ -34,6 +34,7 @@ const NAV = [
   ]},
   { section: '🎭 Manager', items: [
     { href: '/app2/manager', label: 'Manager Tour Sheet', sub: 'Share tour info with your team', icon: '🎭' },
+    { href: '/app2/tours-invited', label: 'My Tours', sub: 'Tours you\'ve been invited to', icon: '🎪' },
   ]},
 ]
 
