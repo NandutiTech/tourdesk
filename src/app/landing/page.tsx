@@ -178,6 +178,9 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
+              <Link href={`/demo?plan=${plan.id}`} style={{ display: 'block', textAlign: 'center', background: '#12121A', color: '#5A5570', borderRadius: '10px', padding: '11px', fontWeight: 700, fontSize: '13px', textDecoration: 'none', border: '1px solid #1F1F2E', marginBottom: '8px' }}>
+                👀 Try demo
+              </Link>
               <Link href="/auth/login#signup" style={{ display: 'block', textAlign: 'center', background: plan.popular ? plan.color : '#1F1F2E', color: plan.popular ? '#0A0A0F' : '#E8E0F0', borderRadius: '10px', padding: '13px', fontWeight: 900, fontSize: '14px', textDecoration: 'none', border: plan.popular ? 'none' : '1px solid #2A2A3E' }}>
                 Get started →
               </Link>
