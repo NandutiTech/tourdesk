@@ -65,9 +65,12 @@ function GuestAddModal({ open, onClose, onSave }: any) {
   const [contact, setContact] = useState('')
   const [count, setCount] = useState('1')
   const [notes, setNotes] = useState('')
-  const save = () => {
+  const [saving, setSaving] = useState(false)
+  const save = async () => {
     if (!name.trim()) { showToast('Name required', false); return }
-    onSave({ name: name.trim(), contact, count: parseInt(count) || 1, notes, status: 'confirmed' })
+    setSaving(true)
+    await onSave({ name: name.trim(), contact, count: parseInt(count) || 1, notes, status: 'confirmed' })
+    setSaving(false)
     onClose()
   }
   return (
@@ -80,7 +83,7 @@ function GuestAddModal({ open, onClose, onSave }: any) {
       <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '50px' }} />
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} style={{ flex: 2 }}>Add</Button>
+        <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Add'}</Button>
       </div>
     </Modal>
   )
@@ -143,9 +146,12 @@ function ExpenseAddModal({ open, onClose, showDate, onSave }: any) {
     setReceipt(b64); setReceiptName(file.name); setReceiptMime(file.type)
   }
 
-  const save = () => {
+  const [saving, setSaving] = useState(false)
+  const save = async () => {
     if (!amount) { showToast('Amount required', false); return }
-    onSave({ date, amount: parseFloat(amount), category: cat, description: desc, receiptData: receipt, receiptName, receiptMime })
+    setSaving(true)
+    await onSave({ date, amount: parseFloat(amount), category: cat, description: desc, receiptData: receipt, receiptName, receiptMime })
+    setSaving(false)
     onClose()
   }
 
@@ -181,7 +187,7 @@ function ExpenseAddModal({ open, onClose, showDate, onSave }: any) {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-          <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+          <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
         </div>
       </Modal>
       {viewing && receipt && (
@@ -254,14 +260,23 @@ function ExpensesSection({ showId, memberId, tourId, showDate, expenses, onRefre
 }
 
 // ─── Message Input ─────────────────────────────────────────────────────────
-function MessageInput({ onSend }: { onSend: (msg: string) => void }) {
+function MessageInput({ onSend }: { onSend: (msg: string) => Promise<void> }) {
   const [msg, setMsg] = useState('')
-  const send = () => { if (!msg.trim()) return; onSend(msg); setMsg('') }
+  const [sending, setSending] = useState(false)
+  const send = async () => {
+    if (!msg.trim()) return
+    setSending(true)
+    await onSend(msg)
+    setMsg('')
+    setSending(false)
+  }
   return (
     <div style={{ display: 'flex', gap: '8px' }}>
-      <input value={msg} onChange={e => setMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
+      <input value={msg} onChange={e => setMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && !sending && send()}
         placeholder="Type a message..." style={{ flex: 1, background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '10px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
-      <button onClick={send} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '13px' }}>Send</button>
+      <button onClick={send} disabled={sending} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '13px', opacity: sending ? 0.6 : 1 }}>
+        {sending ? '...' : 'Send'}
+      </button>
     </div>
   )
 }
