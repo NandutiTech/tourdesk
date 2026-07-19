@@ -52,10 +52,20 @@ export async function GET(req: NextRequest) {
   // Load member detail for specific show
   const { data: memberTickets } = await admin.from('tour_member_tickets').select('*').eq('show_id', showId).eq('member_id', memberId)
 
+  // Load messages, guests, expenses for member
+  const [msgs, gsts, exps] = await Promise.all([
+    admin.from('tour_member_messages').select('*').eq('show_id', showId).eq('member_id', memberId).order('created_at'),
+    admin.from('tour_member_guests').select('*').eq('show_id', showId).eq('member_id', memberId).order('created_at'),
+    admin.from('tour_member_expenses').select('*').eq('show_id', showId).eq('member_id', memberId).order('created_at'),
+  ])
+
   return NextResponse.json({
     tours: tours || [], shows: shows || [], members: members || [],
     showMembers: showMembers || [], tickets: tickets || [],
-    memberTickets: memberTickets || []
+    memberTickets: memberTickets || [],
+    messages: msgs.data || [],
+    guests: gsts.data || [],
+    expenses: exps.data || [],
   })
 }
 
@@ -157,6 +167,50 @@ export async function POST(req: NextRequest) {
 
   if (action === 'delete_ticket') {
     await admin.from('tour_member_tickets').delete().eq('id', body.ticketId).eq('manager_id', user.id)
+    return NextResponse.json({ ok: true })
+  }
+
+  // ─── Messages ────────────────────────────────────────────────────────────
+  if (action === 'send_message') {
+    const id = makeId()
+    await admin.from('tour_member_messages').insert({
+      id, show_id: body.showId, member_id: body.memberId, tour_id: body.tourId,
+      from_manager: body.fromManager || false, sender_name: body.senderName || 'Manager',
+      message: body.message
+    })
+    return NextResponse.json({ ok: true, id })
+  }
+
+  // ─── Guests ──────────────────────────────────────────────────────────────
+  if (action === 'add_guest') {
+    const id = makeId()
+    await admin.from('tour_member_guests').insert({
+      id, show_id: body.showId, member_id: body.memberId, tour_id: body.tourId,
+      name: body.name, contact: body.contact || '', count: body.count || 1,
+      notes: body.notes || '', status: body.status || 'confirmed'
+    })
+    return NextResponse.json({ ok: true, id })
+  }
+
+  if (action === 'delete_guest') {
+    await admin.from('tour_member_guests').delete().eq('id', body.guestId)
+    return NextResponse.json({ ok: true })
+  }
+
+  // ─── Expenses ─────────────────────────────────────────────────────────────
+  if (action === 'add_expense') {
+    const id = makeId()
+    await admin.from('tour_member_expenses').insert({
+      id, show_id: body.showId, member_id: body.memberId, tour_id: body.tourId,
+      date: body.date, amount: body.amount, category: body.category || 'other',
+      description: body.description || '', receipt_data: body.receiptData || null,
+      receipt_name: body.receiptName || null, receipt_mime: body.receiptMime || null
+    })
+    return NextResponse.json({ ok: true, id })
+  }
+
+  if (action === 'delete_expense') {
+    await admin.from('tour_member_expenses').delete().eq('id', body.expenseId)
     return NextResponse.json({ ok: true })
   }
 

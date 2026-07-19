@@ -55,6 +55,19 @@ async function extractShows(base64: string, mimeType: string) {
   } catch { return [] }
 }
 
+// ─── Message Input ─────────────────────────────────────────────────────────
+function MessageInput({ onSend }: { onSend: (msg: string) => void }) {
+  const [msg, setMsg] = useState('')
+  const send = () => { if (!msg.trim()) return; onSend(msg); setMsg('') }
+  return (
+    <div style={{ display: 'flex', gap: '8px' }}>
+      <input value={msg} onChange={e => setMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
+        placeholder="Type a message..." style={{ flex: 1, background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '10px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+      <button onClick={send} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '13px' }}>Send</button>
+    </div>
+  )
+}
+
 // ─── Ticket Upload Component ───────────────────────────────────────────────
 function TicketUpload({ showId, memberId, tourId, tickets, onRefresh }: any) {
   const outRef = useRef<HTMLInputElement>(null)
@@ -269,6 +282,11 @@ export default function ManagerPage() {
   const [showMembers, setShowMembers] = useState<any[]>([])
   const [tickets, setTickets] = useState<any[]>([])
 
+  const [messages, setMessages] = useState<any[]>([])
+  const [guests, setGuests] = useState<any[]>([])
+  const [expenses, setExpenses] = useState<any[]>([])
+  const [memberTab, setMemberTab] = useState<'hotel'|'tickets'|'guests'|'expenses'|'messages'>('hotel')
+
   const [selTour, setSelTour] = useState<any>(null)
   const [selShow, setSelShow] = useState<any>(null)
   const [selMember, setSelMember] = useState<any>(null)
@@ -283,6 +301,7 @@ export default function ManagerPage() {
   const [editingMember, setEditingMember] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
+  const [showsView, setShowsView] = useState<'list'|'calendar'>('list')
   const importRef = useRef<HTMLInputElement>(null)
 
   const load = async (params: Record<string, string> = {}) => {
@@ -293,6 +312,9 @@ export default function ManagerPage() {
     if (data.showMembers) setShowMembers(data.showMembers)
     if (data.tickets) setTickets(data.tickets)
     if (data.memberTickets) setTickets(data.memberTickets)
+    if (data.messages) setMessages(data.messages)
+    if (data.guests) setGuests(data.guests)
+    if (data.expenses) setExpenses(data.expenses)
     setLoading(false)
   }
 
@@ -395,6 +417,49 @@ export default function ManagerPage() {
                   </button>
                   <button onClick={() => { setEditingShow(null); setShowShowModal(true) }} style={{ flex: 1, background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '10px', padding: '10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>+ Add show</button>
                 </div>
+                {/* View toggle */}
+                {tourShows.length > 0 && (
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+                    {(['list', 'calendar'] as const).map(v => (
+                      <button key={v} onClick={() => setShowsView(v)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: `1px solid ${showsView === v ? '#C9A84C' : '#1F1F2E'}`, background: showsView === v ? 'rgba(201,168,76,.1)' : '#12121A', color: showsView === v ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
+                        {v === 'list' ? '☰ List' : '📅 Calendar'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {showsView === 'calendar' && tourShows.length > 0 && (() => {
+                  // Group by month
+                  const byMonth: Record<string, any[]> = {}
+                  for (const s of tourShows) {
+                    const month = s.date?.slice(0, 7) || 'Unknown'
+                    if (!byMonth[month]) byMonth[month] = []
+                    byMonth[month].push(s)
+                  }
+                  return Object.entries(byMonth).map(([month, mShows]) => (
+                    <div key={month} style={{ marginBottom: '16px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '8px' }}>
+                        {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                      </div>
+                      {mShows.map(s => (
+                        <div key={s.id} onClick={() => goShow(s)} style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '10px 12px', background: '#12121A', border: '1px solid #1F1F2E', borderRadius: '10px', marginBottom: '6px', cursor: 'pointer' }}>
+                          <div style={{ textAlign: 'center', minWidth: '36px' }}>
+                            <div style={{ fontSize: '18px', fontWeight: 900, color: '#C9A84C', lineHeight: 1 }}>{s.date?.slice(8, 10)}</div>
+                            <div style={{ fontSize: '9px', color: '#5A5570', textTransform: 'uppercase' }}>{new Date(s.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short' })}</div>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 700, fontSize: '13px' }}>{s.venue || 'Show'}</div>
+                            {s.city && <div style={{ fontSize: '11px', color: '#5A5570' }}>📍 {s.city}</div>}
+                          </div>
+                          <span style={{ color: '#5A5570' }}>›</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                })()}
+
+                {(showsView === 'list' || tourShows.length === 0) && (
+                <>
                 {tourShows.length === 0 ? (
                   <EmptyState icon="📅" title="No shows yet" sub="Import a PDF planning or add shows manually." />
                 ) : tourShows.map(s => (
@@ -412,6 +477,8 @@ export default function ManagerPage() {
                     </div>
                   </Card></div>
                 ))}
+                </>
+                )}
               </>
             )}
 
@@ -506,37 +573,137 @@ export default function ManagerPage() {
               </div>
             </Card>
 
-            {/* Hotel */}
-            <Card style={{ marginBottom: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showMemberData?.hotel ? '8px' : 0 }}>
-                <div style={{ fontSize: '13px', fontWeight: 800 }}>🏨 Hotel — {selShow.city || selShow.date}</div>
-                <button onClick={() => setShowHotelModal(true)} style={{ background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: '#C9A84C', borderRadius: '8px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
-                  {showMemberData?.hotel ? '✏ Edit' : '+ Add'}
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', overflowX: 'auto' }}>
+              {([['hotel','🏨'],['tickets','✈'],['guests','🎫'],['expenses','💰'],['messages','💬']] as const).map(([t, icon]) => (
+                <button key={t} onClick={() => setMemberTab(t)} style={{ flexShrink: 0, padding: '8px 14px', borderRadius: '20px', border: `1px solid ${memberTab === t ? '#C9A84C' : '#1F1F2E'}`, background: memberTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: memberTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
+                  {icon} {t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
-              </div>
-              {showMemberData?.hotel ? (
-                <div>
-                  <div style={{ fontWeight: 700 }}>{showMemberData.hotel}</div>
-                  {showMemberData.room && <div style={{ fontSize: '12px', color: '#5A5570' }}>Room {showMemberData.room}</div>}
-                  {showMemberData.hotel_addr && <div style={{ fontSize: '12px', color: '#5A5570' }}>{showMemberData.hotel_addr}</div>}
-                  {showMemberData.notes && <div style={{ fontSize: '12px', color: '#5A5570', fontStyle: 'italic' }}>{showMemberData.notes}</div>}
-                </div>
-              ) : (
-                <div style={{ fontSize: '12px', color: '#5A5570' }}>No hotel added yet</div>
-              )}
-            </Card>
+              ))}
+            </div>
 
-            {/* Tickets */}
-            <Card style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '12px' }}>✈ Travel tickets</div>
-              <TicketUpload
-                showId={selShow.id}
-                memberId={selMember.id}
-                tourId={selTour.id}
-                tickets={memberTickets}
-                onRefresh={() => load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })}
-              />
-            </Card>
+            {/* Hotel tab */}
+            {memberTab === 'hotel' && (
+              <Card style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showMemberData?.hotel ? '10px' : 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800 }}>🏨 {selShow.city || selShow.date}</div>
+                  <button onClick={() => setShowHotelModal(true)} style={{ background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: '#C9A84C', borderRadius: '8px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
+                    {showMemberData?.hotel ? '✏ Edit' : '+ Add'}
+                  </button>
+                </div>
+                {showMemberData?.hotel ? (
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{showMemberData.hotel}</div>
+                    {showMemberData.room && <div style={{ fontSize: '12px', color: '#5A5570' }}>Room {showMemberData.room}</div>}
+                    {showMemberData.hotel_addr && <div style={{ fontSize: '12px', color: '#5A5570' }}>{showMemberData.hotel_addr}</div>}
+                    {showMemberData.notes && <div style={{ fontSize: '12px', color: '#5A5570', fontStyle: 'italic' }}>{showMemberData.notes}</div>}
+                  </div>
+                ) : <div style={{ fontSize: '12px', color: '#5A5570' }}>No hotel added yet</div>}
+              </Card>
+            )}
+
+            {/* Tickets tab */}
+            {memberTab === 'tickets' && (
+              <Card style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '12px' }}>✈ Travel tickets</div>
+                <TicketUpload
+                  showId={selShow.id} memberId={selMember.id} tourId={selTour.id}
+                  tickets={memberTickets}
+                  onRefresh={() => load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })}
+                />
+              </Card>
+            )}
+
+            {/* Guests tab */}
+            {memberTab === 'guests' && (
+              <Card style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800 }}>🎫 Guest list</div>
+                  <button onClick={async () => {
+                    const name = prompt('Guest name?')
+                    if (!name) return
+                    const count = parseInt(prompt('Number of places?') || '1') || 1
+                    await api('add_guest', { showId: selShow.id, memberId: selMember.id, tourId: selTour.id, name, count })
+                    load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
+                  }} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>+ Guest</button>
+                </div>
+                {guests.length === 0 ? (
+                  <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '16px' }}>No guests yet</div>
+                ) : guests.map((g: any) => (
+                  <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #1F1F2E' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '13px' }}>{g.name}{g.count > 1 ? ` ×${g.count}` : ''}</div>
+                      {g.contact && <div style={{ fontSize: '11px', color: '#5A5570' }}>{g.contact}</div>}
+                    </div>
+                    <button onClick={async () => { await api('delete_guest', { guestId: g.id }); load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id }) }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+                  </div>
+                ))}
+              </Card>
+            )}
+
+            {/* Expenses tab */}
+            {memberTab === 'expenses' && (
+              <Card style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800 }}>💰 Expenses</div>
+                  <button onClick={async () => {
+                    const desc = prompt('Description? (ex: Uber, Taxi...)')
+                    if (!desc) return
+                    const amount = parseFloat(prompt('Amount (€)?') || '0')
+                    if (!amount) return
+                    await api('add_expense', { showId: selShow.id, memberId: selMember.id, tourId: selTour.id, description: desc, amount, date: selShow.date, category: 'transport' })
+                    load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
+                  }} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>+ Expense</button>
+                </div>
+                {expenses.length === 0 ? (
+                  <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '16px' }}>No expenses yet</div>
+                ) : (
+                  <>
+                    {expenses.map((e: any) => (
+                      <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #1F1F2E' }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '13px' }}>{e.description || e.category}</div>
+                          <div style={{ fontSize: '11px', color: '#5A5570' }}>{e.date}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <div style={{ fontWeight: 800, color: '#C9A84C' }}>€{(e.amount||0).toFixed(2)}</div>
+                          <button onClick={async () => { await api('delete_expense', { expenseId: e.id }); load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id }) }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px', fontWeight: 800, color: '#C9A84C' }}>
+                      Total: €{expenses.reduce((s: number, e: any) => s + (e.amount || 0), 0).toFixed(2)}
+                    </div>
+                  </>
+                )}
+              </Card>
+            )}
+
+            {/* Messages tab */}
+            {memberTab === 'messages' && (
+              <Card style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '12px' }}>💬 Messages</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', maxHeight: '300px', overflowY: 'auto' }}>
+                  {messages.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '16px' }}>No messages yet</div>
+                  ) : messages.map((m: any) => (
+                    <div key={m.id} style={{ alignSelf: m.from_manager ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
+                      <div style={{ fontSize: '10px', color: '#5A5570', marginBottom: '2px', textAlign: m.from_manager ? 'right' : 'left' }}>{m.sender_name}</div>
+                      <div style={{ background: m.from_manager ? 'rgba(201,168,76,.15)' : '#12121A', border: `1px solid ${m.from_manager ? 'rgba(201,168,76,.3)' : '#1F1F2E'}`, borderRadius: '10px', padding: '8px 12px', fontSize: '13px' }}>
+                        {m.message}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#5A5570', marginTop: '2px', textAlign: m.from_manager ? 'right' : 'left' }}>
+                        {new Date(m.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <MessageInput onSend={async (msg: string) => {
+                  await api('send_message', { showId: selShow.id, memberId: selMember.id, tourId: selTour.id, message: msg, fromManager: true, senderName: 'Manager' })
+                  load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
+                }} />
+              </Card>
+            )}
           </div>
         </>
       )}
