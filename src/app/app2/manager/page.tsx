@@ -55,6 +55,111 @@ async function extractShows(base64: string, mimeType: string) {
   } catch { return [] }
 }
 
+// ─── Show Guest List (shared, with member name) ────────────────────────────
+function ShowGuestList({ showId, tourId, guests, members, onRefresh }: any) {
+  const [showAdd, setShowAdd] = useState(false)
+  const [editingGuest, setEditingGuest] = useState<any>(null)
+  const [selectedMemberId, setSelectedMemberId] = useState('')
+  const total = guests.reduce((s: number, g: any) => s + (g.count || 1), 0)
+
+  const getMemberName = (memberId: string) => members.find((m: any) => m.id === memberId)?.name || ''
+
+  const cycleStatus = async (g: any) => {
+    const next: Record<string, string> = { confirmed: 'pending', pending: 'cancelled', cancelled: 'confirmed' }
+    await api('update_guest', { guestId: g.id, status: next[g.status] || 'confirmed' })
+    onRefresh()
+  }
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div style={{ fontSize: '12px', color: '#5A5570' }}>{guests.length} guests · {total} places</div>
+        <Button size="sm" onClick={() => { setEditingGuest(null); setShowAdd(true) }}>+ Guest</Button>
+      </div>
+
+      {guests.length === 0 ? (
+        <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '24px', background: '#12121A', borderRadius: '12px', marginBottom: '12px' }}>No guests yet</div>
+      ) : guests.map((g: any) => (
+        <Card key={g.id} style={{ marginBottom: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: '13px' }}>{g.name}{g.count > 1 ? ` ×${g.count}` : ''}</div>
+              {g.member_id && <div style={{ fontSize: '11px', color: '#C9A84C' }}>for {getMemberName(g.member_id)}</div>}
+              {g.contact && <div style={{ fontSize: '11px', color: '#5A5570' }}>{g.contact}</div>}
+              {g.notes && <div style={{ fontSize: '11px', color: '#5A5570', fontStyle: 'italic' }}>{g.notes}</div>}
+            </div>
+            <button onClick={() => cycleStatus(g)} style={{ background: 'none', border: `1px solid ${STATUS_COLORS[g.status]}`, color: STATUS_COLORS[g.status], borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
+              {STATUS_LABELS[g.status]}
+            </button>
+            <button onClick={() => { setEditingGuest(g); setSelectedMemberId(g.member_id || ''); setShowAdd(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏</button>
+            <button onClick={async () => { if (!confirm('Remove guest?')) return; await api('delete_guest', { guestId: g.id }); onRefresh() }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+          </div>
+        </Card>
+      ))}
+
+      {/* Add/Edit Guest Modal */}
+      {showAdd && (
+        <ShowGuestModal
+          open={showAdd}
+          onClose={() => { setShowAdd(false); setEditingGuest(null); setSelectedMemberId('') }}
+          editing={editingGuest}
+          members={members}
+          defaultMemberId={selectedMemberId}
+          onSave={async (g: any) => {
+            if (editingGuest) {
+              await api('update_guest', { guestId: editingGuest.id, ...g })
+              showToast('Guest updated ✓')
+            } else {
+              await api('add_guest', { showId, tourId, memberId: g.memberId, ...g })
+              showToast('Guest added ✓')
+            }
+            onRefresh()
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+function ShowGuestModal({ open, onClose, editing, members, defaultMemberId, onSave }: any) {
+  const [name, setName] = useState(editing?.name || '')
+  const [contact, setContact] = useState(editing?.contact || '')
+  const [count, setCount] = useState(editing?.count?.toString() || '1')
+  const [notes, setNotes] = useState(editing?.notes || '')
+  const [memberId, setMemberId] = useState(defaultMemberId || editing?.member_id || '')
+  const [saving, setSaving] = useState(false)
+
+  const save = async () => {
+    if (!name.trim()) { showToast('Name required', false); return }
+    setSaving(true)
+    await onSave({ name: name.trim(), contact, count: parseInt(count) || 1, notes, memberId, status: editing?.status || 'confirmed' })
+    setSaving(false)
+    onClose()
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={editing ? 'Edit Guest' : 'Add Guest'}>
+      <div>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>For which member?</div>
+        <select value={memberId} onChange={e => setMemberId(e.target.value)} style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: memberId ? '#E8E0F0' : '#5A5570', borderRadius: '8px', padding: '10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', marginBottom: '8px' }}>
+          <option value="">No specific member</option>
+          {members.map((m: any) => <option key={m.id} value={m.id}>{m.name}{m.role ? ` · ${m.role}` : ''}</option>)}
+        </select>
+      </div>
+      <Input label="Guest name *" value={name} onChange={e => setName(e.target.value)} placeholder="Marie Dupont" />
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
+        <Input label="Phone or email" value={contact} onChange={e => setContact(e.target.value)} placeholder="+33 6..." />
+        <Input label="Places" type="number" value={count} onChange={e => setCount(e.target.value)} />
+      </div>
+      <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '50px' }} />
+      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+        <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
+        <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : editing ? 'Save' : 'Add'}</Button>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Show Info Section (shared) ────────────────────────────────────────────
 const SHOW_INFO_FIELDS: Record<string, { label: string, placeholder: string }> = {
   hotel: { label: '🏨 Accommodation', placeholder: 'Hotel name, address...\nAdd any useful info for the team' },
@@ -649,10 +754,11 @@ export default function ManagerPage() {
   const [messages, setMessages] = useState<any[]>([])
   const [showDocs, setShowDocs] = useState<any[]>([])
   const [showMessages, setShowMessages] = useState<any[]>([])
-  const [showInfoTab, setShowInfoTab] = useState<'hotel'|'transfers'|'meals'|'planning'|'technique'|'documents'|'chat'>('hotel')
+  const [showGuests, setShowGuests] = useState<any[]>([])
+  const [showInfoTab, setShowInfoTab] = useState<'hotel'|'transfers'|'meals'|'planning'|'technique'|'documents'|'chat'|'guests'>('hotel')
   const [guests, setGuests] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
-  const [memberTab, setMemberTab] = useState<'hotel'|'tickets'|'guests'|'expenses'|'messages'>('hotel')
+  const [memberTab, setMemberTab] = useState<'hotel'|'tickets'|'expenses'|'messages'>('hotel')
 
   const switchMemberTab = (t: 'hotel'|'tickets'|'guests'|'expenses'|'messages') => {
     setMemberTab(t)
@@ -688,6 +794,7 @@ export default function ManagerPage() {
     if (data.memberTickets) setTickets(data.memberTickets)
     if (data.showDocs) setShowDocs(data.showDocs)
     if (data.showMessages) setShowMessages(data.showMessages)
+    if (data.showGuests) setShowGuests(data.showGuests)
     if (data.messages) setMessages(data.messages)
     if (data.guests) setGuests(data.guests)
     if (data.expenses) setExpenses(data.expenses)
@@ -967,6 +1074,7 @@ export default function ManagerPage() {
                 ['technique','🎛','Technical'],
                 ['documents','📄','Documents'],
                 ['chat','💬','Group chat'],
+                ['guests','🎫','Guest list'],
               ] as const).map(([t, icon, label]) => (
                 <button key={t} onClick={() => setShowInfoTab(t)} style={{ padding: '10px 8px', borderRadius: '10px', border: `2px solid ${showInfoTab === t ? '#C9A84C' : '#1F1F2E'}`, background: showInfoTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: showInfoTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, textAlign: 'center' }}>
                   {icon} {label}
@@ -994,6 +1102,16 @@ export default function ManagerPage() {
                 setShowMessages((prev: any[]) => [...prev, newMsg])
                 await api('send_show_message', { showId: selShow.id, tourId: selTour.id, message: msg, isManager: true, senderName: 'Manager' })
               }} />
+            )}
+            {showInfoTab === 'guests' && (
+              <ShowGuestList
+                showId={selShow.id} tourId={selTour.id}
+                guests={showGuests} members={tourMembers}
+                onRefresh={async () => {
+                  const data = await loadData({ tourId: selTour.id, showId: selShow.id })
+                  if (data.showGuests) setShowGuests(data.showGuests)
+                }}
+              />
             )}
 
             {/* Members */}
@@ -1047,9 +1165,9 @@ export default function ManagerPage() {
               </div>
             </Card>
 
-            {/* Tabs - 2x3 grid */}
+            {/* Tabs - 2x2 grid without guests */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-              {([['hotel','🏨','Hotel'],['tickets','✈','Tickets'],['guests','🎫','Guests'],['expenses','💰','Expenses'],['messages','💬','Messages']] as const).map(([t, icon, label]) => (
+              {([['hotel','🏨','Hotel'],['tickets','✈','Tickets'],['expenses','💰','Expenses'],['messages','💬','Messages']] as const).map(([t, icon, label]) => (
                 <button key={t} onClick={() => switchMemberTab(t as any)} style={{ padding: '12px', borderRadius: '10px', border: `2px solid ${memberTab === t ? '#C9A84C' : '#1F1F2E'}`, background: memberTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: memberTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 800, textAlign: 'center' }}>
                   {icon} {label}
                 </button>
@@ -1088,21 +1206,10 @@ export default function ManagerPage() {
                     if (data.memberTickets) setTickets(data.memberTickets)
     if (data.showDocs) setShowDocs(data.showDocs)
     if (data.showMessages) setShowMessages(data.showMessages)
+    if (data.showGuests) setShowGuests(data.showGuests)
                   }}
                 />
               </Card>
-            )}
-
-            {/* Guests tab */}
-            {memberTab === 'guests' && (
-              <GuestsSection
-                showId={selShow.id} memberId={selMember.id} tourId={selTour.id}
-                guests={guests}
-                onRefresh={async () => {
-                  const data = await loadData({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
-                  if (data.guests) setGuests(data.guests)
-                }}
-              />
             )}
 
             {/* Expenses tab */}
