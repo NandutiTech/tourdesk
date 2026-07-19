@@ -192,6 +192,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, id })
   }
 
+  if (action === 'update_guest') {
+    await admin.from('tour_member_guests').update({ status: body.status }).eq('id', body.guestId)
+    return NextResponse.json({ ok: true })
+  }
+
   if (action === 'delete_guest') {
     await admin.from('tour_member_guests').delete().eq('id', body.guestId)
     return NextResponse.json({ ok: true })

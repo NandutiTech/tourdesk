@@ -55,6 +55,204 @@ async function extractShows(base64: string, mimeType: string) {
   } catch { return [] }
 }
 
+// ─── Guests Section ────────────────────────────────────────────────────────
+const STATUS_COLORS: Record<string, string> = { confirmed: '#5DC9A0', pending: '#C9A84C', cancelled: '#E8453C' }
+const STATUS_LABELS: Record<string, string> = { confirmed: '✓ Confirmed', pending: '⏳ Pending', cancelled: '✕ Cancelled' }
+const CATS: Record<string, string> = { transport: '🚆 Transport', hotel: '🏨 Hotel', food: '🍽 Food', equipment: '🎛 Equipment', other: '📦 Other' }
+
+function GuestAddModal({ open, onClose, onSave }: any) {
+  const [name, setName] = useState('')
+  const [contact, setContact] = useState('')
+  const [count, setCount] = useState('1')
+  const [notes, setNotes] = useState('')
+  const save = () => {
+    if (!name.trim()) { showToast('Name required', false); return }
+    onSave({ name: name.trim(), contact, count: parseInt(count) || 1, notes, status: 'confirmed' })
+    onClose()
+  }
+  return (
+    <Modal open={open} onClose={onClose} title="Add Guest">
+      <Input label="Guest name *" value={name} onChange={e => setName(e.target.value)} placeholder="Marie Dupont" />
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
+        <Input label="Phone or email" value={contact} onChange={e => setContact(e.target.value)} placeholder="+33 6..." />
+        <Input label="Places" type="number" value={count} onChange={e => setCount(e.target.value)} />
+      </div>
+      <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '50px' }} />
+      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+        <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
+        <Button onClick={save} style={{ flex: 2 }}>Add</Button>
+      </div>
+    </Modal>
+  )
+}
+
+function GuestsSection({ showId, memberId, tourId, guests, onRefresh }: any) {
+  const [showAdd, setShowAdd] = useState(false)
+  const total = guests.reduce((s: number, g: any) => s + (g.count || 1), 0)
+  const cycleStatus = async (g: any) => {
+    const next: Record<string, string> = { confirmed: 'pending', pending: 'cancelled', cancelled: 'confirmed' }
+    await api('update_guest', { guestId: g.id, status: next[g.status] || 'confirmed' })
+    onRefresh()
+  }
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div style={{ fontSize: '12px', color: '#5A5570' }}>{guests.length} guests · {total} places</div>
+        <Button size="sm" onClick={() => setShowAdd(true)}>+ Guest</Button>
+      </div>
+      {guests.length === 0 ? (
+        <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '24px', background: '#12121A', borderRadius: '12px', marginBottom: '12px' }}>No guests yet</div>
+      ) : guests.map((g: any) => (
+        <Card key={g.id} style={{ marginBottom: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: '13px' }}>{g.name}{g.count > 1 ? ` ×${g.count}` : ''}</div>
+              {g.contact && <div style={{ fontSize: '11px', color: '#5A5570' }}>{g.contact}</div>}
+              {g.notes && <div style={{ fontSize: '11px', color: '#5A5570', fontStyle: 'italic' }}>{g.notes}</div>}
+            </div>
+            <button onClick={() => cycleStatus(g)} style={{ background: 'none', border: `1px solid ${STATUS_COLORS[g.status]}`, color: STATUS_COLORS[g.status], borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
+              {STATUS_LABELS[g.status]}
+            </button>
+            <button onClick={async () => { await api('delete_guest', { guestId: g.id }); onRefresh() }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+          </div>
+        </Card>
+      ))}
+      <GuestAddModal key={showAdd ? 'open' : 'closed'} open={showAdd} onClose={() => setShowAdd(false)} onSave={async (g: any) => {
+        await api('add_guest', { showId, memberId, tourId, ...g })
+        onRefresh()
+      }} />
+    </>
+  )
+}
+
+// ─── Expenses Section ──────────────────────────────────────────────────────
+function ExpenseAddModal({ open, onClose, showDate, onSave }: any) {
+  const today = showDate || new Date().toISOString().slice(0, 10)
+  const [date, setDate] = useState(today)
+  const [amount, setAmount] = useState('')
+  const [cat, setCat] = useState('other')
+  const [desc, setDesc] = useState('')
+  const [receipt, setReceipt] = useState('')
+  const [receiptName, setReceiptName] = useState('')
+  const [receiptMime, setReceiptMime] = useState('')
+  const [viewing, setViewing] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = async (file: File) => {
+    const b64 = await new Promise<string>(res => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(file) })
+    setReceipt(b64); setReceiptName(file.name); setReceiptMime(file.type)
+  }
+
+  const save = () => {
+    if (!amount) { showToast('Amount required', false); return }
+    onSave({ date, amount: parseFloat(amount), category: cat, description: desc, receiptData: receipt, receiptName, receiptMime })
+    onClose()
+  }
+
+  return (
+    <>
+      <Modal open={open} onClose={onClose} title="Add Expense">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <Input label="Date" type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <Input label="Amount (€) *" type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+        </div>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>Category</div>
+          <select value={cat} onChange={e => setCat(e.target.value)} style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', marginBottom: '8px' }}>
+            {Object.entries(CATS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </div>
+        <Textarea label="Description" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Uber, lunch, equipment..." style={{ minHeight: '50px' }} />
+        <div style={{ marginBottom: '8px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '6px' }}>🧾 Receipt</div>
+          {!receipt ? (
+            <>
+              <input ref={fileRef} type="file" accept="image/*,.pdf" capture="environment" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+              <button onClick={() => fileRef.current?.click()} style={{ width: '100%', background: '#12121A', border: '1px dashed rgba(201,168,76,.3)', color: '#5A5570', borderRadius: '10px', padding: '11px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px' }}>📷 Take photo / Upload</button>
+            </>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#12121A', border: '1px solid rgba(201,168,76,.2)', borderRadius: '10px', padding: '10px 12px' }}>
+              <span style={{ fontSize: '20px' }}>{receiptMime?.startsWith('image') ? '🖼' : '📄'}</span>
+              <span style={{ flex: 1, fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{receiptName}</span>
+              <button onClick={() => setViewing(true)} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 800 }}>View</button>
+              <button onClick={() => { setReceipt(''); setReceiptName(''); setReceiptMime('') }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
+          <Button onClick={save} style={{ flex: 2 }}>Save</Button>
+        </div>
+      </Modal>
+      {viewing && receipt && (
+        <div onClick={() => setViewing(false)} style={{ position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '600px', marginBottom: '12px' }}>
+            <div style={{ fontWeight: 700, color: 'white' }}>{receiptName}</div>
+            <button onClick={() => setViewing(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer' }}>✕</button>
+          </div>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '600px' }}>
+            {receipt.startsWith('data:image') && <img src={receipt} alt="" style={{ width: '100%', borderRadius: '12px', maxHeight: '80vh', objectFit: 'contain' }} />}
+            {receipt.startsWith('data:application/pdf') && <iframe src={receipt} style={{ width: '100%', height: '80vh', border: 'none', borderRadius: '12px' }} />}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+function ExpensesSection({ showId, memberId, tourId, showDate, expenses, onRefresh }: any) {
+  const [showAdd, setShowAdd] = useState(false)
+  const [viewingReceipt, setViewingReceipt] = useState<any>(null)
+  const total = expenses.reduce((s: number, e: any) => s + (e.amount || 0), 0)
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div style={{ fontSize: '12px', color: '#5A5570' }}>{expenses.length} expenses · €{total.toFixed(2)}</div>
+        <Button size="sm" onClick={() => setShowAdd(true)}>+ Expense</Button>
+      </div>
+      {expenses.length === 0 ? (
+        <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '24px', background: '#12121A', borderRadius: '12px', marginBottom: '12px' }}>No expenses yet</div>
+      ) : expenses.map((e: any) => (
+        <Card key={e.id} style={{ marginBottom: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div style={{ fontSize: '20px', marginTop: '2px' }}>{(CATS[e.category] || CATS.other).split(' ')[0]}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: '13px' }}>{e.description || CATS[e.category]}</div>
+              <div style={{ fontSize: '11px', color: '#5A5570' }}>{e.date}</div>
+              {e.receipt_data && (
+                <button onClick={() => setViewingReceipt({ src: e.receipt_data, name: e.receipt_name || 'Receipt' })} style={{ marginTop: '6px', background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: '#C9A84C', borderRadius: '6px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700 }}>
+                  🧾 View receipt
+                </button>
+              )}
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontWeight: 800, color: '#C9A84C', fontSize: '14px' }}>€{(e.amount || 0).toFixed(2)}</div>
+              <button onClick={async () => { await api('delete_expense', { expenseId: e.id }); onRefresh() }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px', marginTop: '4px' }}>✕</button>
+            </div>
+          </div>
+        </Card>
+      ))}
+      <ExpenseAddModal key={showAdd ? 'open' : 'closed'} open={showAdd} onClose={() => setShowAdd(false)} showDate={showDate} onSave={async (e: any) => {
+        await api('add_expense', { showId, memberId, tourId, ...e })
+        onRefresh()
+      }} />
+      {viewingReceipt && (
+        <div onClick={() => setViewingReceipt(null)} style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '600px', marginBottom: '12px' }}>
+            <div style={{ fontWeight: 700, color: 'white' }}>{viewingReceipt.name}</div>
+            <button onClick={() => setViewingReceipt(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer' }}>✕</button>
+          </div>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '600px' }}>
+            {viewingReceipt.src.startsWith('data:image') && <img src={viewingReceipt.src} alt="" style={{ width: '100%', borderRadius: '12px', maxHeight: '80vh', objectFit: 'contain' }} />}
+            {viewingReceipt.src.startsWith('data:application/pdf') && <iframe src={viewingReceipt.src} style={{ width: '100%', height: '80vh', border: 'none', borderRadius: '12px' }} />}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 // ─── Message Input ─────────────────────────────────────────────────────────
 function MessageInput({ onSend }: { onSend: (msg: string) => void }) {
   const [msg, setMsg] = useState('')
@@ -654,67 +852,21 @@ export default function ManagerPage() {
 
             {/* Guests tab */}
             {memberTab === 'guests' && (
-              <Card style={{ marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 800 }}>🎫 Guest list</div>
-                  <button onClick={async () => {
-                    const name = prompt('Guest name?')
-                    if (!name) return
-                    const count = parseInt(prompt('Number of places?') || '1') || 1
-                    await api('add_guest', { showId: selShow.id, memberId: selMember.id, tourId: selTour.id, name, count })
-                    load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
-                  }} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>+ Guest</button>
-                </div>
-                {guests.length === 0 ? (
-                  <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '16px' }}>No guests yet</div>
-                ) : guests.map((g: any) => (
-                  <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #1F1F2E' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '13px' }}>{g.name}{g.count > 1 ? ` ×${g.count}` : ''}</div>
-                      {g.contact && <div style={{ fontSize: '11px', color: '#5A5570' }}>{g.contact}</div>}
-                    </div>
-                    <button onClick={async () => { await api('delete_guest', { guestId: g.id }); load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id }) }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
-                  </div>
-                ))}
-              </Card>
+              <GuestsSection
+                showId={selShow.id} memberId={selMember.id} tourId={selTour.id}
+                guests={guests}
+                onRefresh={() => load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })}
+              />
             )}
 
             {/* Expenses tab */}
             {memberTab === 'expenses' && (
-              <Card style={{ marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 800 }}>💰 Expenses</div>
-                  <button onClick={async () => {
-                    const desc = prompt('Description? (ex: Uber, Taxi...)')
-                    if (!desc) return
-                    const amount = parseFloat(prompt('Amount (€)?') || '0')
-                    if (!amount) return
-                    await api('add_expense', { showId: selShow.id, memberId: selMember.id, tourId: selTour.id, description: desc, amount, date: selShow.date, category: 'transport' })
-                    load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
-                  }} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>+ Expense</button>
-                </div>
-                {expenses.length === 0 ? (
-                  <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '16px' }}>No expenses yet</div>
-                ) : (
-                  <>
-                    {expenses.map((e: any) => (
-                      <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #1F1F2E' }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '13px' }}>{e.description || e.category}</div>
-                          <div style={{ fontSize: '11px', color: '#5A5570' }}>{e.date}</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <div style={{ fontWeight: 800, color: '#C9A84C' }}>€{(e.amount||0).toFixed(2)}</div>
-                          <button onClick={async () => { await api('delete_expense', { expenseId: e.id }); load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id }) }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
-                        </div>
-                      </div>
-                    ))}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px', fontWeight: 800, color: '#C9A84C' }}>
-                      Total: €{expenses.reduce((s: number, e: any) => s + (e.amount || 0), 0).toFixed(2)}
-                    </div>
-                  </>
-                )}
-              </Card>
+              <ExpensesSection
+                showId={selShow.id} memberId={selMember.id} tourId={selTour.id}
+                showDate={selShow.date}
+                expenses={expenses}
+                onRefresh={() => load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })}
+              />
             )}
 
             {/* Messages tab */}
