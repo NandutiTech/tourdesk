@@ -132,6 +132,8 @@ export default function SettingsPage() {
               Manage plan
             </button>
           )}
+        </Card>
+
         <Card style={{ marginBottom: '12px' }}>
           <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>🔔 Notifications</div>
           <div style={{ fontSize: '12px', color: '#5A5570', marginBottom: '12px' }}>
