@@ -23,27 +23,39 @@ export async function GET(req: NextRequest) {
   const user = await getUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const tourId = new URL(req.url).searchParams.get('tourId')
+  const url = new URL(req.url)
+  const tourId = url.searchParams.get('tourId')
+  const showId = url.searchParams.get('showId')
+  const memberId = url.searchParams.get('memberId')
 
-  const { data: managerTours } = await admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at')
+  // Load all tours
+  const { data: tours } = await admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at')
 
-  const memberQuery = admin.from('tour_members').select('*').eq('manager_id', user.id)
-  if (tourId) memberQuery.eq('tour_id', tourId)
-  const { data: members } = await memberQuery.order('created_at')
+  if (!tourId) return NextResponse.json({ tours: tours || [] })
 
-  const ticketQuery = admin.from('tour_member_tickets').select('*').eq('manager_id', user.id)
-  if (tourId) ticketQuery.eq('tour_id', tourId)
-  const { data: tickets } = await ticketQuery
+  // Load shows for tour
+  const { data: shows } = await admin.from('tour_shows').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('date')
 
-  const showQuery = admin.from('tour_shows').select('*').eq('manager_id', user.id)
-  if (tourId) showQuery.eq('tour_id', tourId)
-  const { data: shows } = await showQuery.order('date')
+  // Load members for tour
+  const { data: members } = await admin.from('tour_members').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('created_at')
+
+  if (!showId) return NextResponse.json({ tours: tours || [], shows: shows || [], members: members || [] })
+
+  // Load show-member details (hotel per show per member)
+  const { data: showMembers } = await admin.from('tour_show_members').select('*').eq('show_id', showId)
+
+  // Load tickets for this show
+  const { data: tickets } = await admin.from('tour_member_tickets').select('*').eq('show_id', showId).eq('tour_id', tourId)
+
+  if (!memberId) return NextResponse.json({ tours: tours || [], shows: shows || [], members: members || [], showMembers: showMembers || [], tickets: tickets || [] })
+
+  // Load member detail for specific show
+  const { data: memberTickets } = await admin.from('tour_member_tickets').select('*').eq('show_id', showId).eq('member_id', memberId)
 
   return NextResponse.json({
-    tours: managerTours || [],
-    members: members || [],
-    tickets: tickets || [],
-    shows: shows || [],
+    tours: tours || [], shows: shows || [], members: members || [],
+    showMembers: showMembers || [], tickets: tickets || [],
+    memberTickets: memberTickets || []
   })
 }
 
@@ -54,92 +66,91 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { action } = body
 
+  // ─── Tours ───────────────────────────────────────────────────────────────
   if (action === 'create_tour') {
-    const { name, notes } = body
     const id = makeId()
-    await admin.from('manager_tours').insert({
-      id, user_id: user.id, name, notes: notes || ''
-    })
+    await admin.from('manager_tours').insert({ id, user_id: user.id, name: body.name, notes: body.notes || '' })
     return NextResponse.json({ ok: true, id })
   }
 
   if (action === 'update_tour') {
-    const { tourId, name, notes } = body
-    await admin.from('manager_tours').update({ name, notes: notes || '' }).eq('id', tourId).eq('user_id', user.id)
+    await admin.from('manager_tours').update({ name: body.name, notes: body.notes || '' }).eq('id', body.tourId).eq('user_id', user.id)
     return NextResponse.json({ ok: true })
   }
 
   if (action === 'delete_tour') {
-    const { tourId } = body
-    await admin.from('manager_tours').delete().eq('id', tourId).eq('user_id', user.id)
-    await admin.from('tour_members').delete().eq('tour_id', tourId).eq('manager_id', user.id)
-    await admin.from('tour_member_tickets').delete().eq('tour_id', tourId).eq('manager_id', user.id)
-    await admin.from('tour_shows').delete().eq('tour_id', tourId).eq('manager_id', user.id)
+    await admin.from('manager_tours').delete().eq('id', body.tourId).eq('user_id', user.id)
+    await admin.from('tour_shows').delete().eq('tour_id', body.tourId).eq('manager_id', user.id)
+    await admin.from('tour_members').delete().eq('tour_id', body.tourId).eq('manager_id', user.id)
+    await admin.from('tour_member_tickets').delete().eq('tour_id', body.tourId)
     return NextResponse.json({ ok: true })
   }
 
   // ─── Shows ───────────────────────────────────────────────────────────────
   if (action === 'add_show') {
-    const { tourId, date, venue, city, notes } = body
     const id = makeId()
-    await admin.from('tour_shows').insert({ id, tour_id: tourId, manager_id: user.id, date, venue, city, notes })
+    await admin.from('tour_shows').insert({ id, tour_id: body.tourId, manager_id: user.id, date: body.date, venue: body.venue, city: body.city, notes: body.notes || '' })
     return NextResponse.json({ ok: true, id })
   }
 
   if (action === 'add_shows_bulk') {
-    const { tourId, shows } = body
-    const rows = shows.map((s: any) => ({ id: makeId(), tour_id: tourId, manager_id: user.id, ...s }))
+    const rows = body.shows.map((s: any) => ({ id: makeId(), tour_id: body.tourId, manager_id: user.id, ...s }))
     await admin.from('tour_shows').insert(rows)
     return NextResponse.json({ ok: true, count: rows.length })
   }
 
   if (action === 'update_show') {
-    const { showId, date, venue, city, notes } = body
-    await admin.from('tour_shows').update({ date, venue, city, notes }).eq('id', showId).eq('manager_id', user.id)
+    await admin.from('tour_shows').update({ date: body.date, venue: body.venue, city: body.city, notes: body.notes || '' }).eq('id', body.showId).eq('manager_id', user.id)
     return NextResponse.json({ ok: true })
   }
 
   if (action === 'delete_show') {
     await admin.from('tour_shows').delete().eq('id', body.showId).eq('manager_id', user.id)
+    await admin.from('tour_member_tickets').delete().eq('show_id', body.showId)
+    await admin.from('tour_show_members').delete().eq('show_id', body.showId)
     return NextResponse.json({ ok: true })
   }
 
   // ─── Members ─────────────────────────────────────────────────────────────
   if (action === 'add_member') {
-    const { tourId, name, role, email, phone, hotel, room, hotelAddr, notes } = body
     const id = makeId()
-    await admin.from('tour_members').insert({
-      id, tour_id: tourId, manager_id: user.id,
-      name, role, email: email?.toLowerCase() || null, phone: phone || null,
-      hotel, room, hotel_addr: hotelAddr, notes
-    })
+    await admin.from('tour_members').insert({ id, tour_id: body.tourId, manager_id: user.id, name: body.name, role: body.role, email: body.email?.toLowerCase() || null, phone: body.phone || null, notes: body.notes || '' })
     return NextResponse.json({ ok: true, id })
   }
 
   if (action === 'update_member') {
-    const { memberId, name, role, email, phone, hotel, room, hotelAddr, notes } = body
-    await admin.from('tour_members').update({
-      name, role, email: email?.toLowerCase() || null, phone: phone || null,
-      hotel, room, hotel_addr: hotelAddr, notes
-    }).eq('id', memberId).eq('manager_id', user.id)
+    await admin.from('tour_members').update({ name: body.name, role: body.role, email: body.email?.toLowerCase() || null, phone: body.phone || null, notes: body.notes || '' }).eq('id', body.memberId).eq('manager_id', user.id)
     return NextResponse.json({ ok: true })
   }
 
   if (action === 'delete_member') {
     await admin.from('tour_members').delete().eq('id', body.memberId).eq('manager_id', user.id)
     await admin.from('tour_member_tickets').delete().eq('member_id', body.memberId)
+    await admin.from('tour_show_members').delete().eq('member_id', body.memberId)
+    return NextResponse.json({ ok: true })
+  }
+
+  // ─── Show-Member hotel ────────────────────────────────────────────────────
+  if (action === 'save_show_member') {
+    const { showId, memberId, tourId, hotel, room, hotelAddr, notes } = body
+    // Upsert
+    const existing = await admin.from('tour_show_members').select('id').eq('show_id', showId).eq('member_id', memberId).single()
+    if (existing.data) {
+      await admin.from('tour_show_members').update({ hotel, room, hotel_addr: hotelAddr, notes }).eq('id', existing.data.id)
+    } else {
+      await admin.from('tour_show_members').insert({ id: makeId(), show_id: showId, member_id: memberId, tour_id: tourId, hotel, room, hotel_addr: hotelAddr, notes })
+    }
     return NextResponse.json({ ok: true })
   }
 
   // ─── Tickets ─────────────────────────────────────────────────────────────
   if (action === 'upload_ticket') {
-    const { memberId, tourId, showId, direction, ticketData, ticketName, ticketMime, info } = body
     const id = makeId()
     await admin.from('tour_member_tickets').insert({
-      id, member_id: memberId, tour_id: tourId, show_id: showId || null,
-      manager_id: user.id, direction,
-      ticket_data: ticketData, ticket_name: ticketName,
-      ticket_mime: ticketMime, info
+      id, show_id: body.showId, member_id: body.memberId, tour_id: body.tourId,
+      manager_id: user.id, direction: body.direction,
+      ticket_data: body.ticketData, ticket_name: body.ticketName,
+      ticket_mime: body.ticketMime, info: body.info || null
     })
     return NextResponse.json({ ok: true, id })
   }
