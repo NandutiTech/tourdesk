@@ -1018,6 +1018,9 @@ export default function ManagerPage() {
   const [editingTour, setEditingTour] = useState<any>(null)
   const [editingShow, setEditingShow] = useState<any>(null)
   const [editingMember, setEditingMember] = useState<any>(null)
+  const [showQR, setShowQR] = useState(false)
+  const [qrUrl, setQrUrl] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState('')
   const [loading, setLoading] = useState(true)
   const firstShowDate = shows.length > 0 ? new Date(shows[0].date + 'T12:00:00') : new Date()
   const [calY, setCalY] = useState(firstShowDate.getFullYear())
@@ -1331,12 +1334,12 @@ export default function ManagerPage() {
                   setSelShow({ ...selShow, share_token: token })
                 }
                 const url = `${window.location.origin}/show/${token}`
-                if (navigator.share) {
-                  navigator.share({ title: selShow.venue || selShow.date, url })
-                } else {
-                  navigator.clipboard.writeText(url)
-                  showToast('Link copied! 📋')
-                }
+                setQrUrl(url)
+                // Generate QR
+                const QRCode = await import('qrcode')
+                const dataUrl = await QRCode.default.toDataURL(url, { width: 300, margin: 2, color: { dark: '#000000', light: '#FFFFFF' } })
+                setQrDataUrl(dataUrl)
+                setShowQR(true)
               }} style={{ background: '#5DC9A0', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>
                 📤 Share
               </button>
@@ -1468,6 +1471,35 @@ export default function ManagerPage() {
         </>
       )}
 
+
+      {/* QR Share Modal */}
+      {showQR && (
+        <div onClick={() => setShowQR(false)} style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#13131C', borderRadius: '24px', padding: '32px 24px', maxWidth: '340px', width: '100%', textAlign: 'center' }}>
+            <div style={{ fontWeight: 900, fontSize: '18px', marginBottom: '4px' }}>{selShow?.venue || 'Show Pass'}</div>
+            <div style={{ fontSize: '13px', color: '#5A5570', marginBottom: '24px' }}>📅 {selShow?.date}{selShow?.city ? ` · ${selShow.city}` : ''}</div>
+            {qrDataUrl && (
+              <div style={{ background: 'white', borderRadius: '16px', padding: '16px', marginBottom: '20px', display: 'inline-block' }}>
+                <img src={qrDataUrl} alt="QR Code" style={{ width: '240px', height: '240px', display: 'block' }} />
+              </div>
+            )}
+            <div style={{ fontSize: '13px', color: '#5A5570', marginBottom: '20px' }}>
+              Show this QR to your team — they scan it and see everything instantly
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={async () => {
+                if (navigator.share) navigator.share({ title: selShow?.venue || 'Show Pass', url: qrUrl })
+                else { navigator.clipboard.writeText(qrUrl); showToast('Link copied! 📋') }
+              }} style={{ flex: 1, background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '10px', padding: '12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 800 }}>
+                📤 Share link
+              </button>
+              <button onClick={() => setShowQR(false)} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '10px', padding: '12px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px' }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <TourModal key={editingTour?.id || 'new-tour'} open={showTourModal} onClose={() => setShowTourModal(false)} editing={editingTour} onSaved={() => { load(); setShowTourModal(false) }} />
