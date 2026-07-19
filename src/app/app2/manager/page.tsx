@@ -55,6 +55,124 @@ async function extractShows(base64: string, mimeType: string) {
   } catch { return [] }
 }
 
+// ─── Show Info Section (shared) ────────────────────────────────────────────
+const SHOW_INFO_FIELDS: Record<string, { label: string, placeholder: string }> = {
+  hotel: { label: '🏨 Hébergement', placeholder: 'Hôtel du Palais, 12 rue...\nPiscine sur place, prévoir maillots!' },
+  transfers: { label: '🚌 Transfers', placeholder: 'Bus collectif départ 14h depuis le théâtre\nRetour prévu 23h30' },
+  meals: { label: '🍽 Repas', placeholder: 'Prise en charge directe sur place\nDîner 19h — restaurant La Brasserie' },
+  planning: { label: '📅 Planning', placeholder: 'Arrivée: 14h\nBalance: 16h\nCatering: 18h30\nShow: 20h30\nFin: 22h30' },
+  technique: { label: '🎛 Technique', placeholder: 'EOS demande pupitage possible J-1\nProjection sur le mur de fond\nSon: L-Acoustics K2' },
+}
+
+function ShowInfoSection({ show, field, onSave }: any) {
+  const info = SHOW_INFO_FIELDS[field]
+  const fieldKey = field === 'hotel' ? 'hotel' : field
+  const notesKey = field === 'hotel' ? 'hotel_notes' : null
+  const [value, setValue] = useState(show[fieldKey] || '')
+  const [notes, setNotes] = useState(notesKey ? (show[notesKey] || '') : '')
+  const [saving, setSaving] = useState(false)
+
+  const save = async () => {
+    setSaving(true)
+    const updates: any = { [fieldKey]: value }
+    if (notesKey) updates[notesKey] = notes
+    await onSave(updates)
+    setSaving(false)
+  }
+
+  return (
+    <Card style={{ marginBottom: '12px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '10px' }}>{info?.label}</div>
+      <textarea value={value} onChange={e => setValue(e.target.value)} placeholder={info?.placeholder}
+        style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '10px', padding: '12px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', minHeight: '100px', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }} />
+      {notesKey && (
+        <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes supplémentaires..."
+          style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#C9A84C', borderRadius: '10px', padding: '12px', fontFamily: 'inherit', fontSize: '12px', outline: 'none', minHeight: '60px', resize: 'vertical', boxSizing: 'border-box', marginTop: '6px' }} />
+      )}
+      <Button onClick={save} disabled={saving} style={{ marginTop: '10px', width: '100%' }}>
+        {saving ? 'Saving...' : 'Save'}
+      </Button>
+    </Card>
+  )
+}
+
+// ─── Show Documents ─────────────────────────────────────────────────────────
+function ShowDocuments({ showId, tourId, docs, onRefresh }: any) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [viewing, setViewing] = useState<any>(null)
+
+  const handleFile = async (file: File) => {
+    const b64 = await new Promise<string>(res => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(file) })
+    setUploading(true)
+    await api('add_show_document', { showId, tourId, name: file.name, data: b64, mime: file.type })
+    showToast('Document added ✓')
+    setUploading(false)
+    onRefresh()
+  }
+
+  const viewDoc = async (doc: any) => {
+    const res = await api('get_show_document', { docId: doc.id })
+    setViewing({ ...res, name: doc.name })
+  }
+
+  return (
+    <>
+      <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      <div style={{ marginBottom: '12px' }}>
+        <button onClick={() => fileRef.current?.click()} style={{ width: '100%', background: '#12121A', border: '1px dashed rgba(201,168,76,.3)', color: '#5A5570', borderRadius: '10px', padding: '12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', marginBottom: '10px' }}>
+          {uploading ? '⏳ Uploading...' : '📎 Add document or photo'}
+        </button>
+        {docs.map((d: any) => (
+          <Card key={d.id} style={{ marginBottom: '8px', padding: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '20px' }}>{d.mime?.startsWith('image') ? '🖼' : '📄'}</span>
+              <span style={{ flex: 1, fontSize: '13px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+              <button onClick={() => viewDoc(d)} style={{ background: '#C9A84C', border: 'none', color: '#0A0A0F', borderRadius: '6px', padding: '5px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 800 }}>View</button>
+              <button onClick={async () => { if (!confirm('Delete?')) return; await api('delete_show_document', { docId: d.id }); onRefresh() }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+            </div>
+          </Card>
+        ))}
+        {docs.length === 0 && <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '16px' }}>No documents yet</div>}
+      </div>
+      {viewing?.data && (
+        <div onClick={() => setViewing(null)} style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '600px', marginBottom: '12px' }}>
+            <div style={{ fontWeight: 700, color: 'white' }}>{viewing.name}</div>
+            <button onClick={() => setViewing(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer' }}>✕</button>
+          </div>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '600px' }}>
+            {viewing.mime?.startsWith('image') && <img src={viewing.data} alt="" style={{ width: '100%', borderRadius: '12px', maxHeight: '80vh', objectFit: 'contain' }} />}
+            {viewing.mime === 'application/pdf' && <iframe src={viewing.data} style={{ width: '100%', height: '80vh', border: 'none', borderRadius: '12px' }} />}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── Show Chat (group) ──────────────────────────────────────────────────────
+function ShowChat({ showId, tourId, messages, onSend }: any) {
+  return (
+    <Card style={{ marginBottom: '12px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '12px' }}>💬 Group chat</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', maxHeight: '300px', overflowY: 'auto' }}>
+        {messages.length === 0 ? (
+          <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '24px' }}>No messages yet</div>
+        ) : messages.map((m: any) => (
+          <div key={m.id} style={{ alignSelf: m.is_manager ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+            <div style={{ fontSize: '10px', color: '#5A5570', marginBottom: '3px', textAlign: m.is_manager ? 'right' : 'left' }}>{m.sender_name}</div>
+            <div style={{ background: m.is_manager ? 'rgba(201,168,76,.15)' : '#1A1A28', border: `1px solid ${m.is_manager ? 'rgba(201,168,76,.3)' : '#1F1F2E'}`, borderRadius: m.is_manager ? '12px 12px 4px 12px' : '12px 12px 12px 4px', padding: '10px 14px', fontSize: '13px', lineHeight: 1.5 }}>
+              {m.message}
+            </div>
+          </div>
+        ))}
+      </div>
+      <MessageInput onSend={onSend} />
+    </Card>
+  )
+}
+
 // ─── Guests Section ────────────────────────────────────────────────────────
 const STATUS_COLORS: Record<string, string> = { confirmed: '#5DC9A0', pending: '#C9A84C', cancelled: '#E8453C' }
 const STATUS_LABELS: Record<string, string> = { confirmed: '✓ Confirmed', pending: '⏳ Pending', cancelled: '✕ Cancelled' }
@@ -512,6 +630,9 @@ export default function ManagerPage() {
   const [tickets, setTickets] = useState<any[]>([])
 
   const [messages, setMessages] = useState<any[]>([])
+  const [showDocs, setShowDocs] = useState<any[]>([])
+  const [showMessages, setShowMessages] = useState<any[]>([])
+  const [showInfoTab, setShowInfoTab] = useState<'hotel'|'transfers'|'meals'|'planning'|'technique'|'documents'|'chat'>('hotel')
   const [guests, setGuests] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [memberTab, setMemberTab] = useState<'hotel'|'tickets'|'guests'|'expenses'|'messages'>('hotel')
@@ -548,6 +669,8 @@ export default function ManagerPage() {
     if (data.showMembers) setShowMembers(data.showMembers)
     if (data.tickets) setTickets(data.tickets)
     if (data.memberTickets) setTickets(data.memberTickets)
+    if (data.showDocs) setShowDocs(data.showDocs)
+    if (data.showMessages) setShowMessages(data.showMessages)
     if (data.messages) setMessages(data.messages)
     if (data.guests) setGuests(data.guests)
     if (data.expenses) setExpenses(data.expenses)
@@ -805,7 +928,7 @@ export default function ManagerPage() {
         </>
       )}
 
-      {/* ── SCREEN 3: Show → Members ── */}
+      {/* ── SCREEN 3: Show → Shared info + Members ── */}
       {screen === 'show' && selShow && (
         <>
           <Toolbar title={selShow.venue || selShow.date} actions={<Button size="sm" onClick={() => { setEditingShow(selShow); setShowShowModal(true) }}>✏ Edit</Button>} />
@@ -817,28 +940,59 @@ export default function ManagerPage() {
               {selShow.notes && <div style={{ fontSize: '12px', color: '#5A5570', marginTop: '4px', fontStyle: 'italic' }}>{selShow.notes}</div>}
             </div>
 
-            <div style={{ fontSize: '12px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '10px' }}>
-              👥 Team for this show
+            {/* Shared info tabs */}
+            <div style={{ overflowX: 'auto', marginBottom: '12px', paddingBottom: '4px' }}>
+              <div style={{ display: 'flex', gap: '6px', width: 'max-content' }}>
+                {([['hotel','🏨','Hébergement'],['transfers','🚌','Transfers'],['meals','🍽','Repas'],['planning','📅','Planning'],['technique','🎛','Technique'],['documents','📄','Documents'],['chat','💬','Chat']] as const).map(([t, icon, label]) => (
+                  <button key={t} onClick={() => setShowInfoTab(t)} style={{ flexShrink: 0, padding: '8px 14px', borderRadius: '20px', border: `1px solid ${showInfoTab === t ? '#C9A84C' : '#1F1F2E'}`, background: showInfoTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: showInfoTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    {icon} {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
+            {/* Tab content */}
+            {showInfoTab !== 'documents' && showInfoTab !== 'chat' && (
+              <ShowInfoSection show={selShow} field={showInfoTab} onSave={async (updates: any) => {
+                await api('update_show_info', { showId: selShow.id, ...selShow, ...updates })
+                setSelShow({ ...selShow, ...updates })
+                showToast('Saved ✓')
+              }} />
+            )}
+            {showInfoTab === 'documents' && (
+              <ShowDocuments showId={selShow.id} tourId={selTour.id} docs={showDocs} onRefresh={async () => {
+                const data = await loadData({ tourId: selTour.id, showId: selShow.id })
+                if (data.showDocs) setShowDocs(data.showDocs)
+              }} />
+            )}
+            {showInfoTab === 'chat' && (
+              <ShowChat showId={selShow.id} tourId={selTour.id} messages={showMessages} onSend={async (msg: string) => {
+                const newMsg = { id: Math.random().toString(36).slice(2), is_manager: true, sender_name: 'Manager', message: msg, created_at: new Date().toISOString() }
+                setShowMessages((prev: any[]) => [...prev, newMsg])
+                await api('send_show_message', { showId: selShow.id, tourId: selTour.id, message: msg, isManager: true, senderName: 'Manager' })
+              }} />
+            )}
+
+            {/* Members */}
+            <div style={{ fontSize: '12px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', margin: '16px 0 10px' }}>
+              👥 Team
+            </div>
             {tourMembers.length === 0 ? (
               <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '20px', background: '#12121A', borderRadius: '12px' }}>
                 Add team members in the Team tab first
               </div>
-            ) : tourMembers.map(m => {
-              const sm = showMembers.find(sm => sm.member_id === m.id)
-              const memberTix = tickets.filter(t => t.member_id === m.id)
+            ) : tourMembers.map((m: any) => {
+              const sm = showMembers.find((sm: any) => sm.member_id === m.id)
+              const memberTix = tickets.filter((t: any) => t.member_id === m.id)
               return (
-                <div onClick={() => goMember(m)} style={{ cursor: 'pointer' }}><Card style={{ marginBottom: '8px' }}>
+                <div key={m.id} onClick={() => goMember(m)} style={{ cursor: 'pointer' }}><Card style={{ marginBottom: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: '14px' }}>{m.name}</div>
                       {m.role && <div style={{ fontSize: '11px', color: '#C9A84C' }}>{m.role}</div>}
                       {sm?.hotel && <div style={{ fontSize: '11px', color: '#5A5570' }}>🏨 {sm.hotel}{sm.room ? ` · Room ${sm.room}` : ''}</div>}
-                      <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>
-                        {memberTix.filter(t => t.direction === 'out').length > 0 && <span>✈ {memberTix.filter(t => t.direction === 'out').length} out · </span>}
-                        {memberTix.filter(t => t.direction === 'ret').length > 0 && <span>🔄 {memberTix.filter(t => t.direction === 'ret').length} ret</span>}
-                        {memberTix.length === 0 && <span style={{ color: '#E8453C' }}>No tickets yet</span>}
+                      <div style={{ fontSize: '11px', color: memberTix.length === 0 ? '#E8453C' : '#5A5570', marginTop: '2px' }}>
+                        {memberTix.length === 0 ? 'No tickets yet' : `✈ ${memberTix.filter((t: any) => t.direction === 'out').length} out · 🔄 ${memberTix.filter((t: any) => t.direction === 'ret').length} ret`}
                       </div>
                     </div>
                     <span style={{ color: '#5A5570', fontSize: '18px' }}>›</span>
@@ -849,6 +1003,7 @@ export default function ManagerPage() {
           </div>
         </>
       )}
+
 
       {/* ── SCREEN 4: Member detail ── */}
       {screen === 'member' && selMember && selShow && (
@@ -908,6 +1063,8 @@ export default function ManagerPage() {
                   onRefresh={async () => {
                     const data = await loadData({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
                     if (data.memberTickets) setTickets(data.memberTickets)
+    if (data.showDocs) setShowDocs(data.showDocs)
+    if (data.showMessages) setShowMessages(data.showMessages)
                   }}
                 />
               </Card>

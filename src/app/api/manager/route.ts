@@ -47,12 +47,14 @@ export async function GET(req: NextRequest) {
   }
 
   if (!memberId) {
-    const [toursRes, showsRes, membersRes, showMembersRes, ticketsRes] = await Promise.all([
+    const [toursRes, showsRes, membersRes, showMembersRes, ticketsRes, docsRes, msgsRes] = await Promise.all([
       admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at'),
       admin.from('tour_shows').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('date'),
       admin.from('tour_members').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('created_at'),
       admin.from('tour_show_members').select('*').eq('show_id', showId),
       admin.from('tour_member_tickets').select('*').eq('show_id', showId).eq('tour_id', tourId),
+      admin.from('tour_show_documents').select('id, name, mime, created_at').eq('show_id', showId),
+      admin.from('tour_show_messages').select('*').eq('show_id', showId).order('created_at'),
     ])
     return NextResponse.json({
       tours: toursRes.data || [],
@@ -60,6 +62,8 @@ export async function GET(req: NextRequest) {
       members: membersRes.data || [],
       showMembers: showMembersRes.data || [],
       tickets: ticketsRes.data || [],
+      showDocs: docsRes.data || [],
+      showMessages: msgsRes.data || [],
     })
   }
 
@@ -195,6 +199,43 @@ export async function POST(req: NextRequest) {
     await admin.from('tour_member_messages').insert({
       id, show_id: body.showId, member_id: body.memberId, tour_id: body.tourId,
       from_manager: body.fromManager || false, sender_name: body.senderName || 'Manager',
+      message: body.message
+    })
+    return NextResponse.json({ ok: true, id })
+  }
+
+  // ─── Show shared info ────────────────────────────────────────────────────
+  if (action === 'update_show_info') {
+    const { showId, hotel, hotel_notes, transfers, meals, planning, technique } = body
+    await admin.from('tour_shows').update({ hotel, hotel_notes, transfers, meals, planning, technique }).eq('id', showId).eq('manager_id', user.id)
+    return NextResponse.json({ ok: true })
+  }
+
+  if (action === 'add_show_document') {
+    const id = makeId()
+    await admin.from('tour_show_documents').insert({
+      id, show_id: body.showId, tour_id: body.tourId, manager_id: user.id,
+      name: body.name, data: body.data, mime: body.mime
+    })
+    return NextResponse.json({ ok: true, id })
+  }
+
+  if (action === 'delete_show_document') {
+    await admin.from('tour_show_documents').delete().eq('id', body.docId)
+    return NextResponse.json({ ok: true })
+  }
+
+  if (action === 'get_show_document') {
+    const { data } = await admin.from('tour_show_documents').select('data, name, mime').eq('id', body.docId).single()
+    return NextResponse.json(data || {})
+  }
+
+  if (action === 'send_show_message') {
+    const id = makeId()
+    await admin.from('tour_show_messages').insert({
+      id, show_id: body.showId, tour_id: body.tourId,
+      sender_name: body.senderName || 'Manager',
+      is_manager: body.isManager || false,
       message: body.message
     })
     return NextResponse.json({ ok: true, id })
