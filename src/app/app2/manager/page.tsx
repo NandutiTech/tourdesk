@@ -1314,6 +1314,17 @@ export default function ManagerPage() {
               }} style={{ background: '#5DC9A0', border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>
                 📤 Share
               </button>
+              <button onClick={async () => {
+                let token = selShow.share_token
+                if (!token) {
+                  const res = await api('generate_share_token', { showId: selShow.id })
+                  token = res.token
+                  setSelShow({ ...selShow, share_token: token })
+                }
+                window.open(`/show/${token}/print`, '_blank')
+              }} style={{ background: '#1A1A28', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
+                🖨 PDF
+              </button>
               <Button size="sm" onClick={() => { setEditingShow(selShow); setShowShowModal(true) }}>✏ Edit</Button>
             </div>
           } />
