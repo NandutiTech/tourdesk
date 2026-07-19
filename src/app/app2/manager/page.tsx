@@ -997,6 +997,7 @@ export default function ManagerPage() {
   const [showMessages, setShowMessages] = useState<any[]>([])
   const [showGuests, setShowGuests] = useState<any[]>([])
   const [showExpenses, setShowExpenses] = useState<any[]>([])
+  const [dashStats, setDashStats] = useState<Record<string, any>>({})
   const [showInfoTab, setShowInfoTab] = useState<'hotel'|'transfers'|'meals'|'planning'|'technique'|'documents'|'chat'|'guests'|'tickets'|'expenses'|'setlist'>('hotel')
   const [guests, setGuests] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
@@ -1032,6 +1033,7 @@ export default function ManagerPage() {
   const load = async (params: Record<string, string> = {}) => {
     const data = await loadData(params)
     if (data.tours) setTours(data.tours)
+    if (data.dashStats) setDashStats(data.dashStats)
     if (data.shows) setShows(data.shows)
     if (data.members) setMembers(data.members)
     if (data.showMembers) setShowMembers(data.showMembers)
@@ -1123,28 +1125,92 @@ export default function ManagerPage() {
 
   return (
     <div style={{ padding: '0 0 100px' }}>
-      {/* ── SCREEN 1: Tours ── */}
+      {/* ── SCREEN 1: Dashboard ── */}
       {screen === 'tours' && (
         <>
           <Toolbar title="Manager" actions={<Button size="sm" onClick={() => { setEditingTour(null); setShowTourModal(true) }}>+ Tour</Button>} />
-          <div style={{ padding: '0 16px' }}>
+          <div style={{ padding: '0 16px 24px' }}>
             {tours.length === 0 ? (
-              <EmptyState icon="🎪" title="No tours yet" sub="Create a tour to manage your team's travel, hotel and tickets." />
-            ) : tours.map(t => (
-              <div key={t.id} onClick={() => goTour(t)} style={{ cursor: 'pointer' }}><Card style={{ marginBottom: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '15px' }}>{t.name}</div>
-                    {t.notes && <div style={{ fontSize: '12px', color: '#5A5570', marginTop: '2px' }}>{t.notes}</div>}
+              <EmptyState icon="🎪" title="No tours yet" sub="Create your first tour to manage your team's travel, hotel and tickets." />
+            ) : tours.map(t => {
+              const s = dashStats[t.id]
+              const today = new Date().toISOString().slice(0, 10)
+              const hasAlerts = s?.ticketAlerts > 0
+              return (
+                <div key={t.id} style={{ marginBottom: '16px' }}>
+                  {/* Tour header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{ fontWeight: 900, fontSize: '17px', cursor: 'pointer' }} onClick={() => goTour(t)}>{t.name}</div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => { setEditingTour(t); setShowTourModal(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏</button>
+                      <button onClick={async () => { if (!confirm('Delete tour?')) return; await api('delete_tour', { tourId: t.id }); load() }} style={{ background: 'none', border: '1px solid #E8453C', color: '#E8453C', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✕</button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <button onClick={e => { e.stopPropagation(); setEditingTour(t); setShowTourModal(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏</button>
-                    <button onClick={async e => { e.stopPropagation(); if (!confirm('Delete tour?')) return; await api('delete_tour', { tourId: t.id }); load() }} style={{ background: 'none', border: '1px solid #E8453C', color: '#E8453C', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✕</button>
-                    <span style={{ color: '#5A5570', fontSize: '18px' }}>›</span>
-                  </div>
+
+                  {/* Stats grid */}
+                  {s ? (
+                    <>
+                      {/* Next show banner */}
+                      {s.nextShow && (
+                        <div onClick={() => goTour(t)} style={{ background: 'linear-gradient(135deg, #1A1020, #13131C)', border: '1px solid rgba(201,168,76,.2)', borderRadius: '14px', padding: '14px 16px', marginBottom: '8px', cursor: 'pointer' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 800, color: '#C9A84C', letterSpacing: '.15em', marginBottom: '6px' }}>
+                            {s.nextShow.date === today ? '🔴 TODAY' : '📅 NEXT SHOW'}
+                          </div>
+                          <div style={{ fontWeight: 900, fontSize: '18px', marginBottom: '2px' }}>{s.nextShow.venue}</div>
+                          <div style={{ fontSize: '12px', color: '#5A5570' }}>
+                            {new Date(s.nextShow.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            {s.nextShow.city ? ` · ${s.nextShow.city}` : ''}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Stats grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                        <div onClick={() => goTour(t)} style={{ background: '#13131C', border: '1px solid #1F1F2E', borderRadius: '12px', padding: '12px 14px', cursor: 'pointer' }}>
+                          <div style={{ fontSize: '22px', fontWeight: 900, color: '#E8E0F0' }}>{s.upcomingShows}</div>
+                          <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>upcoming shows</div>
+                          <div style={{ fontSize: '10px', color: '#3A3550', marginTop: '1px' }}>{s.totalShows} total</div>
+                        </div>
+                        <div onClick={() => goTour(t)} style={{ background: '#13131C', border: '1px solid #1F1F2E', borderRadius: '12px', padding: '12px 14px', cursor: 'pointer' }}>
+                          <div style={{ fontSize: '22px', fontWeight: 900, color: '#E8E0F0' }}>{s.totalMembers}</div>
+                          <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>team members</div>
+                          <div style={{ fontSize: '10px', color: '#5DC9A0', marginTop: '1px' }}>{s.invitedMembers} on TourDesk</div>
+                        </div>
+                        <div onClick={() => goTour(t)} style={{ background: '#13131C', border: '1px solid #1F1F2E', borderRadius: '12px', padding: '12px 14px', cursor: 'pointer' }}>
+                          <div style={{ fontSize: '22px', fontWeight: 900, color: '#E8E0F0' }}>{s.totalGuests}</div>
+                          <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>guest places</div>
+                        </div>
+                        <div onClick={() => goTour(t)} style={{ background: '#13131C', border: '1px solid #1F1F2E', borderRadius: '12px', padding: '12px 14px', cursor: 'pointer' }}>
+                          <div style={{ fontSize: '22px', fontWeight: 900, color: '#C9A84C' }}>€{s.totalExpenses.toFixed(0)}</div>
+                          <div style={{ fontSize: '11px', color: '#5A5570', marginTop: '2px' }}>total expenses</div>
+                        </div>
+                      </div>
+
+                      {/* Alerts */}
+                      {hasAlerts && (
+                        <div onClick={() => goTour(t)} style={{ background: 'rgba(232,69,60,.06)', border: '1px solid rgba(232,69,60,.2)', borderRadius: '12px', padding: '12px 14px', cursor: 'pointer' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 800, color: '#E8453C', marginBottom: '6px' }}>⚠️ Missing tickets</div>
+                          {s.missingOut?.length > 0 && (
+                            <div style={{ fontSize: '11px', color: '#5A5570', marginBottom: '2px' }}>
+                              No outbound: {s.missingOut.slice(0, 3).join(', ')}{s.missingOut.length > 3 ? ` +${s.missingOut.length - 3}` : ''}
+                            </div>
+                          )}
+                          {s.missingRet?.length > 0 && (
+                            <div style={{ fontSize: '11px', color: '#5A5570' }}>
+                              No return: {s.missingRet.slice(0, 3).join(', ')}{s.missingRet.length > 3 ? ` +${s.missingRet.length - 3}` : ''}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div onClick={() => goTour(t)} style={{ background: '#13131C', border: '1px solid #1F1F2E', borderRadius: '12px', padding: '20px', cursor: 'pointer', textAlign: 'center', color: '#5A5570', fontSize: '13px' }}>
+                      Tap to open →
+                    </div>
+                  )}
                 </div>
-              </Card></div>
-            ))}
+              )
+            })}
           </div>
         </>
       )}

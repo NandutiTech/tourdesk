@@ -30,7 +30,52 @@ export async function GET(req: NextRequest) {
 
   if (!tourId) {
     const { data: tours } = await admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at')
-    return NextResponse.json({ tours: tours || [] })
+    if (!tours?.length) return NextResponse.json({ tours: [] })
+
+    // Load dashboard stats for all tours in parallel
+    const today = new Date().toISOString().slice(0, 10)
+    const dashStats = await Promise.all(tours.map(async (tour: any) => {
+      const [showsRes, membersRes, ticketsRes, guestsRes, expensesRes] = await Promise.all([
+        admin.from('tour_shows').select('id, date, venue, city').eq('tour_id', tour.id).order('date'),
+        admin.from('tour_members').select('id, name, role, user_id').eq('tour_id', tour.id),
+        admin.from('tour_member_tickets').select('id, member_id, direction').eq('tour_id', tour.id),
+        admin.from('tour_member_guests').select('id, count').eq('tour_id', tour.id),
+        admin.from('tour_member_expenses').select('id, amount').eq('tour_id', tour.id),
+      ])
+      const shows = showsRes.data || []
+      const members = membersRes.data || []
+      const tickets = ticketsRes.data || []
+      const guests = guestsRes.data || []
+      const expenses = expensesRes.data || []
+
+      const upcomingShows = shows.filter((s: any) => s.date >= today)
+      const nextShow = upcomingShows[0] || null
+      const totalGuests = guests.reduce((s: number, g: any) => s + (g.count || 1), 0)
+      const totalExpenses = expenses.reduce((s: number, e: any) => s + (e.amount || 0), 0)
+
+      // Missing tickets alert
+      const membersWithOutTicket = members.filter((m: any) => !tickets.find((t: any) => t.member_id === m.id && t.direction === 'out'))
+      const membersWithRetTicket = members.filter((m: any) => !tickets.find((t: any) => t.member_id === m.id && t.direction === 'ret'))
+
+      return {
+        tourId: tour.id,
+        totalShows: shows.length,
+        upcomingShows: upcomingShows.length,
+        nextShow,
+        totalMembers: members.length,
+        invitedMembers: members.filter((m: any) => m.user_id).length,
+        totalGuests,
+        totalExpenses,
+        ticketAlerts: membersWithOutTicket.length + membersWithRetTicket.length,
+        missingOut: membersWithOutTicket.map((m: any) => m.name),
+        missingRet: membersWithRetTicket.map((m: any) => m.name),
+      }
+    }))
+
+    const statsMap: Record<string, any> = {}
+    dashStats.forEach((s: any) => { statsMap[s.tourId] = s })
+
+    return NextResponse.json({ tours: tours || [], dashStats: statsMap })
   }
 
   if (!showId) {
