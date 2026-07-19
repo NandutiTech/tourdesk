@@ -1131,7 +1131,61 @@ export default function ManagerPage() {
           <Toolbar title="Manager" actions={<Button size="sm" onClick={() => { setEditingTour(null); setShowTourModal(true) }}>+ Tour</Button>} />
           <div style={{ padding: '0 16px 24px' }}>
             {tours.length === 0 ? (
-              <EmptyState icon="🎪" title="No tours yet" sub="Create your first tour to manage your team's travel, hotel and tickets." />
+              <div style={{ padding: '24px 0' }}>
+                <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎪</div>
+                  <div style={{ fontWeight: 900, fontSize: '20px', marginBottom: '8px' }}>Welcome to Manager</div>
+                  <div style={{ fontSize: '13px', color: '#5A5570', lineHeight: 1.7, marginBottom: '24px' }}>
+                    Manage your team's travel, hotel and planning.<br />Share everything with one QR code.
+                  </div>
+                </div>
+
+                {/* Steps */}
+                {[
+                  { icon: '📄', step: '1', text: 'Import a PDF or create a tour' },
+                  { icon: '👥', step: '2', text: 'Add your team members' },
+                  { icon: '✈', step: '3', text: 'Upload their tickets with AI' },
+                  { icon: '📤', step: '4', text: 'Share the Show Pass by QR' },
+                ].map(s => (
+                  <div key={s.step} style={{ display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '14px', padding: '12px 14px', background: '#13131C', borderRadius: '12px', border: '1px solid #1F1F2E' }}>
+                    <div style={{ width: '36px', height: '36px', background: 'rgba(93,201,160,.1)', border: '1px solid rgba(93,201,160,.2)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{s.icon}</div>
+                    <div>
+                      <div style={{ fontSize: '10px', color: '#5DC9A0', fontWeight: 700 }}>Step {s.step}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 700 }}>{s.text}</div>
+                    </div>
+                  </div>
+                ))}
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+                  <button onClick={() => { setEditingTour(null); setShowTourModal(true) }} style={{ flex: 2, background: '#5DC9A0', border: 'none', color: '#0A0A0F', borderRadius: '12px', padding: '14px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 900, fontSize: '14px' }}>
+                    + Create my first tour
+                  </button>
+                  <button onClick={async () => {
+                    // Load demo data
+                    const demoTourRes = await api('create_tour', { name: 'Demo Tour — Summer 2025', notes: 'This is demo data — feel free to explore!' })
+                    const tourId = demoTourRes.id
+                    if (!tourId) return
+                    // Add demo shows
+                    const shows = [
+                      { date: new Date(Date.now() + 2*24*60*60*1000).toISOString().slice(0,10), venue: 'Le Trianon', city: 'Paris', hotel: 'Hôtel du Nord', hotel_addr: '102 Quai de Jemmapes, 75010 Paris', transfers: 'Bus collectif départ 14h\nRetour prévu minuit', meals: 'Catering sur place à partir de 18h', planning: 'Arrivée: 14h\nBalance: 16h\nDîner: 18h\nShow: 20h30' },
+                      { date: new Date(Date.now() + 5*24*60*60*1000).toISOString().slice(0,10), venue: 'Olympia', city: 'Paris', hotel: 'Best Western Plus', hotel_addr: '5 rue Daunou, 75002 Paris' },
+                      { date: new Date(Date.now() + 10*24*60*60*1000).toISOString().slice(0,10), venue: 'Victoires 2', city: 'Lyon', hotel: 'Novotel Lyon Centre', hotel_addr: '7 rue de la Charité, 69002 Lyon' },
+                    ]
+                    for (const s of shows) { await api('add_show', { tourId, ...s }) }
+                    // Add demo members
+                    const members = [
+                      { name: 'Sophie Martin', role: 'Chanteuse', email: 'sophie@example.com' },
+                      { name: 'Jean Dubois', role: 'Batteur', email: 'jean@example.com', phone: '+33 6 12 34 56 78' },
+                      { name: 'Lola Bernard', role: 'Pianiste', email: 'lola@example.com' },
+                    ]
+                    for (const m of members) { await api('add_member', { tourId, ...m }) }
+                    await load()
+                    showToast('Demo tour loaded! 🎪')
+                  }} style={{ flex: 1, background: '#1A1A28', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '12px', padding: '14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
+                    👀 Try demo
+                  </button>
+                </div>
+              </div>
             ) : tours.map(t => {
               const s = dashStats[t.id]
               const today = new Date().toISOString().slice(0, 10)
