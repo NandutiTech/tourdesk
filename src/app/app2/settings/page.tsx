@@ -2,6 +2,7 @@
 import { useStore } from '@/lib/store'
 import { Button, Card, showToast } from '@/components/ui'
 import { useState, useEffect } from 'react'
+import { registerPush } from '@/lib/push'
 
 export default function SettingsPage() {
   const { userEmail, clearAll } = useStore()
@@ -131,6 +132,19 @@ export default function SettingsPage() {
               Manage plan
             </button>
           )}
+        <Card style={{ marginBottom: '12px' }}>
+          <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>🔔 Notifications</div>
+          <div style={{ fontSize: '12px', color: '#5A5570', marginBottom: '12px' }}>
+            Receive push notifications when tickets are uploaded or messages arrive.
+          </div>
+          <Button onClick={async () => {
+            const ok = await registerPush()
+            if (ok) showToast('Notifications enabled ✓')
+            else showToast('Could not enable notifications', false)
+          }} style={{ width: '100%' }}>Enable notifications</Button>
+        </Card>
+
+        <Card style={{ marginBottom: '12px' }}>
           <Button onClick={handleSignOut} variant="secondary" style={{ width: '100%' }}>Sign out</Button>
         </Card>
 

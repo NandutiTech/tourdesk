@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { getToken } from '@/lib/store'
 import { Button, Card, Input, Textarea, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
+import { notifyTourMembers } from '@/lib/push'
 
 const PHONE_PREFIXES = [
   { label: '🇫🇷 +33', value: '+33' }, { label: '🇪🇸 +34', value: '+34' },
@@ -267,6 +268,8 @@ function MemberTicketCol({ label, color, tickets, direction, showId, memberId, t
     await api('upload_ticket', { showId, memberId, tourId, direction, ticketData: b64, ticketName: file.name, ticketMime: file.type, info })
     setScanning(false)
     showToast('Ticket added ✓')
+    // Notify member
+    notifyTourMembers(tourId, '✈ New ticket uploaded', `Your ${direction === 'out' ? 'outbound' : 'return'} ticket is ready`, `/app2/manager`)
     onRefresh()
   }
 
@@ -1376,6 +1379,7 @@ export default function ManagerPage() {
                 const newMsg = { id: Math.random().toString(36).slice(2), is_manager: true, sender_name: 'Manager', message: msg, created_at: new Date().toISOString() }
                 setShowMessages((prev: any[]) => [...prev, newMsg])
                 await api('send_show_message', { showId: selShow.id, tourId: selTour.id, message: msg, isManager: true, senderName: 'Manager' })
+                notifyTourMembers(selTour.id, '💬 New message', msg, `/app2/manager`)
               }} />
             )}
             {showInfoTab === 'guests' && (

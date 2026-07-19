@@ -1,36 +1,17 @@
-const CACHE = 'tourdesk-v4'
-const STATIC = ['/auth/login', '/manifest.json']
-
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting())
-  )
+self.addEventListener('push', e => {
+  const data = e.data?.json() || {}
+  e.waitUntil(self.registration.showNotification(data.title || 'TourDesk', {
+    body: data.body || '',
+    icon: '/images/tourdesk-logo.png',
+    badge: '/images/tourdesk-logo.png',
+    data: data.url ? { url: data.url } : {},
+    vibrate: [200, 100, 200],
+  }))
 })
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  )
-})
-
-self.addEventListener('fetch', e => {
-  // Only cache GET requests, skip API and auth calls
-  if (e.request.method !== 'GET') return
-  if (e.request.url.includes('/api/')) return
-  if (e.request.url.includes('supabase')) return
-
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        // Cache successful responses
-        if (res.status === 200) {
-          const clone = res.clone()
-          caches.open(CACHE).then(c => c.put(e.request, clone))
-        }
-        return res
-      })
-      .catch(() => caches.match(e.request))
-  )
+self.addEventListener('notificationclick', e => {
+  e.notification.close()
+  if (e.notification.data?.url) {
+    e.waitUntil(clients.openWindow(e.notification.data.url))
+  }
 })
