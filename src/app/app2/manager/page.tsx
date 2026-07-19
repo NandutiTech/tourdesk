@@ -34,11 +34,14 @@ async function extractShows(base64: string, mimeType: string): Promise<any[]> {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         base64, mimeType,
-        prompt: 'This is a tour schedule or planning document. Extract all shows/dates. Return ONLY a JSON array: [{ "date": "YYYY-MM-DD", "venue": "venue name", "city": "city name" }]. No markdown, no explanation.'
+        prompt: 'This is a tour schedule or planning document. Extract ALL shows/dates listed. Return ONLY a valid JSON array with no markdown: [{ "date": "YYYY-MM-DD", "venue": "venue or theatre name", "city": "city name" }]. If you cannot find dates, return an empty array [].'
       })
     })
     const data = await res.json()
-    return Array.isArray(data) ? data : []
+    // Response might be array directly or wrapped
+    if (Array.isArray(data)) return data
+    if (Array.isArray(data.shows)) return data.shows
+    return []
   } catch { return [] }
 }
 

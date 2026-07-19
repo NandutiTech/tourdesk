@@ -7,34 +7,23 @@ export async function POST(request: NextRequest) {
   try {
     const { base64, mimeType, prompt } = await request.json()
     if (!base64) return NextResponse.json({})
-    const textPrompt: string = prompt || 'This is a travel ticket. Extract travel information and return ONLY valid JSON: { "from": "departure city or station", "to": "arrival city or station", "date": "date as shown", "time": "HH:MM departure time", "ref": "train or flight number", "seat": "seat if visible", "type": "train|plane|bus|other" }. Use null for missing fields.'
+
+    const defaultPrompt = 'This is a travel ticket. Extract travel information and return ONLY valid JSON: { "from": "departure city or station", "to": "arrival city or station", "date": "date as shown", "time": "HH:MM departure time", "ref": "train or flight number", "seat": "seat if visible", "type": "train|plane|bus|other" }. Use null for missing fields.'
+    const textPrompt: string = prompt || defaultPrompt
 
     const data = base64.includes(',') ? base64.split(',')[1] : base64
 
     let content: any[]
 
     if (mimeType === 'application/pdf') {
-      // Send PDF directly to Claude as document
       content = [
-        {
-          type: 'document',
-          source: { type: 'base64', media_type: 'application/pdf', data }
-        },
-        {
-          type: 'text',
-          text: 'This is a travel ticket (train, plane, bus, etc.). Extract the travel information and return ONLY valid JSON with no markdown, no explanation: { "from": "departure city or station name", "to": "arrival city or station name", "date": "date as shown on ticket", "time": "departure time HH:MM", "ref": "train or flight number or booking reference", "seat": "seat number if visible", "type": "train or plane or bus or other" }. Use null for missing fields.'
-        }
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } },
+        { type: 'text', text: textPrompt }
       ]
     } else if (mimeType.startsWith('image/')) {
       content = [
-        {
-          type: 'image',
-          source: { type: 'base64', media_type: mimeType, data }
-        },
-        {
-          type: 'text',
-          text: 'This is a travel ticket. Extract the travel information and return ONLY valid JSON with no markdown: { "from": "departure city or station name", "to": "arrival city or station name", "date": "date as shown on ticket", "time": "departure time HH:MM", "ref": "train or flight number", "seat": "seat number if visible", "type": "train or plane or bus or other" }. Use null for missing fields.'
-        }
+        { type: 'image', source: { type: 'base64', media_type: mimeType, data } },
+        { type: 'text', text: textPrompt }
       ]
     } else {
       return NextResponse.json({})
@@ -50,7 +39,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 500,
+        max_tokens: 1000,
         messages: [{ role: 'user', content }]
       })
     })
@@ -63,7 +52,6 @@ export async function POST(request: NextRequest) {
     const result = await res.json()
     const text = (result.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim()
     const parsed = JSON.parse(text)
-    console.log('Extracted:', parsed)
     return NextResponse.json(parsed)
   } catch (err) {
     console.error('Extract ticket error:', err)
