@@ -1386,22 +1386,22 @@ export default function ManagerPage() {
                 Add team members in the Team tab first
               </div>
             ) : tourMembers.map((m: any) => {
-              const sm = showMembers.find((sm: any) => sm.member_id === m.id)
               const memberTix = tickets.filter((t: any) => t.member_id === m.id)
               return (
-                <div key={m.id} onClick={() => goMember(m)} style={{ cursor: 'pointer' }}><Card style={{ marginBottom: '8px' }}>
+                <Card key={m.id} style={{ marginBottom: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: '14px' }}>{m.name}</div>
                       {m.role && <div style={{ fontSize: '11px', color: '#C9A84C' }}>{m.role}</div>}
-                      {sm?.hotel && <div style={{ fontSize: '11px', color: '#5A5570' }}>🏨 {sm.hotel}{sm.room ? ` · Room ${sm.room}` : ''}</div>}
+                      {m.email && <div style={{ fontSize: '11px', color: '#5A5570' }}>✉ {m.email}</div>}
+                      {m.phone && <div style={{ fontSize: '11px', color: '#5A5570' }}>📱 {m.phone}</div>}
                       <div style={{ fontSize: '11px', color: memberTix.length === 0 ? '#E8453C' : '#5A5570', marginTop: '2px' }}>
                         {memberTix.length === 0 ? 'No tickets yet' : `✈ ${memberTix.filter((t: any) => t.direction === 'out').length} out · 🔄 ${memberTix.filter((t: any) => t.direction === 'ret').length} ret`}
                       </div>
                     </div>
-                    <span style={{ color: '#5A5570', fontSize: '18px' }}>›</span>
+                    <button onClick={() => { setEditingMember(m); setShowMemberModal(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏</button>
                   </div>
-                </Card></div>
+                </Card>
               )
             })}
           </div>
