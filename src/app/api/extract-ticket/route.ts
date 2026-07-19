@@ -5,8 +5,9 @@ export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
-    const { base64, mimeType } = await request.json()
+    const { base64, mimeType, prompt } = await request.json()
     if (!base64) return NextResponse.json({})
+    const textPrompt = prompt || textPrompt
 
     const data = base64.includes(',') ? base64.split(',')[1] : base64
 
