@@ -248,13 +248,9 @@ export default function ManagerPage() {
 
   const refresh = async (tourId?: string) => {
     const data = await loadData(tourId)
-    const tourList = (data.invites || [])
-      .filter((i: any) => i.status === 'manager')
-      .map((i: any) => {
-        let meta: any = {}
-        try { meta = JSON.parse(i.notes || '{}') } catch {}
-        return { id: i.id, name: i.role, ...meta }
-      })
+    const tourList = (data.tours || []).map((t: any) => ({
+      id: t.id, name: t.name, notes: t.notes
+    }))
     setTours(tourList)
     setMembers(data.members || [])
     setTickets(data.tickets || [])

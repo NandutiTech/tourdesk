@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   const tourId = new URL(req.url).searchParams.get('tourId')
 
-  const { data: invites } = await admin.from('tour_invites').select('*').eq('manager_id', user.id)
+  const { data: managerTours } = await admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at')
 
   const memberQuery = admin.from('tour_members').select('*').eq('manager_id', user.id)
   if (tourId) memberQuery.eq('tour_id', tourId)
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   const { data: shows } = await showQuery.order('date')
 
   return NextResponse.json({
-    invites: invites || [],
+    tours: managerTours || [],
     members: members || [],
     tickets: tickets || [],
     shows: shows || [],
@@ -57,27 +57,24 @@ export async function POST(req: NextRequest) {
   if (action === 'create_tour') {
     const { name, notes } = body
     const id = makeId()
-    await admin.from('tour_invites').insert({
-      id, manager_id: user.id, tour_id: id,
-      email: '', status: 'manager', role: name,
-      notes: JSON.stringify({ notes })
+    await admin.from('manager_tours').insert({
+      id, user_id: user.id, name, notes: notes || ''
     })
     return NextResponse.json({ ok: true, id })
   }
 
   if (action === 'update_tour') {
     const { tourId, name, notes } = body
-    await admin.from('tour_invites').update({
-      role: name, notes: JSON.stringify({ notes })
-    }).eq('id', tourId).eq('manager_id', user.id)
+    await admin.from('manager_tours').update({ name, notes: notes || '' }).eq('id', tourId).eq('user_id', user.id)
     return NextResponse.json({ ok: true })
   }
 
   if (action === 'delete_tour') {
-    await admin.from('tour_invites').delete().eq('id', body.tourId).eq('manager_id', user.id)
-    await admin.from('tour_members').delete().eq('tour_id', body.tourId).eq('manager_id', user.id)
-    await admin.from('tour_member_tickets').delete().eq('tour_id', body.tourId).eq('manager_id', user.id)
-    await admin.from('tour_shows').delete().eq('tour_id', body.tourId).eq('manager_id', user.id)
+    const { tourId } = body
+    await admin.from('manager_tours').delete().eq('id', tourId).eq('user_id', user.id)
+    await admin.from('tour_members').delete().eq('tour_id', tourId).eq('manager_id', user.id)
+    await admin.from('tour_member_tickets').delete().eq('tour_id', tourId).eq('manager_id', user.id)
+    await admin.from('tour_shows').delete().eq('tour_id', tourId).eq('manager_id', user.id)
     return NextResponse.json({ ok: true })
   }
 
