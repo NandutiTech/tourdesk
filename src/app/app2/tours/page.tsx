@@ -4,6 +4,82 @@ import { useStore, newId } from '@/lib/store'
 import { syncToCloud, deleteFromCloud, callClaude } from '@/lib/sync'
 import Link from 'next/link'
 
+function DemoEmptyState() {
+  const { addArtist, addTours, addGuest, addExpense } = useStore()
+
+  const loadDemo = async () => {
+    const today = new Date()
+    const d = (offset: number) => {
+      const dt = new Date(today)
+      dt.setDate(dt.getDate() + offset)
+      return dt.toISOString().slice(0, 10)
+    }
+
+    // Create demo artist
+    const artistId = newId()
+    addArtist({ id: artistId, name: 'Sophie Martin', color: '#C9A84C', genre: 'Variété', defaultCachet: 350, defaultHours: 4 })
+
+    // Create demo shows
+    addTours([
+      { id: newId(), aId: artistId, title: 'Le Trianon', start: d(3), city: 'Paris', type: 'show', paid: true, received: false, hotel: 'Hôtel du Nord', hotelAddr: '102 Quai de Jemmapes, 75010 Paris', notes: 'Balance 16h · Show 20h30' },
+      { id: newId(), aId: artistId, title: 'Festival Jazz à Vienne', start: d(8), end: d(9), city: 'Vienne', type: 'show', paid: true, received: true, notes: 'Headliner · 2 dates' },
+      { id: newId(), aId: artistId, title: 'Studio Ferber', start: d(12), city: 'Paris', type: 'rehearsal', paid: false, received: false, notes: 'Session d\'enregistrement' },
+      { id: newId(), aId: artistId, title: 'Olympia', start: d(18), city: 'Paris', type: 'show', paid: true, received: false, hotel: 'Best Western Opéra', hotelAddr: '5 rue Daunou, 75002 Paris' },
+      { id: newId(), aId: artistId, title: 'Victoires 2', start: d(25), city: 'Lyon', type: 'show', paid: true, received: false },
+      { id: newId(), aId: artistId, title: 'Grand Rex', start: d(32), city: 'Paris', type: 'show', paid: false, received: false },
+    ])
+
+    // Add demo guests
+    const showId = newId()
+    addGuest({ id: newId(), tourId: showId, name: 'Marie Dupont', count: 2, contact: '+33 6 12 34 56', notes: 'VIP', status: 'confirmed' })
+    addGuest({ id: newId(), tourId: showId, name: 'Pierre Laurent', count: 1, contact: 'pierre@email.com', notes: '', status: 'pending' })
+
+    // Add demo expenses
+    addExpense({ id: newId(), tourId: showId, date: d(-2), amount: 42.50, cat: 'transport', desc: 'Taxi CDG → domicile' })
+    addExpense({ id: newId(), tourId: showId, date: d(-1), amount: 18.90, cat: 'food', desc: 'Déjeuner avant balance' })
+
+    await syncToCloud()
+    showToast('Demo loaded! Explore freely 🎤')
+  }
+
+  return (
+    <div style={{ padding: '8px 0 24px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎤</div>
+        <div style={{ fontWeight: 900, fontSize: '20px', marginBottom: '8px' }}>Welcome to TourDesk</div>
+        <div style={{ fontSize: '13px', color: '#5A5570', lineHeight: 1.7, marginBottom: '8px' }}>
+          Your artist agenda — shows, travel, expenses, guest list and 507h counter all in one place.
+        </div>
+      </div>
+
+      {[
+        { icon: '🎤', step: '1', text: 'Add an artist or employer' },
+        { icon: '📄', step: '2', text: 'Import a PDF planning or add shows' },
+        { icon: '✈', step: '3', text: 'Add travel tickets with AI reading' },
+        { icon: '💰', step: '4', text: 'Track expenses with receipts' },
+      ].map(s => (
+        <div key={s.step} style={{ display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '10px', padding: '12px 14px', background: '#13131C', borderRadius: '12px', border: '1px solid #1F1F2E' }}>
+          <div style={{ width: '36px', height: '36px', background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{s.icon}</div>
+          <div>
+            <div style={{ fontSize: '10px', color: '#C9A84C', fontWeight: 700 }}>Step {s.step}</div>
+            <div style={{ fontSize: '13px', fontWeight: 700 }}>{s.text}</div>
+          </div>
+        </div>
+      ))}
+
+      <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+        <div style={{ flex: 2, background: '#C9A84C', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px', cursor: 'pointer', fontWeight: 900, fontSize: '14px', color: '#0A0A0F' }}
+          onClick={() => document.dispatchEvent(new CustomEvent('open-artist-modal'))}>
+          + Add first artist
+        </div>
+        <button onClick={loadDemo} style={{ flex: 1, background: '#1A1A28', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '12px', padding: '14px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
+          👀 Try demo
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function getDatesInRange(start: string, end: string): string[] {
   const dates: string[] = []
   const d = new Date(start + 'T12:00:00')
@@ -420,7 +496,7 @@ export default function ToursPage() {
       {sortMode === 'date' && (
         <div style={{ padding: '0 16px' }}>
           {tours.length === 0 ? (
-            <EmptyState icon="🎤" title="No events yet" sub='Add an employer / artist with "+ Artist", then add dates or import a planning PDF.' />
+            <DemoEmptyState />
           ) : (
             <>
               {(() => {
