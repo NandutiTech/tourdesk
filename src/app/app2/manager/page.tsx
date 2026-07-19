@@ -47,17 +47,34 @@ async function extractShows(base64: string, mimeType: string): Promise<any[]> {
 
 const ROLES = ['Chanteur·se', 'Musicien·ne', 'Batteur·se', 'Pianiste', 'Guitariste', 'Bassiste', 'Ingénieur son', 'Ingénieur lumière', 'Tour manager', 'Road manager', 'Autre']
 
-// ─── Tour Modal ────────────────────────────────────────────────────────────
+// ─── Tour Modal with members ───────────────────────────────────────────────
 function TourModal({ open, onClose, editing, onSaved }: any) {
   const [name, setName] = useState(editing?.name || '')
   const [notes, setNotes] = useState(editing?.notes || '')
+  const [members, setMembers] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
+
+  const addMember = () => setMembers(m => [...m, { id: Date.now(), name: '', role: '', email: '', phone: '' }])
+  const updateMember = (id: number, field: string, val: string) =>
+    setMembers(m => m.map(mb => mb.id === id ? { ...mb, [field]: val } : mb))
+  const removeMember = (id: number) => setMembers(m => m.filter(mb => mb.id !== id))
 
   const save = async () => {
     if (!name.trim()) { showToast('Tour name required', false); return }
     setSaving(true)
-    if (editing) await api('update_tour', { tourId: editing.id, name, notes })
-    else await api('create_tour', { name, notes })
+    let tourId = editing?.id
+    if (editing) {
+      await api('update_tour', { tourId, name, notes })
+    } else {
+      const res = await api('create_tour', { name, notes })
+      tourId = res.id
+    }
+    // Save new members
+    for (const m of members) {
+      if (m.name.trim()) {
+        await api('add_member', { tourId, name: m.name, role: m.role, email: m.email, phone: m.phone, hotel: '', room: '', hotelAddr: '', notes: '' })
+      }
+    }
     showToast(editing ? 'Tour updated' : 'Tour created')
     setSaving(false); onSaved(); onClose()
   }
@@ -65,7 +82,40 @@ function TourModal({ open, onClose, editing, onSaved }: any) {
   return (
     <Modal open={open} onClose={onClose} title={editing ? 'Edit Tour' : 'New Tour'}>
       <Input label="Tour name *" value={name} onChange={e => setName(e.target.value)} placeholder="Vincent Dedienne — Été 2026" />
-      <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '60px' }} />
+      <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '50px' }} />
+
+      {/* Members */}
+      <div style={{ margin: '16px 0 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em' }}>👥 Team members</div>
+        <button onClick={addMember} style={{ background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: '#C9A84C', borderRadius: '8px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>+ Add</button>
+      </div>
+
+      {members.length === 0 && (
+        <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '12px', background: '#12121A', borderRadius: '8px', marginBottom: '8px' }}>
+          Click "+ Add" to add team members
+        </div>
+      )}
+
+      {members.map((m, i) => (
+        <div key={m.id} style={{ background: '#12121A', border: '1px solid #1F1F2E', borderRadius: '10px', padding: '12px', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#5A5570' }}>Member {i + 1}</div>
+            <button onClick={() => removeMember(m.id)} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+            <input value={m.name} onChange={e => updateMember(m.id, 'name', e.target.value)} placeholder="Name *" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+            <select value={m.role} onChange={e => updateMember(m.id, 'role', e.target.value)} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: m.role ? '#E8E0F0' : '#5A5570', borderRadius: '8px', padding: '8px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }}>
+              <option value="">Role...</option>
+              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <input value={m.email} onChange={e => updateMember(m.id, 'email', e.target.value)} placeholder="Email" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+            <input value={m.phone} onChange={e => updateMember(m.id, 'phone', e.target.value)} placeholder="Phone / WhatsApp" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+          </div>
+        </div>
+      ))}
+
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
         <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
