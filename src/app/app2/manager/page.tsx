@@ -327,7 +327,7 @@ function TicketUpload({ showId, memberId, tourId, tickets, onRefresh }: any) {
       {!t.info?.from && !t.info?.to && <div style={{ fontSize: '12px', color: '#5A5570' }}>{t.ticket_name}</div>}
       <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
         <button onClick={() => setViewing(t)} style={{ flex: 1, background: color, border: 'none', color: '#0A0A0F', borderRadius: '8px', padding: '7px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 800 }}>📱 Show</button>
-        <button onClick={async () => { await api('delete_ticket', { ticketId: t.id }); onRefresh() }} style={{ background: 'none', border: `1px solid #E8453C`, color: '#E8453C', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✕</button>
+        <button onClick={async () => { if (!confirm('Delete this ticket?')) return; await api('delete_ticket', { ticketId: t.id }); onRefresh() }} style={{ background: 'none', border: `1px solid #E8453C`, color: '#E8453C', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>🗑 Delete</button>
       </div>
     </div>
   )
