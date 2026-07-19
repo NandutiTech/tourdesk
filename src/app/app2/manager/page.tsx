@@ -57,11 +57,11 @@ async function extractShows(base64: string, mimeType: string) {
 
 // ─── Show Info Section (shared) ────────────────────────────────────────────
 const SHOW_INFO_FIELDS: Record<string, { label: string, placeholder: string }> = {
-  hotel: { label: '🏨 Accommodation', placeholder: 'Hotel du Palais, 12 rue...\nPool on site — bring swimwear!' },
-  transfers: { label: '🚌 Transfers', placeholder: 'Group bus departure 2pm from the theatre\nReturn expected 11:30pm' },
-  meals: { label: '🍽 Meals', placeholder: 'Direct catering on site\nDinner 7pm — La Brasserie restaurant' },
-  planning: { label: '📅 Planning', placeholder: 'Arrival: 2pm\nSoundcheck: 4pm\nCatering: 6:30pm\nShow: 8:30pm\nEnd: 10:30pm' },
-  technique: { label: '🎛 Technical', placeholder: 'EOS requests desk setup possible day before\nProjection on back wall\nSound: L-Acoustics K2' },
+  hotel: { label: '🏨 Accommodation', placeholder: 'Hotel name, address...\nAdd any useful info for the team' },
+  transfers: { label: '🚌 Transfers', placeholder: 'Departure time and meeting point\nReturn details' },
+  meals: { label: '🍽 Meals', placeholder: 'Catering details\nDinner arrangements' },
+  planning: { label: '📅 Planning', placeholder: 'Arrival:\nSoundcheck:\nCatering:\nShow:\nEnd:' },
+  technique: { label: '🎛 Technical', placeholder: 'Stage setup details\nSound and lighting requirements\nSpecial requests' },
 }
 
 function ShowInfoSection({ show, field, onSave }: any) {
