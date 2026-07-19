@@ -215,8 +215,8 @@ export default function SettingsPage() {
         )}
 
         <div style={{ textAlign: 'center', fontSize: '11px', color: '#5A5570', marginTop: '20px', lineHeight: 1.6 }}>
-          TourDesk · Artist Agenda<br />
-          Data stored securely in Europe 🇪🇺
+          <div>TourDesk · Artist Agenda</div>
+          <div>Data stored securely in Europe 🇪🇺</div>
         </div>
       </div>
     </div>
