@@ -28,44 +28,63 @@ export async function GET(req: NextRequest) {
   const showId = url.searchParams.get('showId')
   const memberId = url.searchParams.get('memberId')
 
-  // Load all tours
-  const { data: tours } = await admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at')
+  if (!tourId) {
+    const { data: tours } = await admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at')
+    return NextResponse.json({ tours: tours || [] })
+  }
 
-  if (!tourId) return NextResponse.json({ tours: tours || [] })
+  if (!showId) {
+    const [toursRes, showsRes, membersRes] = await Promise.all([
+      admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at'),
+      admin.from('tour_shows').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('date'),
+      admin.from('tour_members').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('created_at'),
+    ])
+    return NextResponse.json({
+      tours: toursRes.data || [],
+      shows: showsRes.data || [],
+      members: membersRes.data || [],
+    })
+  }
 
-  // Load shows for tour
-  const { data: shows } = await admin.from('tour_shows').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('date')
+  if (!memberId) {
+    const [toursRes, showsRes, membersRes, showMembersRes, ticketsRes] = await Promise.all([
+      admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at'),
+      admin.from('tour_shows').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('date'),
+      admin.from('tour_members').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('created_at'),
+      admin.from('tour_show_members').select('*').eq('show_id', showId),
+      admin.from('tour_member_tickets').select('*').eq('show_id', showId).eq('tour_id', tourId),
+    ])
+    return NextResponse.json({
+      tours: toursRes.data || [],
+      shows: showsRes.data || [],
+      members: membersRes.data || [],
+      showMembers: showMembersRes.data || [],
+      tickets: ticketsRes.data || [],
+    })
+  }
 
-  // Load members for tour
-  const { data: members } = await admin.from('tour_members').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('created_at')
-
-  if (!showId) return NextResponse.json({ tours: tours || [], shows: shows || [], members: members || [] })
-
-  // Load show-member details (hotel per show per member)
-  const { data: showMembers } = await admin.from('tour_show_members').select('*').eq('show_id', showId)
-
-  // Load tickets for this show
-  const { data: tickets } = await admin.from('tour_member_tickets').select('*').eq('show_id', showId).eq('tour_id', tourId)
-
-  if (!memberId) return NextResponse.json({ tours: tours || [], shows: shows || [], members: members || [], showMembers: showMembers || [], tickets: tickets || [] })
-
-  // Load member detail for specific show
-  const { data: memberTickets } = await admin.from('tour_member_tickets').select('*').eq('show_id', showId).eq('member_id', memberId)
-
-  // Load messages, guests, expenses for member
-  const [msgs, gsts, exps] = await Promise.all([
+  // Full member load — all in parallel
+  const [toursRes, showsRes, membersRes, showMembersRes, memberTicketsRes, msgsRes, gstsRes, expsRes] = await Promise.all([
+    admin.from('manager_tours').select('*').eq('user_id', user.id).order('created_at'),
+    admin.from('tour_shows').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('date'),
+    admin.from('tour_members').select('*').eq('tour_id', tourId).eq('manager_id', user.id).order('created_at'),
+    admin.from('tour_show_members').select('*').eq('show_id', showId),
+    admin.from('tour_member_tickets').select('*').eq('show_id', showId).eq('member_id', memberId),
     admin.from('tour_member_messages').select('*').eq('show_id', showId).eq('member_id', memberId).order('created_at'),
     admin.from('tour_member_guests').select('*').eq('show_id', showId).eq('member_id', memberId).order('created_at'),
     admin.from('tour_member_expenses').select('*').eq('show_id', showId).eq('member_id', memberId).order('created_at'),
   ])
 
   return NextResponse.json({
-    tours: tours || [], shows: shows || [], members: members || [],
-    showMembers: showMembers || [], tickets: tickets || [],
-    memberTickets: memberTickets || [],
-    messages: msgs.data || [],
-    guests: gsts.data || [],
-    expenses: exps.data || [],
+    tours: toursRes.data || [],
+    shows: showsRes.data || [],
+    members: membersRes.data || [],
+    showMembers: showMembersRes.data || [],
+    tickets: memberTicketsRes.data || [],
+    memberTickets: memberTicketsRes.data || [],
+    messages: msgsRes.data || [],
+    guests: gstsRes.data || [],
+    expenses: expsRes.data || [],
   })
 }
 
