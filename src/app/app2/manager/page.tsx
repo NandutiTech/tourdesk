@@ -1410,8 +1410,9 @@ export default function ManagerPage() {
                 }}
               />
             )}
-
-
+          </div>
+        </>
+      )}
 
       {/* ── SCREEN 4: Member detail — simplified ── */}
       {screen === 'member' && selMember && selShow && (
