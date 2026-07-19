@@ -121,7 +121,9 @@ function GuestsSection({ showId, memberId, tourId, guests, onRefresh }: any) {
         </Card>
       ))}
       <GuestAddModal key={showAdd ? 'open' : 'closed'} open={showAdd} onClose={() => setShowAdd(false)} onSave={async (g: any) => {
-        await api('add_guest', { showId, memberId, tourId, ...g })
+        const res = await api('add_guest', { showId, memberId, tourId, ...g })
+        if (res.error) { showToast('Error: ' + res.error, false); return }
+        showToast('Guest added ✓')
         onRefresh()
       }} />
     </>

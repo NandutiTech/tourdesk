@@ -184,11 +184,12 @@ export async function POST(req: NextRequest) {
   // ─── Guests ──────────────────────────────────────────────────────────────
   if (action === 'add_guest') {
     const id = makeId()
-    await admin.from('tour_member_guests').insert({
+    const { error } = await admin.from('tour_member_guests').insert({
       id, show_id: body.showId, member_id: body.memberId, tour_id: body.tourId,
       name: body.name, contact: body.contact || '', count: body.count || 1,
       notes: body.notes || '', status: body.status || 'confirmed'
     })
+    if (error) { console.error('add_guest error:', error); return NextResponse.json({ error: error.message }, { status: 500 }) }
     return NextResponse.json({ ok: true, id })
   }
 
