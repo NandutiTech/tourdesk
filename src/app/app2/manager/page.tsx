@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { getToken } from '@/lib/store'
 import { Button, Card, Input, Textarea, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
 
@@ -301,7 +301,7 @@ export default function ManagerPage() {
   const [editingMember, setEditingMember] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
-  const [showsView, setShowsView] = useState<'list'|'calendar'>('list')
+  const [showsView, setShowsView] = useState<'list'|'calendar'>('calendar')
   const importRef = useRef<HTMLInputElement>(null)
 
   const load = async (params: Record<string, string> = {}) => {
@@ -422,14 +422,63 @@ export default function ManagerPage() {
                   <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
                     {(['list', 'calendar'] as const).map(v => (
                       <button key={v} onClick={() => setShowsView(v)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: `1px solid ${showsView === v ? '#C9A84C' : '#1F1F2E'}`, background: showsView === v ? 'rgba(201,168,76,.1)' : '#12121A', color: showsView === v ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
-                        {v === 'list' ? '☰ List' : '📅 Calendar'}
+                        {v === 'list' ? '📅 Agenda' : '🗓 Calendar'}
                       </button>
                     ))}
                   </div>
                 )}
 
-                {showsView === 'calendar' && tourShows.length > 0 && (() => {
-                  // Group by month
+                {showsView === 'calendar' && (() => {
+                  const showDates = new Set(tourShows.map((s: any) => s.date))
+                  const today = new Date()
+                  const firstShowDate = tourShows[0]?.date ? new Date(tourShows[0].date + 'T12:00:00') : today
+                  const [calY, setCalY] = React.useState(firstShowDate.getFullYear())
+                  const [calM, setCalM] = React.useState(firstShowDate.getMonth())
+                  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+                  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+                  const totalDays = new Date(calY, calM + 1, 0).getDate()
+                  const firstDay = new Date(calY, calM, 1).getDay()
+                  const todayStr = today.toISOString().slice(0, 10)
+                  const pad = (n: number) => String(n).padStart(2, '0')
+                  return (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                        <button onClick={() => { if (calM === 0) { setCalY(calY-1); setCalM(11) } else setCalM(calM-1) }} style={{ background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '16px' }}>‹</button>
+                        <div style={{ flex: 1, textAlign: 'center', fontWeight: 900, fontSize: '16px' }}>{MONTHS[calM]} <span style={{ color: '#C9A84C' }}>{calY}</span></div>
+                        <button onClick={() => { if (calM === 11) { setCalY(calY+1); setCalM(0) } else setCalM(calM+1) }} style={{ background: '#12121A', border: '1px solid #1F1F2E', color: '#E8E0F0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '16px' }}>›</button>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '4px' }}>
+                        {DAYS.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: 700, color: '#5A5570', padding: '4px 0' }}>{d}</div>)}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                        {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
+                        {Array.from({ length: totalDays }, (_, i) => i + 1).map(day => {
+                          const ds = `${calY}-${pad(calM+1)}-${pad(day)}`
+                          const dayShows = tourShows.filter((s: any) => s.date === ds)
+                          const isToday = ds === todayStr
+                          const hasShow = dayShows.length > 0
+                          return (
+                            <div key={day} onClick={() => { if (hasShow) goShow(dayShows[0]) }}
+                              style={{ minHeight: '48px', padding: '4px', borderRadius: '8px', cursor: hasShow ? 'pointer' : 'default', background: isToday ? 'rgba(201,168,76,.1)' : hasShow ? 'rgba(93,201,160,.06)' : 'transparent', border: isToday ? '1px solid rgba(201,168,76,.3)' : hasShow ? '1px solid rgba(93,201,160,.2)' : '1px solid transparent' }}>
+                              <div style={{ fontSize: '12px', fontWeight: isToday ? 900 : 400, color: isToday ? '#C9A84C' : '#E8E0F0', textAlign: 'center', marginBottom: '2px' }}>{day}</div>
+                              {dayShows.map((s: any) => (
+                                <div key={s.id} style={{ fontSize: '9px', background: '#5DC9A0', color: '#0A0A0F', borderRadius: '3px', padding: '1px 3px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {s.city || s.venue || '●'}
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {(showsView === 'list' || tourShows.length === 0) && (
+                <>
+                {tourShows.length === 0 ? (
+                  <EmptyState icon="📅" title="No shows yet" sub="Import a PDF planning or add shows manually." />
+                ) : (() => {
                   const byMonth: Record<string, any[]> = {}
                   for (const s of tourShows) {
                     const month = s.date?.slice(0, 7) || 'Unknown'
@@ -437,46 +486,35 @@ export default function ManagerPage() {
                     byMonth[month].push(s)
                   }
                   return Object.entries(byMonth).map(([month, mShows]) => (
-                    <div key={month} style={{ marginBottom: '16px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '8px' }}>
-                        {new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                    <div key={month} style={{ marginBottom: '20px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px' }}>
+                        {new Date(month + '-01T12:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                       </div>
-                      {mShows.map(s => (
-                        <div key={s.id} onClick={() => goShow(s)} style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '10px 12px', background: '#12121A', border: '1px solid #1F1F2E', borderRadius: '10px', marginBottom: '6px', cursor: 'pointer' }}>
-                          <div style={{ textAlign: 'center', minWidth: '36px' }}>
-                            <div style={{ fontSize: '18px', fontWeight: 900, color: '#C9A84C', lineHeight: 1 }}>{s.date?.slice(8, 10)}</div>
-                            <div style={{ fontSize: '9px', color: '#5A5570', textTransform: 'uppercase' }}>{new Date(s.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short' })}</div>
+                      {mShows.map((s: any) => (
+                        <div key={s.id} style={{ display: 'flex', gap: '0', marginBottom: '8px' }}>
+                          <div onClick={() => goShow(s)} style={{ display: 'flex', flex: 1, gap: '12px', alignItems: 'center', padding: '12px', background: '#12121A', border: '1px solid #1F1F2E', borderRadius: '10px 0 0 10px', cursor: 'pointer' }}>
+                            <div style={{ textAlign: 'center', minWidth: '40px' }}>
+                              <div style={{ fontSize: '22px', fontWeight: 900, color: '#C9A84C', lineHeight: 1 }}>{s.date?.slice(8, 10)}</div>
+                              <div style={{ fontSize: '9px', color: '#5A5570', textTransform: 'uppercase', marginTop: '2px' }}>
+                                {new Date(s.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short' })}
+                              </div>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 800, fontSize: '14px' }}>{s.venue || 'Show'}</div>
+                              {s.city && <div style={{ fontSize: '12px', color: '#5A5570' }}>📍 {s.city}</div>}
+                              {s.notes && <div style={{ fontSize: '11px', color: '#5A5570', fontStyle: 'italic' }}>{s.notes}</div>}
+                            </div>
+                            <span style={{ color: '#5A5570' }}>›</span>
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 700, fontSize: '13px' }}>{s.venue || 'Show'}</div>
-                            {s.city && <div style={{ fontSize: '11px', color: '#5A5570' }}>📍 {s.city}</div>}
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <button onClick={e => { e.stopPropagation(); setEditingShow(s); setShowShowModal(true) }} style={{ flex: 1, background: '#1A1A28', border: '1px solid #1F1F2E', borderLeft: 'none', color: '#5A5570', padding: '0 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', borderRadius: '0' }}>✏</button>
+                            <button onClick={async e => { e.stopPropagation(); if (!confirm('Delete show?')) return; await api('delete_show', { showId: s.id }); load({ tourId: selTour.id }) }} style={{ flex: 1, background: '#1A1A28', border: '1px solid #1F1F2E', borderLeft: 'none', borderTop: 'none', color: '#E8453C', padding: '0 10px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', borderRadius: '0 10px 10px 0' }}>✕</button>
                           </div>
-                          <span style={{ color: '#5A5570' }}>›</span>
                         </div>
                       ))}
                     </div>
                   ))
                 })()}
-
-                {(showsView === 'list' || tourShows.length === 0) && (
-                <>
-                {tourShows.length === 0 ? (
-                  <EmptyState icon="📅" title="No shows yet" sub="Import a PDF planning or add shows manually." />
-                ) : tourShows.map(s => (
-                  <div onClick={() => goShow(s)} style={{ cursor: 'pointer' }}><Card style={{ marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '14px' }}>{s.venue || 'Show'}</div>
-                        <div style={{ fontSize: '12px', color: '#5A5570' }}>📅 {s.date}{s.city ? ` · ${s.city}` : ''}</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        <button onClick={e => { e.stopPropagation(); setEditingShow(s); setShowShowModal(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏</button>
-                        <button onClick={async e => { e.stopPropagation(); if (!confirm('Delete show?')) return; await api('delete_show', { showId: s.id }); load({ tourId: selTour.id }) }} style={{ background: 'none', border: '1px solid #E8453C', color: '#E8453C', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✕</button>
-                        <span style={{ color: '#5A5570', fontSize: '18px' }}>›</span>
-                      </div>
-                    </div>
-                  </Card></div>
-                ))}
                 </>
                 )}
               </>
@@ -573,11 +611,11 @@ export default function ManagerPage() {
               </div>
             </Card>
 
-            {/* Tabs */}
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', overflowX: 'auto' }}>
-              {([['hotel','🏨'],['tickets','✈'],['guests','🎫'],['expenses','💰'],['messages','💬']] as const).map(([t, icon]) => (
-                <button key={t} onClick={() => setMemberTab(t)} style={{ flexShrink: 0, padding: '8px 14px', borderRadius: '20px', border: `1px solid ${memberTab === t ? '#C9A84C' : '#1F1F2E'}`, background: memberTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: memberTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700 }}>
-                  {icon} {t.charAt(0).toUpperCase() + t.slice(1)}
+            {/* Tabs - 2x3 grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+              {([['hotel','🏨','Hotel'],['tickets','✈','Tickets'],['guests','🎫','Guests'],['expenses','💰','Expenses'],['messages','💬','Messages']] as const).map(([t, icon, label]) => (
+                <button key={t} onClick={() => setMemberTab(t)} style={{ padding: '12px', borderRadius: '10px', border: `2px solid ${memberTab === t ? '#C9A84C' : '#1F1F2E'}`, background: memberTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: memberTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 800, textAlign: 'center' }}>
+                  {icon} {label}
                 </button>
               ))}
             </div>
@@ -683,24 +721,25 @@ export default function ManagerPage() {
             {memberTab === 'messages' && (
               <Card style={{ marginBottom: '12px' }}>
                 <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '12px' }}>💬 Messages</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', maxHeight: '300px', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
                   {messages.length === 0 ? (
-                    <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '16px' }}>No messages yet</div>
+                    <div style={{ fontSize: '12px', color: '#5A5570', textAlign: 'center', padding: '24px' }}>No messages yet — send the first one</div>
                   ) : messages.map((m: any) => (
-                    <div key={m.id} style={{ alignSelf: m.from_manager ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-                      <div style={{ fontSize: '10px', color: '#5A5570', marginBottom: '2px', textAlign: m.from_manager ? 'right' : 'left' }}>{m.sender_name}</div>
-                      <div style={{ background: m.from_manager ? 'rgba(201,168,76,.15)' : '#12121A', border: `1px solid ${m.from_manager ? 'rgba(201,168,76,.3)' : '#1F1F2E'}`, borderRadius: '10px', padding: '8px 12px', fontSize: '13px' }}>
-                        {m.message}
+                    <div key={m.id} style={{ alignSelf: m.from_manager ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                      <div style={{ fontSize: '10px', color: '#5A5570', marginBottom: '3px', textAlign: m.from_manager ? 'right' : 'left' }}>
+                        {m.sender_name} · {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                       </div>
-                      <div style={{ fontSize: '10px', color: '#5A5570', marginTop: '2px', textAlign: m.from_manager ? 'right' : 'left' }}>
-                        {new Date(m.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      <div style={{ background: m.from_manager ? 'rgba(201,168,76,.15)' : '#1A1A28', border: `1px solid ${m.from_manager ? 'rgba(201,168,76,.3)' : '#1F1F2E'}`, borderRadius: m.from_manager ? '12px 12px 4px 12px' : '12px 12px 12px 4px', padding: '10px 14px', fontSize: '13px', lineHeight: 1.5 }}>
+                        {m.message}
                       </div>
                     </div>
                   ))}
                 </div>
                 <MessageInput onSend={async (msg: string) => {
+                  const id = Math.random().toString(36).slice(2)
+                  const newMsg = { id, from_manager: true, sender_name: 'Manager', message: msg, created_at: new Date().toISOString() }
+                  setMessages((prev: any[]) => [...prev, newMsg])
                   await api('send_message', { showId: selShow.id, memberId: selMember.id, tourId: selTour.id, message: msg, fromManager: true, senderName: 'Manager' })
-                  load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
                 }} />
               </Card>
             )}
