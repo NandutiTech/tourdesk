@@ -106,20 +106,20 @@ export async function POST(req: NextRequest) {
 
   // ─── Members ─────────────────────────────────────────────────────────────
   if (action === 'add_member') {
-    const { tourId, name, role, email, hotel, room, hotelAddr, notes } = body
+    const { tourId, name, role, email, phone, hotel, room, hotelAddr, notes } = body
     const id = makeId()
     await admin.from('tour_members').insert({
       id, tour_id: tourId, manager_id: user.id,
-      name, role, email: email?.toLowerCase() || null,
+      name, role, email: email?.toLowerCase() || null, phone: phone || null,
       hotel, room, hotel_addr: hotelAddr, notes
     })
     return NextResponse.json({ ok: true, id })
   }
 
   if (action === 'update_member') {
-    const { memberId, name, role, email, hotel, room, hotelAddr, notes } = body
+    const { memberId, name, role, email, phone, hotel, room, hotelAddr, notes } = body
     await admin.from('tour_members').update({
-      name, role, email: email?.toLowerCase() || null,
+      name, role, email: email?.toLowerCase() || null, phone: phone || null,
       hotel, room, hotel_addr: hotelAddr, notes
     }).eq('id', memberId).eq('manager_id', user.id)
     return NextResponse.json({ ok: true })

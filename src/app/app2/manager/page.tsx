@@ -110,6 +110,7 @@ function MemberModal({ open, onClose, tourId, editing, onSaved }: any) {
   const [name, setName] = useState(editing?.name || '')
   const [role, setRole] = useState(editing?.role || '')
   const [email, setEmail] = useState(editing?.email || '')
+  const [phone, setPhone] = useState(editing?.phone || '')
   const [hotel, setHotel] = useState(editing?.hotel || '')
   const [room, setRoom] = useState(editing?.room || '')
   const [hotelAddr, setHotelAddr] = useState(editing?.hotel_addr || '')
@@ -119,8 +120,8 @@ function MemberModal({ open, onClose, tourId, editing, onSaved }: any) {
   const save = async () => {
     if (!name.trim()) { showToast('Name required', false); return }
     setSaving(true)
-    if (editing) await api('update_member', { memberId: editing.id, name, role, email, hotel, room, hotelAddr, notes })
-    else await api('add_member', { tourId, name, role, email, hotel, room, hotelAddr, notes })
+    if (editing) await api('update_member', { memberId: editing.id, name, role, email, phone, hotel, room, hotelAddr, notes })
+    else await api('add_member', { tourId, name, role, email, phone, hotel, room, hotelAddr, notes })
     showToast(editing ? 'Updated' : `${name} added`)
     setSaving(false); onSaved(); onClose()
   }
@@ -137,7 +138,10 @@ function MemberModal({ open, onClose, tourId, editing, onSaved }: any) {
           </select>
         </div>
       </div>
-      <Input label="Email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jean@email.com" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <Input label="Email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jean@email.com" />
+        <Input label="Phone / WhatsApp" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+33 6..." />
+      </div>
       <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', margin: '8px 0 4px' }}>🏨 Hotel</div>
       <Input label="Hotel name" value={hotel} onChange={e => setHotel(e.target.value)} placeholder="Hôtel du Palais" />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px' }}>
@@ -394,6 +398,7 @@ export default function ManagerPage() {
                           {member.role && <div style={{ fontSize: '11px', color: '#C9A84C', fontWeight: 700 }}>{member.role}</div>}
                           {member.hotel && <div style={{ fontSize: '11px', color: '#5A5570' }}>🏨 {member.hotel}{member.room ? ` · Room ${member.room}` : ''}</div>}
                           {member.email && <div style={{ fontSize: '11px', color: '#5A5570' }}>✉ {member.email}</div>}
+          {member.phone && <div style={{ fontSize: '11px', color: '#5A5570' }}>📱 {member.phone}</div>}
                         </div>
                         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                           <button onClick={() => setExpandedMember(expandedMember === member.id ? null : member.id)}
