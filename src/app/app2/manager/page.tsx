@@ -55,6 +55,93 @@ async function extractShows(base64: string, mimeType: string) {
   } catch { return [] }
 }
 
+// ─── Show Tickets (all members in one view) ────────────────────────────────
+function ShowTickets({ showId, tourId, members, tickets, onRefresh }: any) {
+  const [viewing, setViewing] = useState<any>(null)
+
+  return (
+    <>
+      {members.length === 0 ? (
+        <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '24px', background: '#12121A', borderRadius: '12px', marginBottom: '12px' }}>
+          Add team members first
+        </div>
+      ) : members.map((m: any) => {
+        const outTickets = tickets.filter((t: any) => t.member_id === m.id && t.direction === 'out')
+        const retTickets = tickets.filter((t: any) => t.member_id === m.id && t.direction === 'ret')
+        return (
+          <Card key={m.id} style={{ marginBottom: '12px' }}>
+            <div style={{ fontWeight: 800, fontSize: '14px', marginBottom: '2px' }}>{m.name}</div>
+            {m.role && <div style={{ fontSize: '11px', color: '#C9A84C', marginBottom: '10px' }}>{m.role}</div>}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <MemberTicketCol
+                label="✈ Outbound" color="#C9A84C"
+                tickets={outTickets} direction="out"
+                showId={showId} memberId={m.id} tourId={tourId}
+                onView={setViewing} onRefresh={onRefresh}
+              />
+              <MemberTicketCol
+                label="🔄 Return" color="#5DC9A0"
+                tickets={retTickets} direction="ret"
+                showId={showId} memberId={m.id} tourId={tourId}
+                onView={setViewing} onRefresh={onRefresh}
+              />
+            </div>
+          </Card>
+        )
+      })}
+
+      {viewing && (
+        <div onClick={() => setViewing(null)} style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,.97)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '600px', marginBottom: '12px' }}>
+            <div style={{ fontWeight: 700, color: 'white' }}>{viewing.ticket_name}</div>
+            <button onClick={() => setViewing(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer' }}>✕</button>
+          </div>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '600px' }}>
+            {viewing.ticket_data?.startsWith('data:image') && <img src={viewing.ticket_data} alt="" style={{ width: '100%', borderRadius: '12px', maxHeight: '80vh', objectFit: 'contain' }} />}
+            {viewing.ticket_data?.startsWith('data:application/pdf') && <iframe src={viewing.ticket_data} style={{ width: '100%', height: '80vh', border: 'none', borderRadius: '12px' }} />}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+function MemberTicketCol({ label, color, tickets, direction, showId, memberId, tourId, onView, onRefresh }: any) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [scanning, setScanning] = useState(false)
+
+  const handleFile = async (file: File) => {
+    const b64 = await new Promise<string>(res => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(file) })
+    setScanning(true)
+    const info = await extractTicket(b64, file.type)
+    await api('upload_ticket', { showId, memberId, tourId, direction, ticketData: b64, ticketName: file.name, ticketMime: file.type, info })
+    setScanning(false)
+    showToast('Ticket added ✓')
+    onRefresh()
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: '10px', fontWeight: 800, color, letterSpacing: '.1em', marginBottom: '6px' }}>{label}</div>
+      {tickets.map((t: any) => (
+        <div key={t.id} style={{ background: '#0A0A0F', border: `1px solid ${color}20`, borderRadius: '8px', padding: '8px', marginBottom: '6px' }}>
+          {(t.info?.from || t.info?.to) && <div style={{ fontSize: '11px', fontWeight: 700 }}>{t.info.from || '?'} → {t.info.to || '?'}</div>}
+          {t.info?.time && <div style={{ fontSize: '10px', color: '#5A5570' }}>🕐 {t.info.time}{t.info.ref ? ` · ${t.info.ref}` : ''}</div>}
+          {!t.info?.from && !t.info?.to && <div style={{ fontSize: '10px', color: '#5A5570' }}>{t.ticket_name}</div>}
+          <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+            <button onClick={() => onView(t)} style={{ flex: 1, background: color, border: 'none', color: '#0A0A0F', borderRadius: '6px', padding: '5px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '10px', fontWeight: 800 }}>📱</button>
+            <button onClick={async () => { if (!confirm('Delete?')) return; await api('delete_ticket', { ticketId: t.id }); onRefresh() }} style={{ background: 'none', border: `1px solid #E8453C`, color: '#E8453C', borderRadius: '6px', padding: '5px 6px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '10px' }}>✕</button>
+          </div>
+        </div>
+      ))}
+      <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      <button onClick={() => fileRef.current?.click()} style={{ width: '100%', background: '#0A0A0F', border: `1px dashed ${color}30`, color: '#5A5570', borderRadius: '8px', padding: '7px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>
+        {scanning ? '🤖...' : '+ Add'}
+      </button>
+    </div>
+  )
+}
+
 // ─── Show Guest List (shared, with member name) ────────────────────────────
 function ShowGuestList({ showId, tourId, guests, members, onRefresh }: any) {
   const [showAdd, setShowAdd] = useState(false)
@@ -755,12 +842,12 @@ export default function ManagerPage() {
   const [showDocs, setShowDocs] = useState<any[]>([])
   const [showMessages, setShowMessages] = useState<any[]>([])
   const [showGuests, setShowGuests] = useState<any[]>([])
-  const [showInfoTab, setShowInfoTab] = useState<'hotel'|'transfers'|'meals'|'planning'|'technique'|'documents'|'chat'|'guests'>('hotel')
+  const [showInfoTab, setShowInfoTab] = useState<'hotel'|'transfers'|'meals'|'planning'|'technique'|'documents'|'chat'|'guests'|'tickets'>('hotel')
   const [guests, setGuests] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
-  const [memberTab, setMemberTab] = useState<'hotel'|'tickets'|'expenses'|'messages'>('hotel')
+  const [memberTab, setMemberTab] = useState<'hotel'|'expenses'|'messages'>('hotel')
 
-  const switchMemberTab = (t: 'hotel'|'tickets'|'expenses'|'messages') => {
+  const switchMemberTab = (t: 'hotel'|'expenses'|'messages') => {
     setMemberTab(t)
   }
 
@@ -1075,6 +1162,7 @@ export default function ManagerPage() {
                 ['documents','📄','Documents'],
                 ['chat','💬','Group chat'],
                 ['guests','🎫','Guest list'],
+                ['tickets','✈','Tickets'],
               ] as const).map(([t, icon, label]) => (
                 <button key={t} onClick={() => setShowInfoTab(t)} style={{ padding: '10px 8px', borderRadius: '10px', border: `2px solid ${showInfoTab === t ? '#C9A84C' : '#1F1F2E'}`, background: showInfoTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: showInfoTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, textAlign: 'center' }}>
                   {icon} {label}
@@ -1110,6 +1198,16 @@ export default function ManagerPage() {
                 onRefresh={async () => {
                   const data = await loadData({ tourId: selTour.id, showId: selShow.id })
                   if (data.showGuests) setShowGuests(data.showGuests)
+                }}
+              />
+            )}
+            {showInfoTab === 'tickets' && (
+              <ShowTickets
+                showId={selShow.id} tourId={selTour.id}
+                members={tourMembers} tickets={tickets}
+                onRefresh={async () => {
+                  const data = await loadData({ tourId: selTour.id, showId: selShow.id })
+                  if (data.tickets) setTickets(data.tickets)
                 }}
               />
             )}
@@ -1165,9 +1263,9 @@ export default function ManagerPage() {
               </div>
             </Card>
 
-            {/* Tabs - 2x2 grid without guests */}
+            {/* Tabs - 2x2 grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-              {([['hotel','🏨','Hotel'],['tickets','✈','Tickets'],['expenses','💰','Expenses'],['messages','💬','Messages']] as const).map(([t, icon, label]) => (
+              {([['hotel','🏨','Hotel'],['expenses','💰','Expenses'],['messages','💬','Messages']] as const).map(([t, icon, label]) => (
                 <button key={t} onClick={() => switchMemberTab(t as any)} style={{ padding: '12px', borderRadius: '10px', border: `2px solid ${memberTab === t ? '#C9A84C' : '#1F1F2E'}`, background: memberTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: memberTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 800, textAlign: 'center' }}>
                   {icon} {label}
                 </button>
@@ -1194,23 +1292,6 @@ export default function ManagerPage() {
               </Card>
             )}
 
-            {/* Tickets tab */}
-            {memberTab === 'tickets' && (
-              <Card style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '12px' }}>✈ Travel tickets</div>
-                <TicketUpload
-                  showId={selShow.id} memberId={selMember.id} tourId={selTour.id}
-                  tickets={memberTickets}
-                  onRefresh={async () => {
-                    const data = await loadData({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
-                    if (data.memberTickets) setTickets(data.memberTickets)
-    if (data.showDocs) setShowDocs(data.showDocs)
-    if (data.showMessages) setShowMessages(data.showMessages)
-    if (data.showGuests) setShowGuests(data.showGuests)
-                  }}
-                />
-              </Card>
-            )}
 
             {/* Expenses tab */}
             {memberTab === 'expenses' && (
