@@ -404,6 +404,7 @@ const SHOW_INFO_FIELDS: Record<string, { label: string, placeholder: string }> =
   meals: { label: '🍽 Meals', placeholder: 'Catering details\nDinner arrangements' },
   planning: { label: '📅 Planning', placeholder: 'Arrival:\nSoundcheck:\nCatering:\nShow:\nEnd:' },
   technique: { label: '🎛 Technical', placeholder: 'Stage setup details\nSound and lighting requirements\nSpecial requests' },
+  setlist: { label: '🎵 Setlist', placeholder: '1. Song name\n2. Song name\n3. Song name\n...' },
 }
 
 function ShowInfoSection({ show, field, onSave }: any) {
@@ -993,7 +994,7 @@ export default function ManagerPage() {
   const [showMessages, setShowMessages] = useState<any[]>([])
   const [showGuests, setShowGuests] = useState<any[]>([])
   const [showExpenses, setShowExpenses] = useState<any[]>([])
-  const [showInfoTab, setShowInfoTab] = useState<'hotel'|'transfers'|'meals'|'planning'|'technique'|'documents'|'chat'|'guests'|'tickets'|'expenses'>('hotel')
+  const [showInfoTab, setShowInfoTab] = useState<'hotel'|'transfers'|'meals'|'planning'|'technique'|'documents'|'chat'|'guests'|'tickets'|'expenses'|'setlist'>('hotel')
   const [guests, setGuests] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [memberTab, setMemberTab] = useState<'hotel'|'expenses'|'messages'>('hotel')
@@ -1337,6 +1338,7 @@ export default function ManagerPage() {
                 ['guests','🎫','Guest list'],
                 ['tickets','✈','Tickets'],
                 ['expenses','💰','Expenses'],
+                ['setlist','🎵','Setlist'],
               ] as const).map(([t, icon, label]) => (
                 <button key={t} onClick={() => setShowInfoTab(t)} style={{ padding: '10px 8px', borderRadius: '10px', border: `2px solid ${showInfoTab === t ? '#C9A84C' : '#1F1F2E'}`, background: showInfoTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: showInfoTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, textAlign: 'center' }}>
                   {icon} {label}
@@ -1347,7 +1349,7 @@ export default function ManagerPage() {
             {/* Tab content */}
             {showInfoTab !== 'documents' && showInfoTab !== 'chat' && (
               <ShowInfoSection show={selShow} field={showInfoTab} onSave={async (updates: any) => {
-                await api('update_show_info', { showId: selShow.id, ...selShow, ...updates })
+                await api('update_show_info', { showId: selShow.id, hotel: selShow.hotel, hotel_notes: selShow.hotel_notes, hotel_addr: selShow.hotel_addr, transfers: selShow.transfers, meals: selShow.meals, planning: selShow.planning, technique: selShow.technique, setlist: selShow.setlist, ...updates })
                 setSelShow({ ...selShow, ...updates })
                 showToast('Saved ✓')
               }} />

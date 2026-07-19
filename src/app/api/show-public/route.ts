@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
       id: show.id, date: show.date, venue: show.venue, city: show.city, notes: show.notes,
       hotel: show.hotel, hotel_notes: show.hotel_notes, hotel_addr: show.hotel_addr,
       transfers: show.transfers, meals: show.meals, planning: show.planning, technique: show.technique,
+      setlist: show.setlist,
     },
     tour: tourRes.data,
     members: membersRes.data || [],

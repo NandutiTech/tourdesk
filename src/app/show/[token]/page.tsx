@@ -178,6 +178,7 @@ export default function ShowPublicPage() {
                   { key: 'meals', icon: '🍽', label: 'Meals' },
                   { key: 'planning', icon: '📅', label: 'Planning' },
                   { key: 'technique', icon: '🎛', label: 'Technical' },
+                  { key: 'setlist', icon: '🎵', label: 'Setlist' },
                 ].filter(f => show[f.key]).map(f => (
                   <div key={f.key} style={{ background: '#13131C', border: '1px solid #1F1F2E', borderRadius: '12px', padding: '14px 16px', marginBottom: '10px' }}>
                     <div style={{ fontWeight: 800, fontSize: '13px', marginBottom: '8px', color: '#C9A84C' }}>{f.icon} {f.label}</div>

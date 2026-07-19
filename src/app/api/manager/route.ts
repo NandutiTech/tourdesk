@@ -217,8 +217,8 @@ export async function POST(req: NextRequest) {
 
   // ─── Show shared info ────────────────────────────────────────────────────
   if (action === 'update_show_info') {
-    const { showId, hotel, hotel_notes, transfers, meals, planning, technique } = body
-    await admin.from('tour_shows').update({ hotel, hotel_notes, transfers, meals, planning, technique }).eq('id', showId).eq('manager_id', user.id)
+    const { showId, hotel, hotel_notes, hotel_addr, transfers, meals, planning, technique, setlist } = body
+    await admin.from('tour_shows').update({ hotel, hotel_notes, hotel_addr, transfers, meals, planning, technique, setlist }).eq('id', showId).eq('manager_id', user.id)
     return NextResponse.json({ ok: true })
   }
 
