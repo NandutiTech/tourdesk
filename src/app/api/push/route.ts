@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import webpush from 'web-push'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,11 +8,17 @@ const admin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
+function getWebPush() {
+  const webpush = require('web-push')
+  const email = process.env.VAPID_EMAIL || 'mailto:hello@tourdesktop.com'
+  const subject = email.startsWith('mailto:') ? email : `mailto:${email}`
+  webpush.setVapidDetails(
+    subject,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  )
+  return webpush
+}
 
 async function getUser(req: NextRequest) {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '')
@@ -53,6 +58,7 @@ export async function POST(req: NextRequest) {
     if (!subs?.length) return NextResponse.json({ ok: true, sent: 0 })
 
     let sent = 0
+    const webpush = getWebPush()
     for (const sub of subs) {
       try {
         await webpush.sendNotification(
@@ -76,6 +82,7 @@ export async function POST(req: NextRequest) {
     if (!subs?.length) return NextResponse.json({ ok: true, sent: 0 })
 
     let sent = 0
+    const webpush = getWebPush()
     for (const sub of subs) {
       try {
         await webpush.sendNotification(
