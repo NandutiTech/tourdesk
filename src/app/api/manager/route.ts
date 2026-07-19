@@ -194,7 +194,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'update_guest') {
-    await admin.from('tour_member_guests').update({ status: body.status }).eq('id', body.guestId)
+    const updates: any = {}
+    if (body.status !== undefined) updates.status = body.status
+    if (body.name !== undefined) updates.name = body.name
+    if (body.contact !== undefined) updates.contact = body.contact
+    if (body.count !== undefined) updates.count = body.count
+    if (body.notes !== undefined) updates.notes = body.notes
+    await admin.from('tour_member_guests').update(updates).eq('id', body.guestId)
     return NextResponse.json({ ok: true })
   }
 
@@ -213,6 +219,15 @@ export async function POST(req: NextRequest) {
       receipt_name: body.receiptName || null, receipt_mime: body.receiptMime || null
     })
     return NextResponse.json({ ok: true, id })
+  }
+
+  if (action === 'update_expense') {
+    await admin.from('tour_member_expenses').update({
+      date: body.date, amount: body.amount, category: body.category,
+      description: body.description, receipt_data: body.receiptData || null,
+      receipt_name: body.receiptName || null, receipt_mime: body.receiptMime || null
+    }).eq('id', body.expenseId)
+    return NextResponse.json({ ok: true })
   }
 
   if (action === 'delete_expense') {

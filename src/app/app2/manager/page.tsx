@@ -60,21 +60,21 @@ const STATUS_COLORS: Record<string, string> = { confirmed: '#5DC9A0', pending: '
 const STATUS_LABELS: Record<string, string> = { confirmed: '✓ Confirmed', pending: '⏳ Pending', cancelled: '✕ Cancelled' }
 const CATS: Record<string, string> = { transport: '🚆 Transport', hotel: '🏨 Hotel', food: '🍽 Food', equipment: '🎛 Equipment', other: '📦 Other' }
 
-function GuestAddModal({ open, onClose, onSave }: any) {
-  const [name, setName] = useState('')
-  const [contact, setContact] = useState('')
-  const [count, setCount] = useState('1')
-  const [notes, setNotes] = useState('')
+function GuestAddModal({ open, onClose, onSave, editing }: any) {
+  const [name, setName] = useState(editing?.name || '')
+  const [contact, setContact] = useState(editing?.contact || '')
+  const [count, setCount] = useState(editing?.count?.toString() || '1')
+  const [notes, setNotes] = useState(editing?.notes || '')
   const [saving, setSaving] = useState(false)
   const save = async () => {
     if (!name.trim()) { showToast('Name required', false); return }
     setSaving(true)
-    await onSave({ name: name.trim(), contact, count: parseInt(count) || 1, notes, status: 'confirmed' })
+    await onSave({ name: name.trim(), contact, count: parseInt(count) || 1, notes })
     setSaving(false)
     onClose()
   }
   return (
-    <Modal open={open} onClose={onClose} title="Add Guest">
+    <Modal open={open} onClose={onClose} title={editing ? "Edit Guest" : "Add Guest"}>
       <Input label="Guest name *" value={name} onChange={e => setName(e.target.value)} placeholder="Marie Dupont" />
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
         <Input label="Phone or email" value={contact} onChange={e => setContact(e.target.value)} placeholder="+33 6..." />
@@ -83,7 +83,7 @@ function GuestAddModal({ open, onClose, onSave }: any) {
       <Textarea label="Notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '50px' }} />
       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-        <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Add'}</Button>
+        <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : editing ? 'Save' : 'Add'}</Button>
       </div>
     </Modal>
   )
@@ -91,6 +91,7 @@ function GuestAddModal({ open, onClose, onSave }: any) {
 
 function GuestsSection({ showId, memberId, tourId, guests, onRefresh }: any) {
   const [showAdd, setShowAdd] = useState(false)
+  const [editingGuest, setEditingGuest] = useState<any>(null)
   const total = guests.reduce((s: number, g: any) => s + (g.count || 1), 0)
   const cycleStatus = async (g: any) => {
     const next: Record<string, string> = { confirmed: 'pending', pending: 'cancelled', cancelled: 'confirmed' }
@@ -101,7 +102,7 @@ function GuestsSection({ showId, memberId, tourId, guests, onRefresh }: any) {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <div style={{ fontSize: '12px', color: '#5A5570' }}>{guests.length} guests · {total} places</div>
-        <Button size="sm" onClick={() => setShowAdd(true)}>+ Guest</Button>
+        <Button size="sm" onClick={() => { setEditingGuest(null); setShowAdd(true) }}>+ Guest</Button>
       </div>
       {guests.length === 0 ? (
         <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '24px', background: '#12121A', borderRadius: '12px', marginBottom: '12px' }}>No guests yet</div>
@@ -116,14 +117,21 @@ function GuestsSection({ showId, memberId, tourId, guests, onRefresh }: any) {
             <button onClick={() => cycleStatus(g)} style={{ background: 'none', border: `1px solid ${STATUS_COLORS[g.status]}`, color: STATUS_COLORS[g.status], borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
               {STATUS_LABELS[g.status]}
             </button>
-            <button onClick={async () => { await api('delete_guest', { guestId: g.id }); onRefresh() }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
+            <button onClick={() => { setEditingGuest(g); setShowAdd(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px' }}>✏</button>
+            <button onClick={async () => { if (!confirm('Remove guest?')) return; await api('delete_guest', { guestId: g.id }); onRefresh() }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px' }}>✕</button>
           </div>
         </Card>
       ))}
-      <GuestAddModal key={showAdd ? 'open' : 'closed'} open={showAdd} onClose={() => setShowAdd(false)} onSave={async (g: any) => {
-        const res = await api('add_guest', { showId, memberId, tourId, ...g })
-        if (res.error) { showToast('Error: ' + res.error, false); return }
-        showToast('Guest added ✓')
+      <GuestAddModal key={editingGuest?.id || (showAdd ? 'new-open' : 'closed')} open={showAdd} onClose={() => { setShowAdd(false); setEditingGuest(null) }} editing={editingGuest} onSave={async (g: any) => {
+        if (editingGuest) {
+          const res = await api('update_guest', { guestId: editingGuest.id, ...g })
+          if (res.error) { showToast('Error: ' + res.error, false); return }
+          showToast('Guest updated ✓')
+        } else {
+          const res = await api('add_guest', { showId, memberId, tourId, ...g })
+          if (res.error) { showToast('Error: ' + res.error, false); return }
+          showToast('Guest added ✓')
+        }
         onRefresh()
       }} />
     </>
@@ -131,12 +139,12 @@ function GuestsSection({ showId, memberId, tourId, guests, onRefresh }: any) {
 }
 
 // ─── Expenses Section ──────────────────────────────────────────────────────
-function ExpenseAddModal({ open, onClose, showDate, onSave }: any) {
+function ExpenseAddModal({ open, onClose, showDate, onSave, editing }: any) {
   const today = showDate || new Date().toISOString().slice(0, 10)
-  const [date, setDate] = useState(today)
-  const [amount, setAmount] = useState('')
-  const [cat, setCat] = useState('other')
-  const [desc, setDesc] = useState('')
+  const [date, setDate] = useState(editing?.date || today)
+  const [amount, setAmount] = useState(editing?.amount?.toString() || '')
+  const [cat, setCat] = useState(editing?.category || 'other')
+  const [desc, setDesc] = useState(editing?.description || '')
   const [receipt, setReceipt] = useState('')
   const [receiptName, setReceiptName] = useState('')
   const [receiptMime, setReceiptMime] = useState('')
@@ -159,7 +167,7 @@ function ExpenseAddModal({ open, onClose, showDate, onSave }: any) {
 
   return (
     <>
-      <Modal open={open} onClose={onClose} title="Add Expense">
+      <Modal open={open} onClose={onClose} title={editing ? "Edit Expense" : "Add Expense"}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           <Input label="Date" type="date" value={date} onChange={e => setDate(e.target.value)} />
           <Input label="Amount (€) *" type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
@@ -189,7 +197,7 @@ function ExpenseAddModal({ open, onClose, showDate, onSave }: any) {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>Cancel</Button>
-          <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : 'Save'}</Button>
+          <Button onClick={save} disabled={saving} style={{ flex: 2 }}>{saving ? 'Saving...' : editing ? 'Save' : 'Add'}</Button>
         </div>
       </Modal>
       {viewing && receipt && (
@@ -210,6 +218,7 @@ function ExpenseAddModal({ open, onClose, showDate, onSave }: any) {
 
 function ExpensesSection({ showId, memberId, tourId, showDate, expenses, onRefresh }: any) {
   const [showAdd, setShowAdd] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<any>(null)
   const [viewingReceipt, setViewingReceipt] = useState<any>(null)
   const total = expenses.reduce((s: number, e: any) => s + (e.amount || 0), 0)
 
@@ -217,7 +226,7 @@ function ExpensesSection({ showId, memberId, tourId, showDate, expenses, onRefre
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <div style={{ fontSize: '12px', color: '#5A5570' }}>{expenses.length} expenses · €{total.toFixed(2)}</div>
-        <Button size="sm" onClick={() => setShowAdd(true)}>+ Expense</Button>
+        <Button size="sm" onClick={() => { setEditingExpense(null); setShowAdd(true) }}>+ Expense</Button>
       </div>
       {expenses.length === 0 ? (
         <div style={{ textAlign: 'center', color: '#5A5570', fontSize: '13px', padding: '24px', background: '#12121A', borderRadius: '12px', marginBottom: '12px' }}>No expenses yet</div>
@@ -236,13 +245,18 @@ function ExpensesSection({ showId, memberId, tourId, showDate, expenses, onRefre
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontWeight: 800, color: '#C9A84C', fontSize: '14px' }}>€{(e.amount || 0).toFixed(2)}</div>
-              <button onClick={async () => { await api('delete_expense', { expenseId: e.id }); onRefresh() }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px', marginTop: '4px' }}>✕</button>
+              <button onClick={() => { setEditingExpense(e); setShowAdd(true) }} style={{ background: 'none', border: '1px solid #1F1F2E', color: '#5A5570', borderRadius: '6px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '11px', marginTop: '4px' }}>✏</button>
+              <button onClick={async () => { if (!confirm('Delete expense?')) return; await api('delete_expense', { expenseId: e.id }); onRefresh() }} style={{ background: 'none', border: 'none', color: '#E8453C', cursor: 'pointer', fontSize: '16px', marginTop: '4px' }}>✕</button>
             </div>
           </div>
         </Card>
       ))}
-      <ExpenseAddModal key={showAdd ? 'open' : 'closed'} open={showAdd} onClose={() => setShowAdd(false)} showDate={showDate} onSave={async (e: any) => {
-        await api('add_expense', { showId, memberId, tourId, ...e })
+      <ExpenseAddModal key={editingExpense?.id || (showAdd ? 'new-open' : 'closed')} open={showAdd} onClose={() => { setShowAdd(false); setEditingExpense(null) }} showDate={showDate} editing={editingExpense} onSave={async (e: any) => {
+        if (editingExpense) {
+          await api('update_expense', { expenseId: editingExpense.id, ...e })
+        } else {
+          await api('add_expense', { showId, memberId, tourId, ...e })
+        }
         onRefresh()
       }} />
       {viewingReceipt && (
