@@ -57,11 +57,11 @@ async function extractShows(base64: string, mimeType: string) {
 
 // ─── Show Info Section (shared) ────────────────────────────────────────────
 const SHOW_INFO_FIELDS: Record<string, { label: string, placeholder: string }> = {
-  hotel: { label: '🏨 Hébergement', placeholder: 'Hôtel du Palais, 12 rue...\nPiscine sur place, prévoir maillots!' },
-  transfers: { label: '🚌 Transfers', placeholder: 'Bus collectif départ 14h depuis le théâtre\nRetour prévu 23h30' },
-  meals: { label: '🍽 Repas', placeholder: 'Prise en charge directe sur place\nDîner 19h — restaurant La Brasserie' },
-  planning: { label: '📅 Planning', placeholder: 'Arrivée: 14h\nBalance: 16h\nCatering: 18h30\nShow: 20h30\nFin: 22h30' },
-  technique: { label: '🎛 Technique', placeholder: 'EOS demande pupitage possible J-1\nProjection sur le mur de fond\nSon: L-Acoustics K2' },
+  hotel: { label: '🏨 Accommodation', placeholder: 'Hotel du Palais, 12 rue...\nPool on site — bring swimwear!' },
+  transfers: { label: '🚌 Transfers', placeholder: 'Group bus departure 2pm from the theatre\nReturn expected 11:30pm' },
+  meals: { label: '🍽 Meals', placeholder: 'Direct catering on site\nDinner 7pm — La Brasserie restaurant' },
+  planning: { label: '📅 Planning', placeholder: 'Arrival: 2pm\nSoundcheck: 4pm\nCatering: 6:30pm\nShow: 8:30pm\nEnd: 10:30pm' },
+  technique: { label: '🎛 Technical', placeholder: 'EOS requests desk setup possible day before\nProjection on back wall\nSound: L-Acoustics K2' },
 }
 
 function ShowInfoSection({ show, field, onSave }: any) {
@@ -940,15 +940,21 @@ export default function ManagerPage() {
               {selShow.notes && <div style={{ fontSize: '12px', color: '#5A5570', marginTop: '4px', fontStyle: 'italic' }}>{selShow.notes}</div>}
             </div>
 
-            {/* Shared info tabs */}
-            <div style={{ overflowX: 'auto', marginBottom: '12px', paddingBottom: '4px' }}>
-              <div style={{ display: 'flex', gap: '6px', width: 'max-content' }}>
-                {([['hotel','🏨','Hébergement'],['transfers','🚌','Transfers'],['meals','🍽','Repas'],['planning','📅','Planning'],['technique','🎛','Technique'],['documents','📄','Documents'],['chat','💬','Chat']] as const).map(([t, icon, label]) => (
-                  <button key={t} onClick={() => setShowInfoTab(t)} style={{ flexShrink: 0, padding: '8px 14px', borderRadius: '20px', border: `1px solid ${showInfoTab === t ? '#C9A84C' : '#1F1F2E'}`, background: showInfoTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: showInfoTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                    {icon} {label}
-                  </button>
-                ))}
-              </div>
+            {/* Shared info tabs - 2 column grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+              {([
+                ['hotel','🏨','Accommodation'],
+                ['transfers','🚌','Transfers'],
+                ['meals','🍽','Meals'],
+                ['planning','📅','Planning'],
+                ['technique','🎛','Technical'],
+                ['documents','📄','Documents'],
+                ['chat','💬','Group chat'],
+              ] as const).map(([t, icon, label]) => (
+                <button key={t} onClick={() => setShowInfoTab(t)} style={{ padding: '10px 8px', borderRadius: '10px', border: `2px solid ${showInfoTab === t ? '#C9A84C' : '#1F1F2E'}`, background: showInfoTab === t ? 'rgba(201,168,76,.1)' : '#12121A', color: showInfoTab === t ? '#C9A84C' : '#5A5570', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: 700, textAlign: 'center' }}>
+                  {icon} {label}
+                </button>
+              ))}
             </div>
 
             {/* Tab content */}
