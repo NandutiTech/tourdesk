@@ -516,11 +516,8 @@ export default function ManagerPage() {
   const [expenses, setExpenses] = useState<any[]>([])
   const [memberTab, setMemberTab] = useState<'hotel'|'tickets'|'guests'|'expenses'|'messages'>('hotel')
 
-  const switchMemberTab = async (t: 'hotel'|'tickets'|'guests'|'expenses'|'messages') => {
+  const switchMemberTab = (t: 'hotel'|'tickets'|'guests'|'expenses'|'messages') => {
     setMemberTab(t)
-    if (['guests','expenses','messages'].includes(t) && selTour && selShow && selMember) {
-      await load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
-    }
   }
 
   const [selTour, setSelTour] = useState<any>(null)
@@ -562,7 +559,7 @@ export default function ManagerPage() {
   const goTours = () => { setScreen('tours'); setSelTour(null); setSelShow(null); setSelMember(null); load() }
   const goTour = async (tour: any) => { setSelTour(tour); setSelShow(null); setSelMember(null); setScreen('tour'); await load({ tourId: tour.id }) }
   const goShow = async (show: any) => { setSelShow(show); setSelMember(null); setScreen('show'); await load({ tourId: selTour.id, showId: show.id }) }
-  const goMember = async (member: any) => { setSelMember(member); setScreen('member'); await load({ tourId: selTour.id, showId: selShow.id, memberId: member.id }) }
+  const goMember = async (member: any) => { setSelMember(member); setScreen('member'); setMemberTab('hotel'); await load({ tourId: selTour.id, showId: selShow.id, memberId: member.id }) }
 
   const handleImport = async (file: File) => {
     const b64 = await new Promise<string>(res => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(file) })
@@ -881,7 +878,10 @@ export default function ManagerPage() {
                 <TicketUpload
                   showId={selShow.id} memberId={selMember.id} tourId={selTour.id}
                   tickets={memberTickets}
-                  onRefresh={() => load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })}
+                  onRefresh={async () => {
+                    const data = await loadData({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
+                    if (data.memberTickets) setTickets(data.memberTickets)
+                  }}
                 />
               </Card>
             )}
@@ -891,7 +891,10 @@ export default function ManagerPage() {
               <GuestsSection
                 showId={selShow.id} memberId={selMember.id} tourId={selTour.id}
                 guests={guests}
-                onRefresh={() => load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })}
+                onRefresh={async () => {
+                  const data = await loadData({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
+                  if (data.guests) setGuests(data.guests)
+                }}
               />
             )}
 
@@ -901,7 +904,10 @@ export default function ManagerPage() {
                 showId={selShow.id} memberId={selMember.id} tourId={selTour.id}
                 showDate={selShow.date}
                 expenses={expenses}
-                onRefresh={() => load({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })}
+                onRefresh={async () => {
+                  const data = await loadData({ tourId: selTour.id, showId: selShow.id, memberId: selMember.id })
+                  if (data.expenses) setExpenses(data.expenses)
+                }}
               />
             )}
 
