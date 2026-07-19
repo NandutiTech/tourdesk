@@ -3,6 +3,22 @@ import { useState, useEffect, useRef } from 'react'
 import { getToken } from '@/lib/store'
 import { Button, Card, Input, Textarea, Modal, EmptyState, Toolbar, showToast } from '@/components/ui'
 
+const PHONE_PREFIXES = [
+  { label: '🇫🇷 +33', value: '+33' }, { label: '🇪🇸 +34', value: '+34' },
+  { label: '🇵🇾 +595', value: '+595' }, { label: '🇧🇪 +32', value: '+32' },
+  { label: '🇨🇭 +41', value: '+41' }, { label: '🇮🇹 +39', value: '+39' },
+  { label: '🇬🇧 +44', value: '+44' }, { label: '🇩🇪 +49', value: '+49' },
+  { label: '🇵🇹 +351', value: '+351' }, { label: '🇺🇸 +1', value: '+1' },
+  { label: '🇦🇷 +54', value: '+54' }, { label: '🇧🇷 +55', value: '+55' },
+]
+
+function parsePhone(phone: string): { prefix: string, number: string } {
+  for (const p of PHONE_PREFIXES) {
+    if (phone.startsWith(p.value)) return { prefix: p.value, number: phone.slice(p.value.length) }
+  }
+  return { prefix: '+33', number: phone }
+}
+
 async function api(action: string, data: any = {}) {
   const res = await fetch('/api/manager', {
     method: 'POST',
@@ -30,18 +46,12 @@ async function extractTicket(base64: string, mimeType: string) {
 
 async function extractShows(base64: string, mimeType: string): Promise<any[]> {
   try {
-    const res = await fetch('/api/extract-ticket', {
+    const res = await fetch('/api/extract-shows', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        base64, mimeType,
-        prompt: 'This is a tour schedule or planning document. Extract ALL shows/dates listed. Return ONLY a valid JSON array with no markdown: [{ "date": "YYYY-MM-DD", "venue": "venue or theatre name", "city": "city name" }]. If you cannot find dates, return an empty array [].'
-      })
+      body: JSON.stringify({ base64, mimeType })
     })
     const data = await res.json()
-    // Response might be array directly or wrapped
-    if (Array.isArray(data)) return data
-    if (Array.isArray(data.shows)) return data.shows
-    return []
+    return Array.isArray(data) ? data : []
   } catch { return [] }
 }
 
@@ -72,7 +82,7 @@ function TourModal({ open, onClose, editing, onSaved }: any) {
     // Save new members
     for (const m of members) {
       if (m.name.trim()) {
-        await api('add_member', { tourId, name: m.name, role: m.role, email: m.email, phone: m.phone, hotel: '', room: '', hotelAddr: '', notes: '' })
+        const phone = m.phoneNum ? (m.phonePrefix || '+33') + m.phoneNum.replace(/^0/, '') : ''; await api('add_member', { tourId, name: m.name, role: m.role, email: m.email, phone, hotel: '', room: '', hotelAddr: '', notes: '' })
       }
     }
     showToast(editing ? 'Tour updated' : 'Tour created')
@@ -111,7 +121,12 @@ function TourModal({ open, onClose, editing, onSaved }: any) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
             <input value={m.email} onChange={e => updateMember(m.id, 'email', e.target.value)} placeholder="Email" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
-            <input value={m.phone} onChange={e => updateMember(m.id, 'phone', e.target.value)} placeholder="Phone / WhatsApp" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none' }} />
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <select value={m.phonePrefix || '+33'} onChange={e => updateMember(m.id, 'phonePrefix', e.target.value)} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 4px', fontFamily: 'inherit', fontSize: '12px', flexShrink: 0, maxWidth: '100px' }}>
+                {PHONE_PREFIXES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select>
+              <input value={m.phoneNum || ''} onChange={e => updateMember(m.id, 'phoneNum', e.target.value)} placeholder="6 12 34 56" style={{ flex: 1, background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '8px 10px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', minWidth: 0 }} />
+            </div>
           </div>
         </div>
       ))}
@@ -159,8 +174,10 @@ function ShowModal({ open, onClose, tourId, editing, onSaved }: any) {
 function MemberModal({ open, onClose, tourId, editing, onSaved }: any) {
   const [name, setName] = useState(editing?.name || '')
   const [role, setRole] = useState(editing?.role || '')
+  const parsedPhone = editing?.phone ? parsePhone(editing.phone) : { prefix: '+33', number: '' }
   const [email, setEmail] = useState(editing?.email || '')
-  const [phone, setPhone] = useState(editing?.phone || '')
+  const [prefix, setPrefix] = useState(parsedPhone.prefix)
+  const [phoneNum, setPhoneNum] = useState(parsedPhone.number)
   const [hotel, setHotel] = useState(editing?.hotel || '')
   const [room, setRoom] = useState(editing?.room || '')
   const [hotelAddr, setHotelAddr] = useState(editing?.hotel_addr || '')
@@ -170,6 +187,7 @@ function MemberModal({ open, onClose, tourId, editing, onSaved }: any) {
   const save = async () => {
     if (!name.trim()) { showToast('Name required', false); return }
     setSaving(true)
+    const phone = phoneNum ? prefix + phoneNum.replace(/^0/, '') : ''
     if (editing) await api('update_member', { memberId: editing.id, name, role, email, phone, hotel, room, hotelAddr, notes })
     else await api('add_member', { tourId, name, role, email, phone, hotel, room, hotelAddr, notes })
     showToast(editing ? 'Updated' : `${name} added`)
@@ -190,7 +208,15 @@ function MemberModal({ open, onClose, tourId, editing, onSaved }: any) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
         <Input label="Email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jean@email.com" />
-        <Input label="Phone / WhatsApp" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+33 6..." />
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '4px' }}>📱 Phone</div>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <select value={prefix} onChange={e => setPrefix(e.target.value)} style={{ background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '9px 4px', fontFamily: 'inherit', fontSize: '12px', flexShrink: 0, maxWidth: '90px' }}>
+              {PHONE_PREFIXES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+            <input value={phoneNum} onChange={e => setPhoneNum(e.target.value)} placeholder="6 12 34 56" style={{ flex: 1, background: 'rgba(255,255,255,.04)', border: '1px solid #1E1E2E', color: '#E8E0F0', borderRadius: '8px', padding: '9px 8px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', minWidth: 0 }} />
+          </div>
+        </div>
       </div>
       <div style={{ fontSize: '11px', fontWeight: 800, color: '#5A5570', textTransform: 'uppercase', letterSpacing: '.08em', margin: '8px 0 4px' }}>🏨 Hotel</div>
       <Input label="Hotel name" value={hotel} onChange={e => setHotel(e.target.value)} placeholder="Hôtel du Palais" />
