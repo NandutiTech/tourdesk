@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const { base64, mimeType, prompt } = await request.json()
     if (!base64) return NextResponse.json({})
-    const textPrompt = prompt || textPrompt
+    const textPrompt: string = prompt || 'This is a travel ticket. Extract travel information and return ONLY valid JSON: { "from": "departure city or station", "to": "arrival city or station", "date": "date as shown", "time": "HH:MM departure time", "ref": "train or flight number", "seat": "seat if visible", "type": "train|plane|bus|other" }. Use null for missing fields.'
 
     const data = base64.includes(',') ? base64.split(',')[1] : base64
 
