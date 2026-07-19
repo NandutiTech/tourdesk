@@ -353,7 +353,7 @@ export default function ManagerPage() {
             {tours.length === 0 ? (
               <EmptyState icon="🎪" title="No tours yet" sub="Create a tour to manage your team's travel, hotel and tickets." />
             ) : tours.map(t => (
-              <Card key={t.id} style={{ marginBottom: '10px', cursor: 'pointer' }} onClick={() => goTour(t)}>
+              <div key={t.id} onClick={() => goTour(t)} style={{ cursor: 'pointer' }}><Card style={{ marginBottom: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontWeight: 800, fontSize: '15px' }}>{t.name}</div>
@@ -365,7 +365,7 @@ export default function ManagerPage() {
                     <span style={{ color: '#5A5570', fontSize: '18px' }}>›</span>
                   </div>
                 </div>
-              </Card>
+              </Card></div>
             ))}
           </div>
         </>
@@ -398,7 +398,7 @@ export default function ManagerPage() {
                 {tourShows.length === 0 ? (
                   <EmptyState icon="📅" title="No shows yet" sub="Import a PDF planning or add shows manually." />
                 ) : tourShows.map(s => (
-                  <Card key={s.id} style={{ marginBottom: '8px', cursor: 'pointer' }} onClick={() => goShow(s)}>
+                  <div onClick={() => goShow(s)} style={{ cursor: 'pointer' }}><Card style={{ marginBottom: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: '14px' }}>{s.venue || 'Show'}</div>
@@ -410,7 +410,7 @@ export default function ManagerPage() {
                         <span style={{ color: '#5A5570', fontSize: '18px' }}>›</span>
                       </div>
                     </div>
-                  </Card>
+                  </Card></div>
                 ))}
               </>
             )}
@@ -466,7 +466,7 @@ export default function ManagerPage() {
               const sm = showMembers.find(sm => sm.member_id === m.id)
               const memberTix = tickets.filter(t => t.member_id === m.id)
               return (
-                <Card key={m.id} style={{ marginBottom: '8px', cursor: 'pointer' }} onClick={() => goMember(m)}>
+                <div onClick={() => goMember(m)} style={{ cursor: 'pointer' }}><Card style={{ marginBottom: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: '14px' }}>{m.name}</div>
@@ -480,7 +480,7 @@ export default function ManagerPage() {
                     </div>
                     <span style={{ color: '#5A5570', fontSize: '18px' }}>›</span>
                   </div>
-                </Card>
+                </Card></div>
               )
             })}
           </div>
