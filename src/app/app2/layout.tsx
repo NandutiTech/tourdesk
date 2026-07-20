@@ -41,6 +41,7 @@ const NAV = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [userPlan, setUserPlan] = useState<string>('solo')
   const { isLoaded, setLoaded, applyCloudData, setToken, userEmail } = useStore()
   const router = useRouter()
   const pathname = usePathname()
@@ -81,6 +82,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     setToken(token, email)
+    // Fetch user plan
+    fetch('/api/plan', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => setUserPlan(d.plan || 'solo'))
+      .catch(() => {})
 
     // Clear old HTML app data
     try { localStorage.removeItem('tourdesk_data_v1') } catch {}
@@ -255,7 +261,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             maxHeight: 'calc(100vh - 57px)', overflowY: 'scroll',
             WebkitOverflowScrolling: 'touch' as any
           }}>
-            {NAV.map(section => (
+            {NAV.filter(section => {
+              if (section.section === '🎭 Manager' && userPlan !== 'manager') return false
+              return true
+            }).map(section => (
               <div key={section.section}>
                 <div style={{ padding: '8px 10px 4px', fontSize: '9px', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#5A5570' }}>
                   {section.section}
