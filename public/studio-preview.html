@@ -246,93 +246,77 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .dv-total-amt{font-size:15px;font-family:var(--mono);}
 .dv-foot{padding:14px 24px;background:#f0f0ea;border-top:1px solid var(--doc-line);font-size:9px;color:var(--doc-muted);}
 
-/* ── MOBILE ── */
 @media (max-width: 768px) {
-  html, body { overflow-x: hidden; }
-
-  /* Shell: stack vertical */
-  .shell { flex-direction: column; height: auto; overflow: visible; }
-
-  /* Sidebar becomes bottom tab bar */
-  .sidebar {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
-    width: 100%; height: 60px;
-    background: var(--card); border-top: 1px solid var(--border); border-right: none;
-    flex-direction: row; overflow: hidden;
-  }
-  /* Hide everything in sidebar except first sb-section nav buttons */
-  .sidebar > *:not(:first-child) { display: none; }
-  .sb-section { display: flex; flex-direction: row; width: 100%; padding: 0; }
-  .sb-label { display: none; }
-  .sb-item {
-    flex: 1; flex-direction: column; gap: 2px;
-    padding: 6px 4px 8px; font-size: 9px; font-weight: 600;
-    border-radius: 0; color: var(--muted); justify-content: center; align-items: center;
-  }
-  .sb-item.active { background: rgba(139,92,246,.1); color: var(--violet); }
-  .sb-icon { font-size: 18px; width: auto; }
-  .sb-badge { position: absolute; top: 4px; right: 8px; font-size: 8px; }
-  .sb-item { position: relative; }
-
-  /* Main gets bottom padding for tab bar */
-  .main { padding-bottom: 68px; overflow-y: auto; }
-  .screen { min-height: auto; }
-
-  /* Page header */
-  .ph { padding: 16px 16px 0; flex-direction: column; gap: 10px; }
-  .ph-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-
-  /* Topbar nav hidden */
-  .topbar-nav { display: none; }
-  .company-pill { padding: 4px 10px; font-size: 11px; }
-
-  /* Stats */
-  .stats { padding: 12px 16px; }
-  .g4 { grid-template-columns: 1fr 1fr; }
-  .g3 { grid-template-columns: 1fr 1fr; }
+  /* Allow scrolling */
+  html, body { overflow: auto !important; height: auto !important; }
+  
+  /* Unstick the shell so it scrolls */
+  .shell { height: auto !important; overflow: visible !important; flex-direction: column; }
+  
+  /* Hide sidebar on mobile */
+  .sidebar { display: none !important; }
+  
+  /* Main fills full width and scrolls */
+  .main { overflow: visible !important; width: 100%; }
+  
+  /* Topbar: hide nav links, keep logo + company */
+  .topbar-nav { display: none !important; }
+  
+  /* Page header stacks */
+  .ph { padding: 14px 14px 0; flex-direction: column; gap: 10px; }
+  .ph-actions { flex-wrap: wrap; gap: 6px; }
+  
+  /* Stats: 2 columns max */
+  .g4, .g3 { grid-template-columns: 1fr 1fr; }
   .g2 { grid-template-columns: 1fr; }
-
+  .stats { padding: 12px 14px; }
+  
   /* Alerts */
-  .alert { margin-left: 16px; margin-right: 16px; font-size: 11px; }
-
+  .alert { margin-left: 14px; margin-right: 14px; }
+  
   /* Section padding */
-  .sp { padding-left: 16px; padding-right: 16px; }
-
-  /* Multi column → single */
-  .two-col, .three-col, .sidebar-main { grid-template-columns: 1fr; }
-
-  /* Tables: hide less important columns */
-  .tbl th:nth-child(4), .tbl td:nth-child(4),
-  .tbl th:nth-child(6), .tbl td:nth-child(6),
-  .tbl th:nth-child(7), .tbl td:nth-child(7) { display: none; }
-
-  /* Bulletin doc */
-  .bull-wrap { padding: 12px; }
+  .sp { padding-left: 14px; padding-right: 14px; }
+  
+  /* All multi-cols → single */
+  .two-col, .three-col, .sidebar-main { grid-template-columns: 1fr !important; }
+  
+  /* Tables: scroll horizontally */
+  .card { overflow-x: auto; }
+  
+  /* Bulletin */
+  .bull-wrap { padding: 10px; }
   .bull-parties, .bull-sigs, .bull-nets { grid-template-columns: 1fr; }
-  .bull-table th:nth-child(3), .bull-table td:nth-child(3),
-  .bull-table th:nth-child(5), .bull-table td:nth-child(5) { display: none; }
-  .bull-net { flex-direction: column; gap: 6px; }
-  .bull-net-amt { font-size: 24px; }
-
-  /* Bulletin meta */
-  .bull-meta { gap: 8px; }
-
-  /* Form */
-  .form-row { grid-template-columns: 1fr; }
-
+  .bull-net { flex-direction: column; gap: 6px; align-items: flex-start; }
+  
+  /* Forms */
+  .form-row { grid-template-columns: 1fr !important; }
+  
   /* Devis */
   .dv-parties { grid-template-columns: 1fr; }
-  .dv-header { flex-direction: column; gap: 8px; }
+  .dv-header { flex-direction: column; gap: 10px; }
 
-  /* Guso */
-  .two-col > * { grid-column: 1; }
+  /* Bottom mobile nav */
+  .mobile-nav {
+    display: flex !important;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    background: var(--card); border-top: 1px solid var(--border);
+    padding: 6px 0 10px;
+  }
+  .mn-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; font-size: 9px; font-weight: 600; color: var(--muted);
+    cursor: pointer; border: none; background: none; font-family: var(--font);
+    padding: 4px 2px;
+  }
+  .mn-item.active { color: var(--violet); }
+  .mn-icon { font-size: 20px; }
+  
+  /* Space for bottom nav */
+  .main { padding-bottom: 70px; }
+}
 
-  /* Modal */
-  .modal { padding: 20px 16px 32px; }
-  .modal-overlay { align-items: flex-end; }
-
-  /* Cards */
-  .card-header { flex-wrap: wrap; gap: 8px; }
+@media (min-width: 769px) {
+  .mobile-nav { display: none !important; }
 }
 
 </style>
@@ -1225,5 +1209,24 @@ function showScreen(id) {
   if (sbMap[id] !== undefined) sbBtns[sbMap[id]]?.classList.add('active');
 }
 </script>
+
+<!-- Mobile bottom nav -->
+<nav class="mobile-nav" style="display:none;">
+  <button class="mn-item active" onclick="showScreen('dashboard');document.querySelectorAll('.mn-item').forEach(i=>i.classList.remove('active'));this.classList.add('active')">
+    <span class="mn-icon">⬛</span>Dashboard
+  </button>
+  <button class="mn-item" onclick="showScreen('bulletins');document.querySelectorAll('.mn-item').forEach(i=>i.classList.remove('active'));this.classList.add('active')">
+    <span class="mn-icon">💶</span>Bulletins
+  </button>
+  <button class="mn-item" onclick="showScreen('contracts');document.querySelectorAll('.mn-item').forEach(i=>i.classList.remove('active'));this.classList.add('active')">
+    <span class="mn-icon">📄</span>Contrats
+  </button>
+  <button class="mn-item" onclick="showScreen('declarations');document.querySelectorAll('.mn-item').forEach(i=>i.classList.remove('active'));this.classList.add('active')">
+    <span class="mn-icon">📋</span>Guso
+  </button>
+  <button class="mn-item" onclick="showScreen('artistes');document.querySelectorAll('.mn-item').forEach(i=>i.classList.remove('active'));this.classList.add('active')">
+    <span class="mn-icon">🎵</span>Artistes
+  </button>
+</nav>
 </body>
 </html>
